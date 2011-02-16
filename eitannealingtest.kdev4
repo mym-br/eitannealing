@@ -1,0 +1,4 @@
+[Project]
+Name=eitannealingtest
+Manager=KDevCMakeManager
+VersionControl=kdevgit

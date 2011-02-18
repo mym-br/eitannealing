@@ -23,13 +23,13 @@ void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(numElectrodes-1);
+	static Eigen::VectorXd aux(electrodes.size()-1);
 
 	// Do another iteration on the critical solver
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
-	aux = tensions[critical] - simulations[critical]->getX().start(numElectrodes-1);
+	aux = tensions[critical] - simulations[critical]->getX().start(electrodes.size()-1);
 	distance[critical] = aux.norm();
 	err[critical] = sqrt(simulations[critical]->getErrorl2Estimate());
 	maxdist[critical] = distance[critical] + err[critical];
@@ -211,7 +211,7 @@ void solution::initErrors()
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<nobs;i++) {
 		// Compare with observation
-		distance[i] = (simulations[i]->getX().start(numElectrodes-1)-tensions[i]).norm();
+		distance[i] = (simulations[i]->getX().start(electrodes.size()-1)-tensions[i]).norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
 		mindist[i] = max(distance[i] - err[i],0);

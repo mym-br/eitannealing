@@ -26,7 +26,7 @@ float *solution;
 // Just simulate the system to get an "observation"
 void initObs()
 {
-	obs::initObsProblem();
+	//obs::initObsProblem();
 
 	float *solution = new float[65];
 	int i;
@@ -72,7 +72,7 @@ void initObs()
 	for(i=0;i<nobs;i++) {
 		current[i] = 1;
 		// Prepare result
-		currents[i] = Eigen::VectorXd::Zero(numNodes-1);
+		currents[i] = Eigen::VectorXd::Zero(nodes.size()-1);
 		currents[i].start(nobs).fill(exitcurrent);
 		currents[i][i]=1;
 

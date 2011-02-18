@@ -308,10 +308,10 @@ void assembleProblemMatrix(float *cond, matrix **stiffnes)
 	*stiffnes = out;*/
 
 
-	matrix *out = new matrix(numNodes-1, numNodes-1);
+	matrix *out = new matrix(nodes.size()-1, nodes.size()-1);
 	double val;
-	out->startFill(3*(numNodes-1)); // estimate of the number of nonzeros (optional)
-	for (int i=0; i<numNodes-1; ++i) {
+	out->startFill(3*(nodes.size()-1)); // estimate of the number of nonzeros (optional)
+	for (int i=0; i<nodes.size()-1; ++i) {
 		nodeCoefficients *aux = nodeCoef[i];
 		while(aux) { // Col-major storage
 			while(aux->node < i) aux = aux->next; // skip upper triangular

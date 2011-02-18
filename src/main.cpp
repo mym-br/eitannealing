@@ -239,9 +239,9 @@ void workProc()
  int main(int argc, char *argv[])
  {
      QApplication app(argc, argv);
-     initProblem();
-     buildNodeCoefficients();
-     initObs();
+     initProblem(argv[1]);
+     //buildNodeCoefficients();
+     //initObs();
 
      //int i;
      //float *coefficients = new float[65];
@@ -268,7 +268,7 @@ void workProc()
      view->show();
      drawElements(*view);
      
-	 boost::thread worker(workProc);
+      //boost::thread worker(workProc);
 
      return app.exec();
     // worker.join();

@@ -1,67 +1,50 @@
 /*
  * initproblem.cpp
  *
- * 	Prepare the problem instance
+ * 	Read from file
  *
- * 		A 8x8 grid, each cell composed of 8 triangular elements
- * 			The grid is surrounded by 32 "electodes"
- *
- *        *   *
- *       /|\ /|\
- *		+-+-+-+-+...
- *     /|/|\|/|\|
- *    *-+-+-+-+-+
- *     \|\|/|\|/|
- *      +-+-+-+-+
- *     /|/|\|/|\|
- *    *-+-+-+-+-+
- *     \|\|/|\|/|
- *      +-+-+-+-+
- *		.        .
- *		.         .
- *      .          .
- *
- *
- *  Created on: Jun 25, 2010
+ *  Created on: Feb 17, 2011
  *      Author: thiago
  */
 
 #include "problemdescription.h"
 
+#include <fstream>
+#include <string>
+
+std::ifstream file;
+
 // Get the index of a node in the grid (no electrodes then) from
 //	its x, y coordinates
 inline int getElementIndex(int x, int y) { return 31+17*x+y; }
 
-node *nodes;
-int numNodes;
+std::vector<node> nodes;
+std::vector<triangularElement> elements;
+std::vector<triangularEletrode> electrodes;
+
 
 void fillNodes() {
-	numNodes = 32 + (8*2+1)*(8*2+1);
-	nodes = new node[numNodes];
-	int i,j;
-	// Electrodes 1st:
-	// Left side (notice the top left electrode is the ground node
-	//	and as such is added only at the end
-	for(i=1;i<8;i++) { nodes[i-1].x = -1; nodes[i-1].y = 15 - 2*i; }
-	// Bottom
-	for(i=0;i<8;i++) { nodes[i+7].x = 1+2*i; nodes[i+7].y = -1; }
-	// Right
-	for(i=0;i<8;i++) { nodes[i+15].x = 17; nodes[i+15].y = 1+2*i; }
-	// Top
-	for(i=0;i<8;i++) { nodes[i+23].x = 15 - 2*i; nodes[i+23].y = 17; }
-	// Now main nodes
-	for(i=0;i<17;i++) { // Column
-		for(j=0;j<17;j++) { // Row
-			int index = getElementIndex(i,j);
-			nodes[index].x = i;
-			nodes[index].y = 16 - j;
-		}
+	//file.seekg(0)
+	std::string aux;
+	do {
+	  std::getline(file,aux);
+	} while(aux.compare("$NOD")!=0);
+	
+	int numNodes;
+	file >> numNodes;
+	
+	nodes.reserve(numNodes);
+	
+	int i;
+	for(i=0;i<numNodes;i++) {
+	  float x, y;
+	  
+	  file.ignore(256, ' ');
+	  file >> x;
+	  file >> y;
 	}
-	// and finally, the top left electrode (Ground node)
-	nodes[numNodes-1].x = -1.0;
-	nodes[numNodes-1].y = 15.0;
 }
-
+/*
 triangularElement *elements;
 int numElements;
 void fillElements() {
@@ -137,10 +120,13 @@ void fillElectrodes()
 		electrodes[i+24].n3 = getElementIndex(14-2*i, 0);
 	}
 }
-
-void initProblem()
+*/
+void initProblem(char *filename)
 {
+	file.open(filename);
+	
+  
 	fillNodes();
-	fillElements();
-	fillElectrodes();
+//	fillElements();
+//	fillElectrodes();
 }

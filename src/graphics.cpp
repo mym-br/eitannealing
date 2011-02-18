@@ -35,7 +35,7 @@ void drawElements(viewport &view)
 	int i;
 	QPainter painter(&(view.getBuffer()));
     painter.eraseRect(0, 0, 400, 400);
-	for(i=0;i<numElements;i++) {
+	for(i=0;i<elements.size();i++) {
 		QPolygon polygon;
 		int n = elements[i].n1;
 		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
@@ -48,7 +48,7 @@ void drawElements(viewport &view)
 		painter.drawPolyline(polygon);
 	}
 	// Draw electrodes
-	for(i=0;i<numElectrodes;i++) {
+	for(i=0;i<electrodes.size();i++) {
 		node *base = &nodes[electrodes[i].baseNode];
 		node *n1 = &nodes[electrodes[i].n1];
 		node *n2 = &nodes[electrodes[i].n2];
@@ -84,7 +84,7 @@ void viewport::paintEvent ( QPaintEvent * event )
 	int i;
 	QPainter painter(this);
 	painter.eraseRect(0, 0, 400, 400);
-	for(i=0;i<numElements;i++) {
+	for(i=0;i<elements.size();i++) {
 		QPolygon polygon;
 		int n = elements[i].n1;
 		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
@@ -99,7 +99,7 @@ void viewport::paintEvent ( QPaintEvent * event )
 		painter.drawConvexPolygon(polygon);
 	}
 	// Draw electrodes
-	for(i=0;i<numElectrodes;i++) {
+	for(i=0;i<electrodes.size();i++) {
 		node *base = &nodes[electrodes[i].baseNode];
 		node *n1 = &nodes[electrodes[i].n1];
 		node *n2 = &nodes[electrodes[i].n2];

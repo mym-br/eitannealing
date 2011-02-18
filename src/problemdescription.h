@@ -8,6 +8,7 @@
 #ifndef PROBLEMDESCRIPTION_H_
 #define PROBLEMDESCRIPTION_H_
 
+#include <vector>
 
 struct node {
 	double x, y;
@@ -23,13 +24,10 @@ struct triangularEletrode {
 	int n1, n2, n3;
 };
 
-extern node *nodes;
-extern int numNodes;
-extern triangularElement *elements;
-extern int numElements;
-extern triangularEletrode *electrodes;
-extern int numElectrodes;
+extern std::vector<node> nodes;
+extern std::vector<triangularElement> elements;
+extern std::vector<triangularEletrode> electrodes;
 
-void initProblem();
+void initProblem(char *meshfilename);
 
 #endif /* PROBLEMDESCRIPTION_H_ */

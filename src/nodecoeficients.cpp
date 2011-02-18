@@ -58,10 +58,10 @@ void buildNodeCoefficients()
 {
 	int i;
 	// Init coefficients;
-	nodeCoef = new nodeCoefficients *[numNodes-1];
-	for(int i = 0; i<numNodes-1; i++) nodeCoef[i] = NULL;
+	nodeCoef = new nodeCoefficients *[nodes.size()-1];
+	for(int i = 0; i<nodes.size()-1; i++) nodeCoef[i] = NULL;
 	// Build electrodes
-	for(i = 0; i < numElectrodes; i++) {
+	for(i = 0; i < electrodes.size(); i++) {
 		if(i==0) { // Ground node, coefficients of the base node are zeroed
 		    // the 1st node...
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n1],
@@ -117,7 +117,7 @@ void buildNodeCoefficients()
 	}
 	// Now prepare the coefficients due to the elements
 	double c11, c22, c33, c12, c23, c13;
-	for(i = 0; i < numElements; i++) {
+	for(i = 0; i < elements.size(); i++) {
 		calcElementCoefficients(i, c11, c22, c33, c12, c13, c23);
 		// Node 1
 		insertNewCoefficient(&nodeCoef[elements[i].n1],

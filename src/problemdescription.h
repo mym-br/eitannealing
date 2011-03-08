@@ -19,7 +19,7 @@ struct triangularElement {
 	int condIndex;
 };
 
-struct triangularEletrode {
+structt riangularEletrode {
 	int baseNode;
 	int n1, n2, n3;
 };

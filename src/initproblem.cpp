@@ -37,48 +37,59 @@ void fillNodes() {
 	
 	int i;
 	for(i=0;i<numNodes;i++) {
-	  float x, y;
+	  node n;
 	  
 	  file.ignore(256, ' ');
-	  file >> x;
-	  file >> y;
+	  file >> n.x;
+	  file >> n.y;
+	  file.ignore(256, ' ');
+	  nodes.push_back(n);
+	}
+}
+
+void fillElements() {
+
+	std::string aux;
+	do {
+	  std::getline(file,aux);
+	} while(aux.compare("$ELM")!=0);
+  
+	
+	int numElements;	// Notice this includes also electrode elements
+	file >> numElements;
+	
+	elements.reserve(numElements);
+	int i;
+	for(i=0;i<numElements;i++) {
+	  node n;
+	  int id;
+	  int n1, n2, n3;
+	  file.ignore(256, ' ');
+	  file.ignore(256, ' ');
+	  file >> id;	  
+	  file.ignore(256, ' ');
+	  file.ignore(256, ' ');
+	  file >> n1 >> n2 >> n3;
+	  
+	  switch(id) {
+	      case 10000:	// electrode
+		  
+		break;
+	      case 2001:	// internal elements
+		  
+		break;
+	      case 1001:	// external ring
+		break;
+		
+		
+	      
+	      
+		
+	  }
+	
 	}
 }
 /*
-triangularElement *elements;
-int numElements;
-void fillElements() {
-
-	numElements = 512;
-	elements = new triangularElement[512];
-
-	int elementCount = 0;
-	int i, j;
-	for(i=0;i<16;i++) { // Column
-		for(j=0;j<16;j++) { // Row
-			if((i+j)%2) { // odd elements
-				elements[elementCount].n1 = getElementIndex(i,j);
-				elements[elementCount].n2 = getElementIndex(i,j+1);
-				elements[elementCount].n3 = getElementIndex(i+1,j+1);
-				elements[elementCount++].condIndex = 1+8*(i/2) + j/2;
-				elements[elementCount].n1 = getElementIndex(i,j);
-				elements[elementCount].n2 = getElementIndex(i+1,j);
-				elements[elementCount].n3 = getElementIndex(i+1,j+1);
-				elements[elementCount++].condIndex = 1+8*(i/2) + j/2;
-			} else { // Even elements
-				elements[elementCount].n1 = getElementIndex(i,j);
-				elements[elementCount].n2 = getElementIndex(i,j+1);
-				elements[elementCount].n3 = getElementIndex(i+1,j);
-				elements[elementCount++].condIndex = 1+8*(i/2) + j/2;
-				elements[elementCount].n1 = getElementIndex(i+1,j);
-				elements[elementCount].n2 = getElementIndex(i,j+1);
-				elements[elementCount].n3 = getElementIndex(i+1,j+1);
-				elements[elementCount++].condIndex = 1+8*(i/2) + j/2;
-			}
-		}
-	}
-}
-
 triangularEletrode *electrodes;
 int numElectrodes;
 
@@ -127,6 +138,5 @@ void initProblem(char *filename)
 	
   
 	fillNodes();
-//	fillElements();
-//	fillElectrodes();
+	fillElements();//	fillElectrodes();
 }

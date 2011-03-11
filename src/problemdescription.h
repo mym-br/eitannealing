@@ -9,6 +9,7 @@
 #define PROBLEMDESCRIPTION_H_
 
 #include <vector>
+#include <map>
 
 struct node {
 	double x, y;
@@ -22,11 +23,14 @@ struct triangularElement {
 struct triangularEletrode {
 	int baseNode;
 	int n1, n2, n3;
+	//int getBaseNode() const {return this->baseNode;}
 };
 
 extern std::vector<node> nodes;
 extern std::vector<triangularElement> elements;
 extern std::vector<triangularEletrode> electrodes;
+
+extern std::map<int, int> node2coefficient;
 
 void initProblem(char *meshfilename);
 

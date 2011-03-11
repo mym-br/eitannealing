@@ -24,7 +24,7 @@ inline int getElementIndex(int x, int y) { return 31+17*x+y; }
 std::vector<node> nodes;
 std::vector<triangularElement> elements;
 std::vector<triangularEletrode> electrodes;
-
+std::map<int, int> node2coefficient;
 
 
 void addToElectrode(int n1, int n2, int n3)
@@ -120,12 +120,17 @@ void fillElements() {
 	      case 10000:	// electrode
 		 addToElectrode(n1, n2, n3); 
 		break;
+	      
+	      case 1001:	// external ring
+		node2coefficient.find(n1)
+
+		break;
+		
+	      
 	      case 2001:	// internal elements
 		  
 		break;
-	      case 1001:	// external ring
-		break;
-		
+	      
 		
 	      
 	      

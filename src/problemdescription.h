@@ -19,9 +19,10 @@ struct triangularElement {
 	int condIndex;
 };
 
-structt riangularEletrode {
+struct triangularEletrode {
 	int baseNode;
 	int n1, n2, n3;
+	//int getBaseNode() const {return this->baseNode;}
 };
 
 extern std::vector<node> nodes;

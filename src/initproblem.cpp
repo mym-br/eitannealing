@@ -12,6 +12,7 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <set>
 #include <boost/lambda/lambda.hpp>
 
 
@@ -93,20 +94,20 @@ void fillNodes() {
 }
 
 void fillElements() {
-
+	std::set<int> outerRingNodes;
+	std::set<int> innerNodes;
 	std::string aux;
 	do {
 	  std::getline(file,aux);
 	} while(aux.compare("$ELM")!=0);
   
-	
+	triangularElement temp;
 	int numElements;	// Notice this includes also electrode elements
 	file >> numElements;
 	
 	elements.reserve(numElements);
 	int i;
 	for(i=0;i<numElements;i++) {
-	  node n;
 	  int id;
 	  int n1, n2, n3;
 	  file.ignore(256, ' ');
@@ -118,70 +119,55 @@ void fillElements() {
 	  
 	  switch(id) {
 	      case 10000:	// electrode
-		 addToElectrode(n1, n2, n3); 
-		break;
+			 addToElectrode(n1, n2, n3); 
+			break;
 	      
 	      case 1001:	// external ring
-		node2coefficient.find(n1)
-
-		break;
-		
+			innerNodes.erase(n1);
+			innerNodes.erase(n2);
+			innerNodes.erase(n3);
+			outerRingNodes.insert(n1);
+			outerRingNodes.insert(n2);
+			outerRingNodes.insert(n3);
+			temp.n1 = n1;
+			temp.n2 = n2;
+			temp.n3 = n3;
+			elements.push_back(temp);
+			break;		
 	      
 	      case 2001:	// internal elements
-		  
-		break;
-	      
-		
-	      
-	      
-		
+			if(!innerNodes.count(n1))
+				outerRingNodes.insert(n1);
+			if(!innerNodes.count(n2))
+				outerRingNodes.insert(n2);
+			if(!innerNodes.count(n3))
+				outerRingNodes.insert(n3);
+			temp.n1 = n1;
+			temp.n2 = n2;
+			temp.n3 = n3;
+			elements.push_back(temp);
+			break;		
 	  }
-	
-	}
-}
-/*
-triangularEletrode *electrodes;
-int numElectrodes;
+		// Prepare node <-> condindex map
+		using namespace boost::lambda;	// Lambda black magic
+		int condIndex = 0;
+		// Electrode coefficients
+		std::for_each(electrodes.begin(), electrodes.end(),
+			var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
+				=var(condIndex)++);
 
-void fillElectrodes()
-{
-	numElectrodes = 32;
-	electrodes = new triangularEletrode[numElectrodes];
-	int i;
-	// Left side (1st is the ground node
-	electrodes[0].baseNode = numNodes-1;
-	electrodes[0].n1 = getElementIndex(0, 0);
-	electrodes[0].n2 = getElementIndex(0, 1);
-	electrodes[0].n3 = getElementIndex(0, 2);
-	for(i=1;i<8;i++) {
-		electrodes[i].baseNode = i-1;
-		electrodes[i].n1 = getElementIndex(0, 2*i);
-		electrodes[i].n2 = getElementIndex(0, 2*i+1);
-		electrodes[i].n3 = getElementIndex(0, 2*i+2);
-	}
-	// Bottom
-	for(i=0;i<8;i++) {
-		electrodes[i+8].baseNode = i+7;
-		electrodes[i+8].n1 = getElementIndex(2*i, 16);
-		electrodes[i+8].n2 = getElementIndex(2*i+1, 16);
-		electrodes[i+8].n3 = getElementIndex(2*i+2, 16);
-	}
-	// Right
-	for(i=0;i<8;i++) {
-		electrodes[i+16].baseNode = i+15;
-		electrodes[i+16].n1 = getElementIndex(16, 16-2*i);
-		electrodes[i+16].n2 = getElementIndex(16, 15-2*i);
-		electrodes[i+16].n3 = getElementIndex(16, 14-2*i);
-	}
-	// Top
-	for(i=0;i<8;i++) {
-		electrodes[i+24].baseNode = i+23;
-		electrodes[i+24].n1 = getElementIndex(16-2*i, 0);
-		electrodes[i+24].n2 = getElementIndex(15-2*i, 0);
-		electrodes[i+24].n3 = getElementIndex(14-2*i, 0);
+		// Outter ring coefficient
+		std::for_each(electrodes.begin(), electrodes.end(),
+			var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
+				=condIndex);
+		condIndex++;
+    	// Outter ring coefficient
+		std::for_each(electrodes.begin(), electrodes.end(),
+			var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
+				=var(condIndex)++);
 	}
 }
-*/
+
 void initProblem(char *filename)
 {
 	file.open(filename);

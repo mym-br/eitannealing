@@ -30,23 +30,10 @@ std::map<int, int> node2coefficient;
 
 void addToElectrode(int n1, int n2, int n3)
 {
-	
-	int tmp;
-	// find lesser node (suposedly the base one
-	if(n3 < n2) {
-	  tmp = n2; n2 = n3; n3 = tmp;
-	}
-	if(n2 < n1) {
-	  tmp = n1; n1 = n2; n2 = tmp;
-	}
 	using namespace boost::lambda;
 	// Boost Lambda for locally-defined functor
 	// STL has no support for pointer to member :(
 		
-	//int e = &(*electrodes.begin()) ->* &triangularEletrode::baseNode;
-	
-	//bool res = ((&(*_1) ->* &triangularEletrode::baseNode)==n1)(electrodes.begin());
-	
 	// find the electrode node
 	std::vector<triangularEletrode>::iterator electrode = 
 	    std::find_if(electrodes.begin(), electrodes.end(),
@@ -115,13 +102,13 @@ void fillElements() {
 	  file >> id;	  
 	  file.ignore(256, ' ');
 	  file.ignore(256, ' ');
+	  file.ignore(256, ' ');
 	  file >> n1 >> n2 >> n3;
-	  
+	  // 1 based
+	  n1--;
+	  n2--;
+	  n3--;
 	  switch(id) {
-	      case 10000:	// electrode
-			 addToElectrode(n1, n2, n3); 
-			break;
-	      
 	      case 1001:	// external ring
 			innerNodes.erase(n1);
 			innerNodes.erase(n2);
@@ -147,25 +134,50 @@ void fillElements() {
 			temp.n3 = n3;
 			elements.push_back(temp);
 			break;		
-	  }
-		// Prepare node <-> condindex map
-		using namespace boost::lambda;	// Lambda black magic
-		int condIndex = 0;
-		// Electrode coefficients
-		std::for_each(electrodes.begin(), electrodes.end(),
-			var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
-				=var(condIndex)++);
 
-		// Outter ring coefficient
-		std::for_each(electrodes.begin(), electrodes.end(),
-			var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
-				=condIndex);
-		condIndex++;
-    	// Outter ring coefficient
-		std::for_each(electrodes.begin(), electrodes.end(),
-			var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
-				=var(condIndex)++);
+		 case 10000:	// electrode
+						// For this to work, electrodes bust be the last
+						//	entity declared
+						// FIXME: Add consistency tests (i.e.: exactly two nodes
+						//	should be present in outterRingNodes)
+			 int baseNode = -1;
+			 int e1, e2;
+			 if(outerRingNodes.count(n1)==0) {
+				 baseNode = n1;
+				 e1 = n2;
+				 e2 = n3;
+			 } else if(outerRingNodes.count(n2)==0) {
+				 baseNode = n2;
+				 e1 = n1;
+				 e2 = n3;
+			 } 
+			 else if(outerRingNodes.count(n3)==0) {
+				 baseNode = n3;
+				 e1 = n1;
+				 e2 = n2;
+			 } 
+			 addToElectrode(baseNode, e1, e2);
+
+			 break;
+	  }
 	}
+	// Prepare node <-> condindex map
+	using namespace boost::lambda;	// Lambda black magic
+	int condIndex = 0;
+	// Electrode coefficients
+	std::for_each(electrodes.begin(), electrodes.end(),
+		var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
+			=var(condIndex)++);
+
+	// Outter ring coefficient
+	std::for_each(electrodes.begin(), electrodes.end(),
+		var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
+			=condIndex);
+	condIndex++;
+	// Outter ring coefficient
+	std::for_each(electrodes.begin(), electrodes.end(),
+		var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
+			=var(condIndex)++);
 }
 
 void initProblem(char *filename)

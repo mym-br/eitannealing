@@ -32,6 +32,7 @@ class viewport : public QWidget {
 		QImage paintbuff;
 		float *solution;
 		QMutex solutionMutex;
+		float scale;
 	public:
 		viewport(int width, int height, const char *title);
 		QImage &getBuffer() {

@@ -264,7 +264,7 @@ void workProc()
      //matrixView.setWindowTitle("Stiffness");
      //matrixView.show();
 
-     view =new viewport(400, 400, "Reverse Problem");
+     view =new viewport(600, 600, "Reverse Problem");
      view->show();
      drawElements(*view);
      

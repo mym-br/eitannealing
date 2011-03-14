@@ -17,7 +17,7 @@
 
 QPoint translateCoordinate(float x, float y)
 {
-	return QPoint((int)(20*x+0.5)+40, 360 - (int)(20*y+.5));
+	return QPoint((int)(1650*x+0.5)+300, 300 - (int)(1650*y+.5));
 }
 
 viewport::viewport(int width, int height, const char *title) : paintbuff(width, height, QImage::Format_RGB32)
@@ -83,6 +83,7 @@ void viewport::paintEvent ( QPaintEvent * event )
 	QMutexLocker lock(&solutionMutex);
 	int i;
 	QPainter painter(this);
+	painter.setRenderHint(QPainter::Antialiasing);
 	painter.eraseRect(0, 0, 400, 400);
 	for(i=0;i<elements.size();i++) {
 		QPolygon polygon;
@@ -94,7 +95,7 @@ void viewport::paintEvent ( QPaintEvent * event )
 		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
 		n = elements[i].n1;
 		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		int level = 255*(solution[elements[i].condIndex]-1);
+		int level = 255;//*(solution[elements[i].condIndex]-1);
 		painter.setBrush(QBrush(QColor(level,level,level)));
 		painter.drawConvexPolygon(polygon);
 	}

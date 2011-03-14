@@ -32,14 +32,14 @@ class viewport : public QWidget {
 		QImage paintbuff;
 		float *solution;
 		QMutex solutionMutex;
-		float scale;
 	public:
 		viewport(int width, int height, const char *title);
 		QImage &getBuffer() {
 			return this->paintbuff;
 		}
-		void setCurrentSolution(float *val);
+		void setCurrentSolution(float *val);		
 	protected:
+		QBrush viewport::getBrushForElement(int n1, int n2, int n3);
 	  // override default paint event
 	  void paintEvent ( QPaintEvent * event );
 };

@@ -31,6 +31,7 @@ extern std::vector<triangularElement> elements;
 extern std::vector<triangularEletrode> electrodes;
 
 extern std::map<int, int> node2coefficient;
+extern int numcoefficients;
 
 void initProblem(char *meshfilename);
 

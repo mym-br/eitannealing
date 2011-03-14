@@ -26,6 +26,7 @@ std::vector<node> nodes;
 std::vector<triangularElement> elements;
 std::vector<triangularEletrode> electrodes;
 std::map<int, int> node2coefficient;
+int numcoefficients;
 
 
 void addToElectrode(int n1, int n2, int n3)
@@ -178,6 +179,8 @@ void fillElements() {
 	std::for_each(electrodes.begin(), electrodes.end(),
 		var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
 			=var(condIndex)++);
+	
+	numcoefficients = condIndex;
 }
 
 void initProblem(char *filename)

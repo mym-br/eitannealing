@@ -12,7 +12,8 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QMutexLocker>
-
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 
 QPoint translateCoordinate(float x, float y)
@@ -38,7 +39,7 @@ QBrush viewport::getBrushForElement(int n1, int n2, int n3)
 	s1 = solution[node2coefficient[n1]];
 	s2 = solution[node2coefficient[n2]];
 	s3 = solution[node2coefficient[n3]];
-	// Quick hardcoded bubblesort
+	// Quick hardcoded sort
 	
 	if(s1 > s2) {
 	    f_aux = s1; s1 = s2; s2 = f_aux;
@@ -52,15 +53,41 @@ QBrush viewport::getBrushForElement(int n1, int n2, int n3)
 		aux = n1; n1 = n2; n2 = aux;
 	    }
 	}	
+	if((s3-s1)<0.001) {
+		int level = 255*(((s1+s3)/2)-1);
+		return QBrush(QColor(level,level,level));
+	}
 	
 	// Ok, so now we must find both control points
-	// 	let's say p0 = n1
+	// 	let's say p0 = n1		
+	float alpha = (s2-s1)/(s3-s1);	// 0 <= x <= 1
+	Eigen::Vector2d a(
+		nodes[n3].x - nodes[n1].x,
+		nodes[n3].y - nodes[n1].y),
+					b(
+		nodes[n2].x - nodes[n1].x,
+		nodes[n2].y - nodes[n1].y);
+
+	float c = b.y() - alpha*a.y();
+	float s = alpha*a.x() - b.x();
+	float cc = c*c;
+	float ss = s*s;
+	float cs = c*s;
+	float x = cc*a.x() + cs*a.y();
+	float y = ss*a.y() + cs*a.x();
+	x /= (cc+ss);
+	y /= (cc+ss);
+
+	QLinearGradient color(
+		translateCoordinate(nodes[n1].x, nodes[n1].y),
+		translateCoordinate(nodes[n1].x+x, nodes[n1].y+y));
 	
-	
-	float x = (s2-s1)/(s3-s1);	// 0 <= x <= 1
-	
-	
-	
+	int level = 255*(s1-1);
+	color.setColorAt(0, QColor(level,level,level));
+	level = 255*(s3-1);
+	color.setColorAt(1, QColor(level,level,level));
+
+	return QBrush(color);
 }
 
 void drawElements(viewport &view)
@@ -78,7 +105,7 @@ void drawElements(viewport &view)
 		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
 		n = elements[i].n1;
 		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		painter.drawPolyline(polygon);
+		painter.drawConvexPolygon(polygon);
 	}
 	// Draw electrodes
 	for(i=0;i<electrodes.size();i++) {
@@ -106,7 +133,7 @@ void drawSolution(viewport &view, float *solution)
 void viewport::setCurrentSolution(float *val)
 {
 	QMutexLocker lock(&solutionMutex);
-	memcpy(this->solution, val, sizeof(float)*65);
+	memcpy(this->solution, val, sizeof(float)*numcoefficients);
 	QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
 }
 
@@ -128,11 +155,8 @@ void viewport::paintEvent ( QPaintEvent * event )
 		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
 		n = elements[i].n1;
 		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		int level = 255;//*(solution[elements[i].condIndex]-1);
-		QLinearGradient color;
-		color.setColorAt(
-		
-		painter.setBrush(QBrush(QColor(level,level,level)));
+		int level = 255;//*(solution[elements[i].condIndex]-1);		
+		painter.setBrush(getBrushForElement(elements[i].n1, elements[i].n2, elements[i].n3));
 		painter.drawConvexPolygon(polygon);
 	}
 	// Draw electrodes

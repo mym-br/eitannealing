@@ -124,12 +124,12 @@ void fillElements() {
 			break;		
 	      
 	      case 2001:	// internal elements
-			if(!innerNodes.count(n1))
-				outerRingNodes.insert(n1);
-			if(!innerNodes.count(n2))
-				outerRingNodes.insert(n2);
-			if(!innerNodes.count(n3))
-				outerRingNodes.insert(n3);
+			if(!outerRingNodes.count(n1))
+				innerNodes.insert(n1);
+			if(!outerRingNodes.count(n2))
+				innerNodes.insert(n2);
+			if(!outerRingNodes.count(n3))
+				innerNodes.insert(n3);
 			temp.n1 = n1;
 			temp.n2 = n2;
 			temp.n3 = n3;
@@ -171,14 +171,13 @@ void fillElements() {
 			=var(condIndex)++);
 
 	// Outter ring coefficient
-	std::for_each(electrodes.begin(), electrodes.end(),
-		var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
-			=condIndex);
+	std::for_each(outerRingNodes.begin(), outerRingNodes.end(),
+		var(node2coefficient)[_1]=condIndex);
 	condIndex++;
-	// Outter ring coefficient
-	std::for_each(electrodes.begin(), electrodes.end(),
-		var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
-			=var(condIndex)++);
+
+	// Inner coefficients
+	std::for_each(innerNodes.begin(), innerNodes.end(),
+		var(node2coefficient)[_1]=var(condIndex)++);
 	
 	numcoefficients = condIndex;
 }

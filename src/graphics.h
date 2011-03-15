@@ -39,7 +39,7 @@ class viewport : public QWidget {
 		}
 		void setCurrentSolution(float *val);		
 	protected:
-		QBrush viewport::getBrushForElement(int n1, int n2, int n3);
+	  QBrush getBrushForElement(int n1, int n2, int n3);
 	  // override default paint event
 	  void paintEvent ( QPaintEvent * event );
 };

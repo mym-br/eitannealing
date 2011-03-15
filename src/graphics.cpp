@@ -34,8 +34,8 @@ viewport::viewport(int width, int height, const char *title) : paintbuff(width, 
 QBrush viewport::getBrushForElement(int n1, int n2, int n3)
 {
 	// Reorder the elements so that sigma(n1) <= sigma(n2) <= sigma(n3)
-	float s1, s2, s3;
-	int aux, f_aux;
+	float s1, s2, s3, f_aux;
+	int aux;
 	s1 = solution[node2coefficient[n1]];
 	s2 = solution[node2coefficient[n2]];
 	s3 = solution[node2coefficient[n3]];

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <set>
 #include <boost/lambda/lambda.hpp>
+#include <iostream>
 
 
 std::ifstream file;
@@ -157,7 +158,7 @@ void fillElements() {
 				 baseNode = n3;
 				 e1 = n1;
 				 e2 = n2;
-			 } 
+			 } 			 			 
 			 addToElectrode(baseNode, e1, e2);
 
 			 break;
@@ -181,7 +182,7 @@ void fillElements() {
 		var(node2coefficient)[_1]=var(condIndex)++);
 	
 	numcoefficients = condIndex;
-	groundNode = electrodes..front().baseNode;
+	groundNode = electrodes.front().baseNode;
 }
 
 void initProblem(char *filename)
@@ -191,4 +192,11 @@ void initProblem(char *filename)
   
 	fillNodes();
 	fillElements();//	fillElectrodes();
+	
+	using namespace boost::lambda;	// Lambda black magic
+	std::for_each(electrodes.begin(), electrodes.end(),
+		std::cout << (&_1 ->* &triangularEletrode::baseNode) << 
+		constant(' ') << (&_1 ->* &triangularEletrode::n1) <<
+		constant(' ') << (&_1 ->* &triangularEletrode::n2) << 
+		constant(' ') << (&_1 ->* &triangularEletrode::n3) << constant('\n'));
 }

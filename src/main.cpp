@@ -244,6 +244,7 @@ void workProc()
 	 float *solution = new float[numcoefficients];
 	 for(int i=0;i<numcoefficients;i++) solution[i] = 2;
 
+	 solution[32] = 1.5;
 	 solution[node2coefficient[288]] = 1.5;
 	 solution[node2coefficient[358]] = 1.0;
 	 solution[node2coefficient[346]] = 1.0;	 

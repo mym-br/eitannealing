@@ -28,6 +28,7 @@ std::vector<triangularElement> elements;
 std::vector<triangularEletrode> electrodes;
 std::map<int, int> node2coefficient;
 int numcoefficients;
+float electrodeh;
 
 int groundNode;
 
@@ -192,6 +193,7 @@ void initProblem(char *filename)
   
 	fillNodes();
 	fillElements();//	fillElectrodes();
+	electrodeh = 0.0001;
 	
 	using namespace boost::lambda;	// Lambda black magic
 	std::for_each(electrodes.begin(), electrodes.end(),

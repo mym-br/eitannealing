@@ -15,6 +15,35 @@ nodeCoefficients **nodeCoef;
 
 #define _COEFFICIENT_EPSLON_ (0.00001)
 
+void calcELectrodeCoefficients(int electrode,
+			double &cbb, double &c11, double &c22, double &c33,
+			double &cb1, double &cb2, double &cb3,
+			double &c12, double c23)
+{
+	// FIXME: Approximate model, presumes 
+	//	the outter edges are approximately paralel
+	Eigen::Vector2d	// V3: n2 -> n1 v3: n2 -> n3
+		v1(	nodes[electrodes[electrode].n1].x - nodes[electrodes[electrode].n2].x,
+			nodes[electrodes[electrode].n1].y - nodes[electrodes[electrode].n2].y),
+		v3(	nodes[electrodes[electrode].n3].x - nodes[electrodes[electrode].n2].x,
+			nodes[electrodes[electrode].n3].y - nodes[electrodes[electrode].n2].y);
+	
+	cb1 = -v1.norm()/(2*electrodeh);
+	c12 = .25/cb1;
+	c11 = -(cb1 + c12);
+	
+	cb3 = -v3.norm()/(2*electrodeh);
+	c23 = .25/cb3;
+	c33 = -(cb3 + c23);
+	
+	cb2 = cb3 + cb1;
+	c22 = -(cb2 + c12 + c23);
+	
+	cbb = -(cb1 + cb2 + cb3);  
+}
+			
+
+
 void calcElementCoefficients(int element,
 		double &c11, double &c22, double &c33,
 		double &c12, double &c13, double &c23)
@@ -71,57 +100,64 @@ void buildNodeCoefficients()
 	for(int i = 0; i<nodes.size()-1; i++) nodeCoef[i] = NULL;
 	// Build electrodes
 	for(i = 0; i < electrodes.size(); i++) {
+		double cbb, c11, c22, c33, cb1, cb2, cb3, c12, c23;
+		calcELectrodeCoefficients(i, cbb, c11, c22, c33, cb1, cb2, cb3, c12, c23);
+		int index = node2coefficient[electrodes[i].baseNode]; 
 		if(electrodes[i].baseNode==groundNode) { // Ground node, coefficients of the base node are zeroed
 		    // the 1st node...
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n1],
-						    electrodes[i].n1, 0.0, 1.0);
+					electrodes[i].n1, index, c11);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n1],
-						    electrodes[i].n2, 0.0,-0.5);
+					electrodes[i].n2, index, c12);
 		    // the 2nd...
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n2],
-						    electrodes[i].n2, 0.0, 2.0);
+					electrodes[i].n2, index, c22);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n2],
-						    electrodes[i].n1, 0.0,-0.5);
+					electrodes[i].n1, index, c12);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n2],
-						    electrodes[i].n3, 0.0,-0.5);
+					electrodes[i].n3, index, c23);
+		    
 		    // ... and the 3rd
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n3],
-						    electrodes[i].n3, 0.0, 1.0);
+					electrodes[i].n3, index, c33);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n3],
-						    electrodes[i].n2, 0.0,-0.5);
+					electrodes[i].n2, index, c23);
 		} else {
 		    // Add to the base node...
 		    insertNewCoefficient(&nodeCoef[electrodes[i].baseNode],
-				    electrodes[i].baseNode, 0.0, 2.0);
+				    electrodes[i].baseNode, index, cbb);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].baseNode],
-						    electrodes[i].n1, 0.0,-0.5);
+						    electrodes[i].n1, index,cb1);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].baseNode],
-						    electrodes[i].n2, 0.0,-1.0);
+						    electrodes[i].n2, index, cb2);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].baseNode],
-						    electrodes[i].n3, 0.0,-0.5);
-		    // And to the 1st node...
+						    electrodes[i].n3, index, cb3);
+		    
+		    // the 1st node...
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n1],
-						    electrodes[i].n1, 0.0, 1.0);
+					electrodes[i].n1, index, c11);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n1],
-						    electrodes[i].baseNode, 0.0,-0.5);
+					electrodes[i].n2, index, c12);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n1],
-						    electrodes[i].n2, 0.0,-0.5);
+					electrodes[i].baseNode, index, cb1);
 		    // the 2nd...
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n2],
-						    electrodes[i].n2, 0.0, 2.0);
+					electrodes[i].n2, index, c22);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n2],
-						    electrodes[i].baseNode, 0.0,-1.0);
+					electrodes[i].n1, index, c12);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n2],
-						    electrodes[i].n1, 0.0,-0.5);
+					electrodes[i].n3, index, c23);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n2],
-						    electrodes[i].n3, 0.0,-0.5);
+					electrodes[i].baseNode, index, cb2);
+		    
 		    // ... and the 3rd
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n3],
-						    electrodes[i].n3, 0.0, 1.0);
+					electrodes[i].n3, index, c33);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n3],
-						    electrodes[i].baseNode, 0.0,-0.5);
+					electrodes[i].n2, index, c23);
 		    insertNewCoefficient(&nodeCoef[electrodes[i].n3],
-						    electrodes[i].n2, 0.0,-0.5);
+					electrodes[i].baseNode, index, cb3);
+		    
 		}
 	}
 	// Now prepare the coefficients due to the elements

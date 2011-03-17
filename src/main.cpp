@@ -249,7 +249,8 @@ void workProc()
 	 solution[node2coefficient[358]] = 1.0;
 	 solution[node2coefficient[346]] = 1.0;	 
 	 
-     //buildNodeCoefficients();
+     buildNodeCoefficients();
+     //stiffness0 = assembleProblemMatrix(coefficients);
      //initObs();
 
      //int i;

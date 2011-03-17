@@ -26,6 +26,8 @@ struct triangularEletrode {
 	//int getBaseNode() const {return this->baseNode;}
 };
 
+extern float electrodeh;
+
 extern std::vector<node> nodes;
 extern std::vector<triangularElement> elements;
 extern std::vector<triangularEletrode> electrodes;
@@ -33,6 +35,7 @@ extern std::vector<triangularEletrode> electrodes;
 extern std::map<int, int> node2coefficient;
 extern int numcoefficients;
 extern int groundNode;
+
 
 void initProblem(char *meshfilename);
 

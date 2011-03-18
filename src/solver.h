@@ -54,15 +54,15 @@ class CG_Solver {
 		double alpha, eta, eta_p1;
 		double c, c_1, s, s_1;
 		// Circular buffers
-		double w[360];
-		double wt[360];
+		double w[560];
+		double wt[560];
 		double rt1, r1, r2, r3;
-		double err[360];
+		double err[560];
 		//double merr;
 		double r0norm;
 
-		double eta_[360];
-		double alpha_[360];
+		double eta_[560];
+		double alpha_[560];
 		
 
 

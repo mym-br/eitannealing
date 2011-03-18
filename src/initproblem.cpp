@@ -183,7 +183,7 @@ void fillElements() {
 		var(node2coefficient)[_1]=var(condIndex)++);
 	
 	numcoefficients = condIndex;
-	groundNode = electrodes.front().baseNode;
+	groundNode = electrodes.back().baseNode;
 }
 
 void initProblem(char *filename)

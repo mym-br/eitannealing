@@ -18,7 +18,7 @@ nodeCoefficients **nodeCoef;
 void calcELectrodeCoefficients(int electrode,
 			double &cbb, double &c11, double &c22, double &c33,
 			double &cb1, double &cb2, double &cb3,
-			double &c12, double c23)
+			double &c12, double &c23)
 {
 	// FIXME: Approximate model, presumes 
 	//	the outter edges are approximately paralel
@@ -164,8 +164,7 @@ void buildNodeCoefficients()
 	double c11, c22, c33, c12, c23, c13;
 	for(i = 0; i < elements.size(); i++) {
 		calcElementCoefficients(i, c11, c22, c33, c12, c13, c23);
-		c11 /= 3; c22 /= 3; c33 /= 3; c12 /= 3; c13 /= 3; c23 /= 3;
-		
+				
 		// Node 1
 		insertNewElementCoefficient(&nodeCoef[elements[i].n1],
 				elements[i].n1, i, c11);

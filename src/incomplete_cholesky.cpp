@@ -7,9 +7,21 @@
 
 #include "incomplete_cholesky.h"
 
+#ifdef USE_CBLAS
 extern "C" {
 #include <cblas.h>
 }
+#else
+
+void cblas_dscal(int n, double alpha, double *x, int inc)
+{
+	int i;
+	for(i=0;i<n;i++) {
+		*x *= alpha;
+		x += inc;
+	}
+}
+#endif
 
 
 SparseIncompleteLLT::SparseIncompleteLLT(const Eigen::SparseMatrix<double, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor >& matrix):

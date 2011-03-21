@@ -19,6 +19,27 @@ typedef Eigen::SparseMatrix<double, Eigen::ColMajor|Eigen::SelfAdjoint|Eigen::Lo
 void assembleProblemMatrix(float *cond, matrix **stiffnes);
 void assembleProblemMatrix(float *cond, matrix **stiffnes, int numNodes, nodeCoefficients **nodeCoef);
 
+template<class base, size_t len> class circularbuff
+{
+	base _val[len];
+	public:
+
+		typedef base basetype;
+
+		const base &operator[](int i) const {
+			if(i>=0)
+				return _val[i%len];
+			return _val[(len - ((-i)%len))%len];
+		}
+
+		base &operator[](int i) {
+			if(i>=0)
+				return _val[i%len];
+			return _val[(len - ((-i)%len))%len];
+		}
+
+		circularbuff(){};
+};
 
 class CG_Solver {
 	protected:
@@ -54,15 +75,15 @@ class CG_Solver {
 		double alpha, eta, eta_p1;
 		double c, c_1, s, s_1;
 		// Circular buffers
-		double w[360];
-		double wt[360];
+		circularbuff<double,8> w;
+		circularbuff<double,8> wt;
 		double rt1, r1, r2, r3;
-		double err[360];
+		circularbuff<double,8> err;
 		//double merr;
 		double r0norm;
 
-		double eta_[360];
-		double alpha_[360];
+		circularbuff<double,8> eta_;
+		circularbuff<double,8> alpha_;
 		
 
 

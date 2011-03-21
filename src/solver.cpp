@@ -234,10 +234,8 @@ void CG_Solver::do_iteration() {
 	alpha_[it] = lalpha;
 	eta_[it] = leta;*/
 
-	if(it<360)
-		err[it-1] = w[it-2]*w[it-2]+wt[it-1]*wt[it-1] - wt[it-2]*wt[it-2];
-	//err += wt[it-1]*wt[it-1] - wt[it-2]*wt[it-2] + w[it-2]*w[it-2];
-
+	err[it-1] = w[it-2]*w[it-2]+wt[it-1]*wt[it-1] - wt[it-2]*wt[it-2];
+	
 	//std::cout << it << ":"  << x.squaredNorm() << std::endl;
 }
 

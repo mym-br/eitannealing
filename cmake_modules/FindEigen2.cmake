@@ -25,8 +25,18 @@ else(EIGEN2_INCLUDES)
     endif(_return_VALUE STREQUAL "0")
 
   else(NOT WIN32)
-    # XXX: currently no libqalculate on windows
-    set(EIGEN2_FOUND FALSE)
+    # Build a list of possible locations
+    GET_FILENAME_COMPONENT(W32PROGRAMFILESDIR  "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion;ProgramFilesDir]" ABSOLUTE CACHE)
+
+    GET_FILENAME_COMPONENT(W32COMMONFILESDIR  "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion;CommonFilesDir]" ABSOLUTE CACHE)
+
+    find_path(EIGEN2_found_INCLUDES "Eigen\\Eigen" HINTS W32PROGRAMFILESDIR W32COMMONFILESDIR $ENV{ProgramData} PATH_SUFFIXES "Eigen2" "Eigen")
+    if(${EIGEN2_found_INCLUDES} STREQUAL "EIGEN2_found_INCLUDES-NOTFOUND")
+      set(EIGEN2_FOUND FALSE)
+    else(${EIGEN2_found_INCLUDES} STREQUAL "EIGEN2_found_INCLUDES-NOTFOUND")
+      set(EIGEN2_INCLUDES ${EIGEN2_found_INCLUDES})
+      set(EIGEN2_FOUND TRUE)
+    endif(${EIGEN2_found_INCLUDES} STREQUAL "EIGEN2_found_INCLUDES-NOTFOUND")
 
   endif(NOT WIN32)
 

@@ -27,7 +27,7 @@ struct triangularEletrode {
 };
 
 extern float electrodeh;
-
+extern float totalheight;
 extern std::vector<node> nodes;
 extern std::vector<triangularElement> elements;
 extern std::vector<triangularEletrode> electrodes;

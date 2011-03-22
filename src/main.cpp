@@ -240,6 +240,8 @@ void workProc()
  {
      QApplication app(argc, argv);
      initProblem(argv[1]);
+	 initObs(argv[2]);
+	 
 
 	 float *solution = new float[numcoefficients];
 	 for(int i=0;i<numcoefficients;i++) solution[i] = 1;
@@ -251,7 +253,8 @@ void workProc()
 	 
      buildNodeCoefficients();
      assembleProblemMatrix(solution, &stiffness0);
-     //initObs();
+	 
+     
 
      //int i;
      //float *coefficients = new float[65];
@@ -266,7 +269,7 @@ void workProc()
      //stiffness0 = assembleProblemMatrix(coefficients);
 
      //QTableView matrixView;
-     //obs::initObsProblem();
+     
      //float sol[65];
      //for(int i=0;i<65;i++) sol[i] = 1.0;
      //matrix *stiffness = obs::buildObsProblemMatrix(sol);

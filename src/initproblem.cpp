@@ -29,6 +29,7 @@ std::vector<triangularEletrode> electrodes;
 std::map<int, int> node2coefficient;
 int numcoefficients;
 float electrodeh;
+float totalheight;
 
 int groundNode;
 
@@ -193,7 +194,8 @@ void initProblem(char *filename)
   
 	fillNodes();
 	fillElements();//	fillElectrodes();
-	electrodeh = 0.0001;
+	electrodeh = 0.0004;
+	totalheight = 0.03;
 	
 	using namespace boost::lambda;	// Lambda black magic
 	std::for_each(electrodes.begin(), electrodes.end(),

@@ -9,7 +9,7 @@
 #define INIT_OBS_PROBLEM_H_
 
 namespace obs {
-	void initObsProblem();
+	void initObsProblem(char *filename);
 	matrix *buildObsProblemMatrix(float *coeff);
 
 	extern int numNodes;

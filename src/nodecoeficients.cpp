@@ -102,6 +102,8 @@ void buildNodeCoefficients()
 	for(i = 0; i < electrodes.size(); i++) {
 		double cbb, c11, c22, c33, cb1, cb2, cb3, c12, c23;
 		calcELectrodeCoefficients(i, cbb, c11, c22, c33, cb1, cb2, cb3, c12, c23);
+		cbb *= totalheight; c11 *= totalheight; c22 *= totalheight; c33 *= totalheight;cb1 *= totalheight;
+		cb2 *= totalheight; cb3 *= totalheight; c12 *= totalheight; c23 *= totalheight;
 		int index = node2coefficient[electrodes[i].baseNode]; 
 		if(electrodes[i].baseNode==groundNode) { // Ground node, coefficients of the base node are zeroed
 		    // the 1st node...
@@ -164,7 +166,8 @@ void buildNodeCoefficients()
 	double c11, c22, c33, c12, c23, c13;
 	for(i = 0; i < elements.size(); i++) {
 		calcElementCoefficients(i, c11, c22, c33, c12, c13, c23);
-				
+		c11 *= totalheight; c22 *= totalheight; c33 *= totalheight;
+		c12 *= totalheight; c23 *= totalheight; c13 *= totalheight;
 		// Node 1
 		insertNewElementCoefficient(&nodeCoef[elements[i].n1],
 				elements[i].n1, i, c11);

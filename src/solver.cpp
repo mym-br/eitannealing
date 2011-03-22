@@ -234,10 +234,8 @@ void CG_Solver::do_iteration() {
 	alpha_[it] = lalpha;
 	eta_[it] = leta;*/
 
-	if(it<360)
-		err[it-1] = w[it-2]*w[it-2]+wt[it-1]*wt[it-1] - wt[it-2]*wt[it-2];
-	//err += wt[it-1]*wt[it-1] - wt[it-2]*wt[it-2] + w[it-2]*w[it-2];
-
+	err[it-1] = w[it-2]*w[it-2]+wt[it-1]*wt[it-1] - wt[it-2]*wt[it-2];
+	
 	//std::cout << it << ":"  << x.squaredNorm() << std::endl;
 }
 
@@ -308,10 +306,10 @@ void assembleProblemMatrix(float *cond, matrix **stiffnes)
 	*stiffnes = out;*/
 
 
-	matrix *out = new matrix(nodes.size()-1, nodes.size()-1);
+	matrix *out = new matrix(numNodes-1, numNodes-1);
 	double val;
-	out->startFill(3*(nodes.size()-1)); // estimate of the number of nonzeros (optional)
-	for (int i=0; i<nodes.size()-1; ++i) {
+	out->startFill(3*(numNodes-1)); // estimate of the number of nonzeros (optional)
+	for (int i=0; i<numNodes-1; ++i) {
 		nodeCoefficients *aux = nodeCoef[i];
 		while(aux) { // Col-major storage
 			while(aux->node < i) aux = aux->next; // skip upper triangular
@@ -333,6 +331,47 @@ void assembleProblemMatrix(float *cond, matrix **stiffnes)
 
 void assembleProblemMatrix(float *cond, matrix **stiffnes, int numNodes, nodeCoefficients **nodeCoef)
 {
+
+	/*
+	// Jacobi preconditioning
+	*sqDiagonal = new Eigen::VectorXd(numNodes-1);
+	Eigen::VectorXd &sqrtdiagonal = **sqDiagonal;
+	int i;
+	// Prepare diagonal square roots
+	for(i=0;i<numNodes-1;i++) {
+		nodeCoefficients *aux = nodeCoef[i];
+		while(aux && aux->node < i) aux = aux->next;
+		double val = 0;
+		while(aux && aux->node==i) {
+			val += aux->coefficient*cond[aux->condIndex];
+			aux = aux->next;
+		}
+		sqrtdiagonal[i] = sqrt(val);
+	}
+
+
+	matrix *out = new matrix(numNodes-1, numNodes-1);
+	out->startFill(3*(numNodes-1)); // estimate of the number of nonzeros (optional)
+	for (i=0; i<numNodes-1; ++i) {
+		nodeCoefficients *aux = nodeCoef[i];
+		while(aux && aux->node <= i) aux = aux->next; // skip upper triangular
+		// Diagonal is 1
+		out->fill(i,i) = 1;
+		while(aux) { // Col-major storage
+			int row = aux->node;
+			double val = 0.0;
+			while(aux && aux->node==row) {
+				val += aux->coefficient*cond[aux->condIndex];
+				aux = aux->next;
+			}
+			out->fill(row,i) = val/(sqrtdiagonal[row]*sqrtdiagonal[i]);
+		}
+	}
+	out->endFill();
+
+	*stiffnes = out;*/
+
+
 	matrix *out = new matrix(numNodes-1, numNodes-1);
 	double val;
 	out->startFill(3*(numNodes-1)); // estimate of the number of nonzeros (optional)

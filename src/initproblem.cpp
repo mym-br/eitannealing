@@ -177,11 +177,15 @@ void fillElements() {
 	// Outter ring coefficient
 	std::for_each(outerRingNodes.begin(), outerRingNodes.end(),
 		var(node2coefficient)[_1]=condIndex);
+
+	std::for_each(innerNodes.begin(), innerNodes.end(),
+		var(node2coefficient)[_1]=condIndex);
+	
 	condIndex++;
 
-	// Inner coefficients
+	/*// Inner coefficients
 	std::for_each(innerNodes.begin(), innerNodes.end(),
-		var(node2coefficient)[_1]=var(condIndex)++);
+		var(node2coefficient)[_1]=var(condIndex)++);*/
 	
 	numcoefficients = condIndex;
 	groundNode = electrodes.back().baseNode;
@@ -197,10 +201,10 @@ void initProblem(char *filename)
 	electrodeh = 0.0004;
 	totalheight = 0.03;
 	
-	using namespace boost::lambda;	// Lambda black magic
+	/*using namespace boost::lambda;	// Lambda black magic
 	std::for_each(electrodes.begin(), electrodes.end(),
 		std::cout << (&_1 ->* &triangularEletrode::baseNode) << 
 		constant(' ') << (&_1 ->* &triangularEletrode::n1) <<
 		constant(' ') << (&_1 ->* &triangularEletrode::n2) << 
-		constant(' ') << (&_1 ->* &triangularEletrode::n3) << constant('\n'));
+		constant(' ') << (&_1 ->* &triangularEletrode::n3) << constant('\n'));*/
 }

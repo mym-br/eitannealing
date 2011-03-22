@@ -10,6 +10,7 @@
 #include "observations.h"
 #include "problemdescription.h"
 #include <iostream>
+#include <boost/numeric/interval.hpp>
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -23,13 +24,28 @@ void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(electrodes.size()-1);
+	static Eigen::VectorXd aux(electrodes.size());
 
 	// Do another iteration on the critical solver
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
-	aux = tensions[critical] - simulations[critical]->getX().start(electrodes.size()-1);
+	// aux[i] = -(electrodes[i+4]-electrodes[i])
+
+	int n = electrodes.size()-1;
+	int baseIndex = nodes.size()-n-1;
+	int i;
+	for(i=0;i<aux.size()-5;i++)
+		aux[i] = simulations[critical]->getX()[baseIndex+i+4] - 
+				simulations[critical]->getX()[baseIndex+i];
+	aux[i] = - simulations[critical]->getX()[baseIndex];	// Ground node
+	for(i++;i<aux.size()-1;i++)	// Now we've wraped up
+		aux[i] = simulations[critical]->getX()[baseIndex+i-n+3] - 
+				simulations[critical]->getX()[baseIndex+i];
+	aux[i] = simulations[critical]->getX()[baseIndex+i-n+3]; // last one
+
+	aux -= tensions[critical];
+					
 	distance[critical] = aux.norm();
 	err[critical] = sqrt(simulations[critical]->getErrorl2Estimate());
 	maxdist[critical] = distance[critical] + err[critical];
@@ -208,10 +224,28 @@ void solution::initSimulations()
 void solution::initErrors()
 {
 	int i;
+	// Just some scrap space to avoid dynamic allocations
+	//		WARNING: Obviously thread-unsafe!!!!
+	static Eigen::VectorXd aux(electrodes.size());
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<nobs;i++) {
+
+		
+		int n = electrodes.size()-1;
+		int baseIndex = nodes.size()-n-1;
+		int j;
+		for(j=0;j<aux.size()-5;j++)
+			aux[j] = simulations[i]->getX()[baseIndex+j+4] - 
+					simulations[i]->getX()[baseIndex+j];
+		aux[j] = - simulations[i]->getX()[baseIndex];	// Ground node
+		for(j++;j<aux.size()-1;j++)	// Now we've wraped around
+			aux[j] = simulations[i]->getX()[baseIndex+j-n+3] - 
+					simulations[i]->getX()[baseIndex+j];
+		aux[j] = simulations[i]->getX()[baseIndex+j-n+3]; // last one
 		// Compare with observation
-		distance[i] = (simulations[i]->getX().start(electrodes.size()-1)-tensions[i]).norm();
+		aux -= tensions[i];
+		
+		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
 		mindist[i] = max(distance[i] - err[i],0);
@@ -235,10 +269,9 @@ void solution::initErrors()
 
 float *solution::copySolution(const float *sol)
 {
-	float *res = new float[65];
-	res[0] = 1;
+	float *res = new float[numcoefficients];
 
-	for(int i=1;i<65;i++)
+	for(int i=0;i<numcoefficients;i++)
 		res[i] = sol[i];
 
 	return res;
@@ -246,11 +279,10 @@ float *solution::copySolution(const float *sol)
 
 float *solution::getNewRandomSolution()
 {
-	float *res = new float[65];
-	res[0] = 1;
+	float *res = new float[numcoefficients];
 
-	for(int i=1;i<65;i++)
-		res[i] = 1+genreal();
+	for(int i=0;i<numcoefficients;i++)
+		res[i] = 1/4.76;// 3+3*genreal();
 
 	return res;
 }
@@ -259,11 +291,11 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 {
 	float *res = solution::copySolution(sol);
 	// head or tails
-	if(genint(2)) { // Normal
-		int ncoef = genint(64);
+	//if(genint(2)) { // Normal
+		int ncoef = genint(numcoefficients);
 
 		if(sh.shuffleConsts[ncoef]==0) {
-			res[ncoef+1] = 1+genreal();
+			res[ncoef+1] = mincond+genreal();
 		} else {
 			float val;
 			do {
@@ -274,14 +306,14 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 				rnd /= sh.shuffleConsts[ncoef];
 				rnd -= 0.5;
 				val += rnd;
-			} while((val < 1) || (val > 2));
+			} while((val < mincond) || (val > 1+mincond));
 			res[ncoef+1] = val;
 		}
 		if(data) {
 			data->swap = false;
 			data->ncoef = ncoef;
 		}
-	} else { // swap
+	/*} else { // swap
 		int ncoef = genint(2*7*8);
 		int node1, node2;
 		// Vertical or horizontal?
@@ -327,7 +359,7 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 			data->swap = true;
 			data->ncoef = ncoef;
 		}
-	}
+	}*/
 	return res;
 }
 

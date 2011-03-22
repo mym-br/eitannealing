@@ -93,7 +93,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt = 9;
+	float kt = 1;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
@@ -130,7 +130,11 @@ void workProc()
 		}
 		double eav = e/solutions;
 		double sige = sqrt(sqe/solutions - eav*eav);
+		std::cout << "Resitivity:" << 1/(current->getSolution()[32]) << std::endl;
+		for(int k = 0; k<32;k++)
+			std::cout << k << ":" << current->getSolution()[k] << std::endl;
 		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << ((float)iterations)/(nobs*solutions) << std::endl;
+		
 		kt *= 0.95;
 	}
 
@@ -241,19 +245,33 @@ void workProc()
      QApplication app(argc, argv);
      initProblem(argv[1]);
 	 initObs(argv[2]);
-	 
+	 buildNodeCoefficients();
 
 	 float *solution = new float[numcoefficients];
-	 for(int i=0;i<numcoefficients;i++) solution[i] = 1;
+	 for(int i=0;i<numcoefficients;i++) solution[i] = 1/4.76;
+
 
 	 //solution[32] = 1.5;
 	 //solution[node2coefficient[288]] = 1.5;
 	 //solution[node2coefficient[358]] = 1.0;
 	 //solution[node2coefficient[346]] = 1.0;	 
 	 
-     buildNodeCoefficients();
+     /*
+	 
      assembleProblemMatrix(solution, &stiffness0);
 	 
+	 SparseIncompleteLLT precond(*stiffness0);
+
+	 CG_Solver solver(*stiffness0, currents[29], precond);
+
+	 for(int i=0;i<900;i++)
+		 solver.do_iteration();
+
+	 std::cout << "currents:\n";
+	 std::cout << currents[29].end(31) << std::endl;
+	 
+	 std::cout << "tensions:\n";
+	 std::cout << solver.getX().end(31) << std::endl;*/
      
 
      //int i;
@@ -277,10 +295,10 @@ void workProc()
      //matrixView.setWindowTitle("Stiffness");
      //matrixView.show();
      
-     QTableView matrixView;
-     matrixView.setModel(new matrixViewModel(*stiffness0));
-     matrixView.setWindowTitle("Stiffness");
-     matrixView.show();
+     //QTableView matrixView;
+     //matrixView.setModel(new matrixViewModel(*stiffness0));
+     //matrixView.setWindowTitle("Stiffness");
+     //matrixView.show();
 
 
      view =new viewport(600, 600, "Reverse Problem");
@@ -288,10 +306,10 @@ void workProc()
      view->show();
      drawElements(*view);
      
-      //boost::thread worker(workProc);
+     boost::thread worker(workProc);
 
      return app.exec();
-    // worker.join();
+     worker.join();
  }
  
  

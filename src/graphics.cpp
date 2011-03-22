@@ -54,7 +54,7 @@ QBrush viewport::getBrushForElement(int n1, int n2, int n3)
 	    }
 	}	
 	if((s3-s1)<0.001) {
-		int level = 255*(((s1+s3)/2)-1);
+		int level = 255*(((s1+s3)/2));
 		return QBrush(QColor(level,level,level));
 	}
 	
@@ -82,7 +82,7 @@ QBrush viewport::getBrushForElement(int n1, int n2, int n3)
 		translateCoordinate(nodes[n1].x, nodes[n1].y),
 		translateCoordinate(nodes[n1].x+x, nodes[n1].y+y));
 	
-	int level = 255*(s1-1);
+	int level = 255*(s1);
 	color.setColorAt(0, QColor(level,level,level));
 	level = 255*(s3-1);
 	color.setColorAt(1, QColor(level,level,level));

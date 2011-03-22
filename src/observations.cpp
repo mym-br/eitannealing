@@ -31,16 +31,23 @@ void initObs(char *filename)
 
 	// FIXME: Read from file!
 	nobs = 32;
+	int n = electrodes.size()-1;
+	
 
 	tensions = new Eigen::VectorXd[nobs];
 	currents = new Eigen::VectorXd[nobs];
-	Eigen::VectorXd current(electrodes.size()-1);
+	Eigen::VectorXd current(nodes.size()-1);
 	current.fill(0);
+	int baseIndex = current.size()-n;
 	for(int i=0;i<nobs;i++) {
-		if(i!=current.size())
-			current[i] = 0.001;
-		if(i+4!=current.size())
-			current[(i+4)%current.size()] = -0.001;
+		currents[i] = current;
+		if(i!=n)
+			currents[i][baseIndex+i] = 0.001;
+		if(i+4<n)
+			currents[i][baseIndex+i+4] = -0.001;
+		if(i+4>n)
+			currents[i][baseIndex+i+3-n] = -0.001;
+			
 
 		// read tensions from file
 		tensions[i].resize(electrodes.size());

@@ -24,26 +24,14 @@ void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(electrodes.size());
+	static Eigen::VectorXd aux(electrodes.size()-1);
 
 	// Do another iteration on the critical solver
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
-	// aux[i] = -(electrodes[i+4]-electrodes[i])
-
-	int n = electrodes.size()-1;
-	int baseIndex = nodes.size()-n-1;
-	int i;
-	for(i=0;i<aux.size()-5;i++)
-		aux[i] = simulations[critical]->getX()[baseIndex+i+4] - 
-				simulations[critical]->getX()[baseIndex+i];
-	aux[i] = - simulations[critical]->getX()[baseIndex];	// Ground node
-	for(i++;i<aux.size()-1;i++)	// Now we've wraped up
-		aux[i] = simulations[critical]->getX()[baseIndex+i-n+3] - 
-				simulations[critical]->getX()[baseIndex+i];
-	aux[i] = simulations[critical]->getX()[baseIndex+i-n+3]; // last one
-
+	
+	aux = simulations[critical]->getX().end(electrodes.size()-1);
 	aux -= tensions[critical];
 					
 	distance[critical] = aux.norm();
@@ -226,23 +214,11 @@ void solution::initErrors()
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(electrodes.size());
+	static Eigen::VectorXd aux(electrodes.size()-1);
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<nobs;i++) {
-
-		
-		int n = electrodes.size()-1;
-		int baseIndex = nodes.size()-n-1;
-		int j;
-		for(j=0;j<aux.size()-5;j++)
-			aux[j] = simulations[i]->getX()[baseIndex+j+4] - 
-					simulations[i]->getX()[baseIndex+j];
-		aux[j] = - simulations[i]->getX()[baseIndex];	// Ground node
-		for(j++;j<aux.size()-1;j++)	// Now we've wraped around
-			aux[j] = simulations[i]->getX()[baseIndex+j-n+3] - 
-					simulations[i]->getX()[baseIndex+j];
-		aux[j] = simulations[i]->getX()[baseIndex+j-n+3]; // last one
 		// Compare with observation
+		aux = simulations[i]->getX().end(aux.size());
 		aux -= tensions[i];
 		
 		distance[i] = aux.norm();
@@ -281,9 +257,10 @@ float *solution::getNewRandomSolution()
 {
 	float *res = new float[numcoefficients];
 
-	for(int i=0;i<numcoefficients;i++)
-		res[i] = 1/4.76;// 3+3*genreal();
+	for(int i=0;i<numcoefficients-1;i++)
+		res[i] = mincond+genreal();
 
+	res[32] = 0.305;	// outter ring is fixed
 	return res;
 }
 
@@ -292,14 +269,14 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 	float *res = solution::copySolution(sol);
 	// head or tails
 	//if(genint(2)) { // Normal
-		int ncoef = genint(numcoefficients);
+		int ncoef = genint(numcoefficients-1); // outter ring is fixed
 
 		if(sh.shuffleConsts[ncoef]==0) {
-			res[ncoef+1] = mincond+genreal();
+			res[ncoef] = mincond+genreal();
 		} else {
 			float val;
 			do {
-				val = res[ncoef+1];
+				val = res[ncoef];
 				double rnd = 0;
 				for(int i=0;i<sh.shuffleConsts[ncoef];i++)
 					rnd += genreal();
@@ -307,7 +284,7 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 				rnd -= 0.5;
 				val += rnd;
 			} while((val < mincond) || (val > 1+mincond));
-			res[ncoef+1] = val;
+			res[ncoef] = val;
 		}
 		if(data) {
 			data->swap = false;

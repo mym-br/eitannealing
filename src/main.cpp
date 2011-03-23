@@ -244,7 +244,7 @@ void workProc()
  {
      QApplication app(argc, argv);
      initProblem(argv[1]);
-	 initObs(argv[2]);
+	 initObs(argv[2], argv[3]);
 	 buildNodeCoefficients();
 
 	 float *solution = new float[numcoefficients];

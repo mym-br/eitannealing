@@ -177,15 +177,12 @@ void fillElements() {
 	// Outter ring coefficient
 	std::for_each(outerRingNodes.begin(), outerRingNodes.end(),
 		var(node2coefficient)[_1]=condIndex);
-
-	std::for_each(innerNodes.begin(), innerNodes.end(),
-		var(node2coefficient)[_1]=condIndex);
 	
 	condIndex++;
 
-	/*// Inner coefficients
+	// Inner coefficients
 	std::for_each(innerNodes.begin(), innerNodes.end(),
-		var(node2coefficient)[_1]=var(condIndex)++);*/
+		var(node2coefficient)[_1]=var(condIndex)++);
 	
 	numcoefficients = condIndex;
 	groundNode = electrodes.back().baseNode;

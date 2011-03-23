@@ -37,6 +37,7 @@ extern int numcoefficients;
 extern int groundNode;
 
 const double mincond = 0.001;
+const double maxcond = 0.4;
 void initProblem(char *meshfilename);
 
 #endif /* PROBLEMDESCRIPTION_H_ */

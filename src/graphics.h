@@ -40,6 +40,7 @@ class viewport : public QWidget {
 		void setCurrentSolution(float *val);		
 	protected:
 	  QBrush getBrushForElement(int n1, int n2, int n3);
+	  QColor getColorForLevel(float level);
 	  // override default paint event
 	  void paintEvent ( QPaintEvent * event );
 };

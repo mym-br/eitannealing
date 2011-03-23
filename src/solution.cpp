@@ -24,26 +24,14 @@ void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(electrodes.size());
+	static Eigen::VectorXd aux(electrodes.size()-1);
 
 	// Do another iteration on the critical solver
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
-	// aux[i] = -(electrodes[i+4]-electrodes[i])
-
-	int n = electrodes.size()-1;
-	int baseIndex = nodes.size()-n-1;
-	int i;
-	for(i=0;i<aux.size()-5;i++)
-		aux[i] = simulations[critical]->getX()[baseIndex+i+4] - 
-				simulations[critical]->getX()[baseIndex+i];
-	aux[i] = - simulations[critical]->getX()[baseIndex];	// Ground node
-	for(i++;i<aux.size()-1;i++)	// Now we've wraped up
-		aux[i] = simulations[critical]->getX()[baseIndex+i-n+3] - 
-				simulations[critical]->getX()[baseIndex+i];
-	aux[i] = simulations[critical]->getX()[baseIndex+i-n+3]; // last one
-
+	
+	aux = simulations[critical]->getX().end(electrodes.size()-1);
 	aux -= tensions[critical];
 					
 	distance[critical] = aux.norm();
@@ -226,23 +214,11 @@ void solution::initErrors()
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(electrodes.size());
+	static Eigen::VectorXd aux(electrodes.size()-1);
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<nobs;i++) {
-
-		
-		int n = electrodes.size()-1;
-		int baseIndex = nodes.size()-n-1;
-		int j;
-		for(j=0;j<aux.size()-5;j++)
-			aux[j] = simulations[i]->getX()[baseIndex+j+4] - 
-					simulations[i]->getX()[baseIndex+j];
-		aux[j] = - simulations[i]->getX()[baseIndex];	// Ground node
-		for(j++;j<aux.size()-1;j++)	// Now we've wraped around
-			aux[j] = simulations[i]->getX()[baseIndex+j-n+3] - 
-					simulations[i]->getX()[baseIndex+j];
-		aux[j] = simulations[i]->getX()[baseIndex+j-n+3]; // last one
 		// Compare with observation
+		aux = simulations[i]->getX().end(aux.size());
 		aux -= tensions[i];
 		
 		distance[i] = aux.norm();
@@ -281,8 +257,42 @@ float *solution::getNewRandomSolution()
 {
 	float *res = new float[numcoefficients];
 
-	for(int i=0;i<numcoefficients;i++)
-		res[i] = 1/4.76;// 3+3*genreal();
+	res[0] = 0.118859;
+	res[1] = 0.0911114;
+	res[2] = 0.100251;
+	res[3] = 0.106117;
+	res[4] = 0.160247;
+	res[5] = 0.105798;
+	res[6] = 0.106278;
+	res[7] = 0.104063;
+	res[8] = 0.0882884;
+	res[9] = 0.0978375;
+	res[10] = 0.0876754;
+	res[11] = 0.0793514;
+	res[12] = 0.0787333;
+	res[13] = 0.0845089;
+	res[14] = 0.0753199;
+	res[15] = 0.0786953;
+	res[16] = 0.0791697;
+	res[17] = 0.0832361;
+	res[18] = 0.0828951;
+	res[19] = 0.0927432;
+	res[20] = 0.101078;
+	res[21] = 0.100138;
+	res[22] = 0.102309;
+	res[23] = 0.112525;
+	res[24] = 0.125682;
+	res[25] = 0.0879498;
+	res[26] = 0.121403;
+	res[27] = 0.11835;
+	res[28] = 0.120835;
+	res[29] = 0.0954887;
+	res[30] = 0.132771;
+	res[31] = 0.118369;
+	res[32] = 1/2.82314;
+	
+	for(int i=33;i<numcoefficients;i++)
+		res[i] = mincond+genreal()*(maxcond-mincond);
 
 	return res;
 }
@@ -292,22 +302,23 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 	float *res = solution::copySolution(sol);
 	// head or tails
 	//if(genint(2)) { // Normal
-		int ncoef = genint(numcoefficients);
+		int ncoef = genint(numcoefficients-32)+33;	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {
-			res[ncoef+1] = mincond+genreal();
+			res[ncoef] = mincond+genreal()*(maxcond-mincond);
 		} else {
 			float val;
 			do {
-				val = res[ncoef+1];
+				val = res[ncoef];
 				double rnd = 0;
 				for(int i=0;i<sh.shuffleConsts[ncoef];i++)
 					rnd += genreal();
 				rnd /= sh.shuffleConsts[ncoef];
 				rnd -= 0.5;
+				rnd *= (maxcond - mincond);
 				val += rnd;
-			} while((val < mincond) || (val > 1+mincond));
-			res[ncoef+1] = val;
+			} while((val < mincond) || (val > maxcond));
+			res[ncoef] = val;
 		}
 		if(data) {
 			data->swap = false;
@@ -366,14 +377,14 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 void shuffler::addShufflerFeedback(const shuffleData &data, bool pos)
 {
 	if(pos) { // positive feedback
-		if(data.swap)
-			this->swapshuffleconsts[data.ncoef] /= 2;
-		else
+		//if(data.swap)
+		//	this->swapshuffleconsts[data.ncoef] /= 2;
+		//else
 			this->shuffleConsts[data.ncoef] /= 2;
 	} else {
-		if(data.swap)
-			this->swapshuffleconsts[data.ncoef]++;
-		else
+		//if(data.swap)
+		//	this->swapshuffleconsts[data.ncoef]++;
+		//else
 			this->shuffleConsts[data.ncoef]++;
 	}
 }

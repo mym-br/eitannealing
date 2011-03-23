@@ -103,11 +103,11 @@ void workProc()
 	int solutions;
 	double e;
 	double sqe;
-	while(kt > 0.0000001) {
+	while(kt > 0.00000001) {
 		e = sqe = 0;
 		totalit = acceptit = 0;
 		iterations = solutions = 0;
-		while(totalit<6000 && acceptit < 1000) {
+		while(totalit<12000 && acceptit < 2000) {
 			next.reset(current->shuffle(&sdata, sh));
 			if(current->compareWith(*next, kt, 0.01)) {
 				iterations += current->getTotalIt();
@@ -244,7 +244,7 @@ void workProc()
  {
      QApplication app(argc, argv);
      initProblem(argv[1]);
-	 initObs(argv[2]);
+	 initObs(argv[2], argv[3]);
 	 buildNodeCoefficients();
 
 	 float *solution = new float[numcoefficients];

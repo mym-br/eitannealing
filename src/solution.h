@@ -11,6 +11,7 @@
 class solution;
 
 #include "solver.h"
+#include "problemdescription.h"
 
 
 /*
@@ -37,17 +38,17 @@ struct shuffleData {
 
 struct shuffler {
 	int * shuffleConsts;
-	int * swapshuffleconsts;
+	//int * swapshuffleconsts;
 	shuffler() {
-		shuffleConsts = new int[64];
-		swapshuffleconsts = new int[2*7*8];
+		shuffleConsts = new int[numcoefficients];
+		//swapshuffleconsts = new int[2*7*8];
 
-		for(int i=0;i<64;i++) shuffleConsts[i] = 0;
-		for(int i=0;i<2*7*8;i++) swapshuffleconsts[i] = 0;
+		for(int i=0;i<numcoefficients;i++) shuffleConsts[i] = 0;
+		//for(int i=0;i<2*7*8;i++) swapshuffleconsts[i] = 0;
 	}
 	~shuffler() {
 		delete[] shuffleConsts;
-		delete[] swapshuffleconsts;
+		//delete[] swapshuffleconsts;
 
 	}
 	void addShufflerFeedback(const shuffleData &data, bool pos);

@@ -14,6 +14,10 @@
 #include <algorithm>
 #include <set>
 #include <boost/lambda/lambda.hpp>
+#include <boost/lambda/construct.hpp>
+#include <boost/lambda/bind.hpp>
+#include <boost/lambda/control_structures.hpp>
+#include <boost/function.hpp>
 #include <iostream>
 
 
@@ -26,6 +30,7 @@ inline int getElementIndex(int x, int y) { return 31+17*x+y; }
 std::vector<node> nodes;
 std::vector<triangularElement> elements;
 std::vector<triangularEletrode> electrodes;
+std::vector<std::pair<int, int>> innerAdjacency;
 std::map<int, int> node2coefficient;
 int numcoefficients;
 float electrodeh;
@@ -166,8 +171,14 @@ void fillElements() {
 			 break;
 	  }
 	}
-	// Prepare node <-> condindex map
+
 	using namespace boost::lambda;	// Lambda black magic
+	
+
+
+
+
+	// Prepare node <-> condindex map
 	int condIndex = 0;
 	// Electrode coefficients
 	std::for_each(electrodes.begin(), electrodes.end(),
@@ -186,6 +197,46 @@ void fillElements() {
 	
 	numcoefficients = condIndex;
 	groundNode = electrodes.back().baseNode;
+
+	// Prepare inner nodes adjacency map
+	//	Adjacency is established between nodes that are NOT in the outter ring
+	//	set AND share at least one element
+	// FIXME: That´s probably lambda overuse!!!!
+	typedef std::set<std::pair<int, int>> adjacencySet;
+	adjacencySet auxAdjacency;	
+	// Functor that adds an ordered pair to innerAdjacency
+	//  Notice the pair is ordered first, so the pair (2,1) is translated
+	//	to (1,2)
+	boost::function<void(int,int)> insertAdjNodePair = 
+		bind((std::pair<adjacencySet::iterator, bool> (adjacencySet::*)(adjacencySet::const_reference))&adjacencySet::insert,
+			&auxAdjacency,
+			if_then_else_return(_1<_2,
+				bind(constructor<std::pair<int, int> >(), _1, _2),
+				bind(constructor<std::pair<int, int> >(), _2, _1)));
+	// Check variables, true if the corresponding node is NOT in outerRingNodes
+	bool n1ok, n2ok, n3ok; 
+	var_type<bool>::type vn1ok(var(n1ok)), vn2ok(var(n2ok)), vn3ok(var(n3ok));	
+	// For each element, add its node pairs in order
+	std::for_each(elements.begin(), elements.end(), (
+		(vn1ok = bind<size_t>(&std::set<int>::count, &outerRingNodes, 
+						&_1->* &triangularElement::n1)==0),
+		(vn2ok = bind<size_t>(&std::set<int>::count, &outerRingNodes, 
+						&_1->* &triangularElement::n2)==0),
+		(vn3ok = bind<size_t>(&std::set<int>::count, &outerRingNodes, 
+						&_1->* &triangularElement::n3)==0),
+		if_then(vn1ok && vn2ok, bind(insertAdjNodePair,
+						&_1 ->* &triangularElement::n1,
+						&_1 ->* &triangularElement::n2)),
+		if_then(vn1ok && vn3ok, bind(insertAdjNodePair,
+						&_1 ->* &triangularElement::n1,
+						&_1 ->* &triangularElement::n3)),
+		if_then(vn2ok && vn3ok, bind(insertAdjNodePair,
+						&_1 ->* &triangularElement::n2,
+						&_1 ->* &triangularElement::n3))		
+	));
+
+	innerAdjacency.resize(auxAdjacency.size());
+	std::copy(auxAdjacency.begin(), auxAdjacency.end(), innerAdjacency.begin());
 }
 
 void initProblem(char *filename)
@@ -197,11 +248,4 @@ void initProblem(char *filename)
 	fillElements();//	fillElectrodes();
 	electrodeh = 0.0004;
 	totalheight = 0.03;
-	
-	/*using namespace boost::lambda;	// Lambda black magic
-	std::for_each(electrodes.begin(), electrodes.end(),
-		std::cout << (&_1 ->* &triangularEletrode::baseNode) << 
-		constant(' ') << (&_1 ->* &triangularEletrode::n1) <<
-		constant(' ') << (&_1 ->* &triangularEletrode::n2) << 
-		constant(' ') << (&_1 ->* &triangularEletrode::n3) << constant('\n'));*/
 }

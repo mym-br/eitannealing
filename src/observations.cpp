@@ -45,11 +45,11 @@ void initObs(char *filecurrents, char* filename)
 		filec >> c;
 		currents[i] = current;
 		if(i!=n)
-			currents[i][baseIndex+i] = c;
+			currents[i][baseIndex+i] = 1;
 		if(i+4<n)
-			currents[i][baseIndex+i+4] = -c;
+			currents[i][baseIndex+i+4] = -1;
 		if(i+4>n)
-			currents[i][baseIndex+i+3-n] = -c;
+			currents[i][baseIndex+i+3-n] = -1;
 			
 
 		// read tensions from file
@@ -57,12 +57,12 @@ void initObs(char *filecurrents, char* filename)
 		double val;
 		for(unsigned int j=0;j<electrodes.size()-1;j++) {			
 			file >> val;
-			tensions[i][j] = val;
+			tensions[i][j] = val/c;  // Values are normalized by current
 		}
 		// rebase tensions, as our last electrode is always the ground
 		file >> val;
 		for(unsigned int j=0;j<electrodes.size()-1;j++) {			
-			tensions[i][j] -= val;
+			tensions[i][j] -= val/c;
 		}
 	}
 }

@@ -31,6 +31,7 @@ extern float totalheight;
 extern std::vector<node> nodes;
 extern std::vector<triangularElement> elements;
 extern std::vector<triangularEletrode> electrodes;
+extern std::vector<std::pair<int, int>> innerAdjacency;
 
 extern std::map<int, int> node2coefficient;
 extern int numcoefficients;

@@ -24,6 +24,9 @@ set(libs ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY})
 qt4_automoc(${eitannealingtest_SRCS})
 
 if(${MSVC}) #Under Visual Studio it is better to specify the path and let pragmas guide the linker
+	if(NOT MSVC_VERSION LESS 1600) 
+	   add_definitions(-D_HAS_CPP0X=0)
+    endif(NOT MSVC_VERSION LESS 1600)
 	link_directories(${Boost_LIBRARY_DIRS})
 else(${MSVC})
     set(libs ${libs} ${Boost_LIBRARIES})

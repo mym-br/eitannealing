@@ -257,7 +257,7 @@ float *solution::getNewRandomSolution()
 {
 	float *res = new float[numcoefficients];
 
-	res[0] = 0.118859;
+	/*res[0] = 0.118859;
 	res[1] = 0.0911114;
 	res[2] = 0.100251;
 	res[3] = 0.106117;
@@ -289,9 +289,9 @@ float *solution::getNewRandomSolution()
 	res[29] = 0.0954887;
 	res[30] = 0.132771;
 	res[31] = 0.118369;
-	res[32] = 1/2.82314;
+	res[32] = 1/2.82314;*/
 	
-	for(int i=33;i<numcoefficients;i++)
+	for(int i=0;i<numcoefficients;i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
 	return res;
@@ -301,8 +301,8 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 {
 	float *res = solution::copySolution(sol);
 	// head or tails
-	//if(genint(2)) { // Normal
-		int ncoef = genint(numcoefficients-32)+33;	// Lower values fixed;
+	if(genint(2)) { // Normal
+		int ncoef = genint(numcoefficients);	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {
 			res[ncoef] = mincond+genreal()*(maxcond-mincond);
@@ -324,22 +324,13 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 			data->swap = false;
 			data->ncoef = ncoef;
 		}
-	/*} else { // swap
-		int ncoef = genint(2*7*8);
+	} else { // swap
+		int ncoef = genint(innerAdjacency.size());
 		int node1, node2;
-		// Vertical or horizontal?
-		if(ncoef < 8*7) { // vertical
-			int col = ncoef/7;
-			int row = ncoef%7;
-			node1 = 1+8*col + row;
-			node2 = 2+8*col + row;
 
-		} else { // horizontal
-			int row = (ncoef-7*8)/7;
-			int col = (ncoef-7*8)%7;
-			node1 = 1+8*col + row;
-			node2 = 9+8*col + row;
-		}
+		node1 = node2coefficient[innerAdjacency[ncoef].first];
+		node2 = node2coefficient[innerAdjacency[ncoef].second];
+		
 		// Order nodes
 		if(res[node1]>res[node2]) {
 			int aux = node1;
@@ -347,12 +338,12 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 			node2 = aux;
 		}
 		float v1 = res[node1], v2 = res[node2];
-		float a = max( min(v1-1, 2-v2), min(2-v1, v2-1));
+		float a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
 
 		float delta;
 		do {
 			if(sh.swapshuffleconsts[ncoef]==0) {
-				delta = a*(res[node1] - genreal() - 1);
+				delta = a*(genreal()*2 - 1);
 			} else {
 				double rnd = 0;
 				for(int i=0;i<sh.swapshuffleconsts[ncoef];i++)
@@ -363,28 +354,28 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 			}
 			v1 = res[node1] - delta;
 			v2 = res[node2] + delta;
-		} while((v1 < 1) || (v2 < 1) || (v1 > 2) || (v2 > 2));
+		} while((v1 < mincond) || (v2 < mincond) || (v1 > maxcond) || (v2 > maxcond));
 		res[node1] = v1;
 		res[node2] = v2;
 		if(data) {
 			data->swap = true;
 			data->ncoef = ncoef;
 		}
-	}*/
+	}
 	return res;
 }
 
 void shuffler::addShufflerFeedback(const shuffleData &data, bool pos)
 {
 	if(pos) { // positive feedback
-		//if(data.swap)
-		//	this->swapshuffleconsts[data.ncoef] /= 2;
-		//else
+		if(data.swap)
+			this->swapshuffleconsts[data.ncoef] /= 2;
+		else
 			this->shuffleConsts[data.ncoef] /= 2;
 	} else {
-		//if(data.swap)
-		//	this->swapshuffleconsts[data.ncoef]++;
-		//else
+		if(data.swap)
+			this->swapshuffleconsts[data.ncoef]++;
+		else
 			this->shuffleConsts[data.ncoef]++;
 	}
 }

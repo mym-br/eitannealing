@@ -38,17 +38,17 @@ struct shuffleData {
 
 struct shuffler {
 	int * shuffleConsts;
-	//int * swapshuffleconsts;
+	int * swapshuffleconsts;
 	shuffler() {
 		shuffleConsts = new int[numcoefficients];
-		//swapshuffleconsts = new int[2*7*8];
+		swapshuffleconsts = new int[innerAdjacency.size()];
 
 		for(int i=0;i<numcoefficients;i++) shuffleConsts[i] = 0;
-		//for(int i=0;i<2*7*8;i++) swapshuffleconsts[i] = 0;
+		for(int i=0;i<innerAdjacency.size();i++) swapshuffleconsts[i] = 0;
 	}
 	~shuffler() {
 		delete[] shuffleConsts;
-		//delete[] swapshuffleconsts;
+		delete[] swapshuffleconsts;
 
 	}
 	void addShufflerFeedback(const shuffleData &data, bool pos);

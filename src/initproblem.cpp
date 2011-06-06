@@ -30,7 +30,7 @@ inline int getElementIndex(int x, int y) { return 31+17*x+y; }
 std::vector<node> nodes;
 std::vector<triangularElement> elements;
 std::vector<triangularEletrode> electrodes;
-std::vector<std::pair<int, int>> innerAdjacency;
+std::vector<std::pair<int, int> > innerAdjacency;
 std::map<int, int> node2coefficient;
 int numcoefficients;
 float electrodeh;
@@ -201,8 +201,8 @@ void fillElements() {
 	// Prepare inner nodes adjacency map
 	//	Adjacency is established between nodes that are NOT in the outter ring
 	//	set AND share at least one element
-	// FIXME: That´s probably lambda overuse!!!!
-	typedef std::set<std::pair<int, int>> adjacencySet;
+	// FIXME: That's probably lambda overuse!!!!
+	typedef std::set<std::pair<int, int> > adjacencySet;
 	adjacencySet auxAdjacency;	
 	// Functor that adds an ordered pair to innerAdjacency
 	//  Notice the pair is ordered first, so the pair (2,1) is translated

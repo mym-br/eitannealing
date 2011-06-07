@@ -93,7 +93,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt = 0.05;
+	float kt = 1.0;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
@@ -107,7 +107,7 @@ void workProc()
 		e = sqe = 0;
 		totalit = acceptit = 0;
 		iterations = solutions = 0;
-		while(totalit<15000 && acceptit < 4000) {
+		while(totalit<6000 && acceptit < 2000) {
 			next.reset(current->shuffle(&sdata, sh));
 			if(current->compareWith(*next, kt, 0.05)) {
 				iterations += current->getTotalIt();
@@ -125,12 +125,15 @@ void workProc()
 
 			totalit++;
 			if(totalit % 25 == 0) {
-				view->setCurrentSolution(current->getSolution());
+				view->setCurrentSolution(current->getSolution());				
 			}
 		}
 		double eav = e/solutions;
 		double sige = sqrt(sqe/solutions - eav*eav);
 		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << ((float)iterations)/(nobs*solutions) << std::endl;
+		for(int it=0;it<numcoefficients;it++) {
+		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
+		}
 		
 		kt *= 0.95;
 	}
@@ -305,8 +308,9 @@ void setSol(float *sol);
           
      boost::thread worker(workProc);
 
-     return app.exec();
+     int retval =  app.exec();
      worker.join();
+     return retval;
  }
  
 

@@ -96,91 +96,60 @@ QBrush viewport::getBrushForElement(int n1, int n2, int n3)
 	return QBrush(color);
 }
 
-void drawElements(viewport &view)
-{
-	int i;
-	QPainter painter(&(view.getBuffer()));
-	painter.eraseRect(view.geometry());
-	for(i=0;i<elements.size();i++) {
-		QPolygon polygon;
-		int n = elements[i].n1;
-		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		n = elements[i].n2;
-		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		n = elements[i].n3;
-		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		n = elements[i].n1;
-		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		painter.drawConvexPolygon(polygon);
-	}
-	// Draw electrodes
-	for(i=0;i<electrodes.size();i++) {
-		node *base = &nodes[electrodes[i].baseNode];
-		node *n1 = &nodes[electrodes[i].n1];
-		node *n2 = &nodes[electrodes[i].n2];
-		node *n3 = &nodes[electrodes[i].n3];
-		painter.drawLine(
-				translateCoordinate(base->x, base->y),
-				translateCoordinate(n1->x, n1->y));
-		painter.drawLine(
-				translateCoordinate(base->x, base->y),
-				translateCoordinate(n2->x, n2->y));
-		painter.drawLine(
-				translateCoordinate(base->x, base->y),
-				translateCoordinate(n3->x, n3->y));
-	}
-}
-
-void drawSolution(viewport &view, float *solution)
-{
-
-}
-
 void viewport::setCurrentSolution(float *val)
 {
 	QMutexLocker lock(&solutionMutex);
 	memcpy(this->solution, val, sizeof(float)*numcoefficients);
-	QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
+	QMetaObject::invokeMethod(this, "solution_updated", Qt::QueuedConnection);
+}
+
+void viewport::solution_updated()
+{
+      {		// Redraw on the buffer
+	    
+	    QMutexLocker lock(&solutionMutex);
+	    int i;
+	    QPainter painter(&this->paintbuff);
+	    painter.setRenderHint(QPainter::Antialiasing);
+	    painter.eraseRect(this->geometry());
+	    for(i=0;i<elements.size();i++) {
+		    QPolygon polygon;
+		    int n = elements[i].n1;
+		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
+		    n = elements[i].n2;
+		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
+		    n = elements[i].n3;
+		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
+		    n = elements[i].n1;
+		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
+		    int level = 255;//*(solution[elements[i].condIndex]-1);		
+		    painter.setBrush(getBrushForElement(elements[i].n1, elements[i].n2, elements[i].n3));
+		    painter.drawConvexPolygon(polygon);
+	    }
+	    // Draw electrodes
+	    for(i=0;i<electrodes.size();i++) {
+		    node *base = &nodes[electrodes[i].baseNode];
+		    node *n1 = &nodes[electrodes[i].n1];
+		    node *n2 = &nodes[electrodes[i].n2];
+		    node *n3 = &nodes[electrodes[i].n3];
+		    painter.drawLine(
+				    translateCoordinate(base->x, base->y),
+				    translateCoordinate(n1->x, n1->y));
+		    painter.drawLine(
+				    translateCoordinate(base->x, base->y),
+				    translateCoordinate(n2->x, n2->y));
+		    painter.drawLine(
+				    translateCoordinate(base->x, base->y),
+				    translateCoordinate(n3->x, n3->y));
+	    }
+	}
+	// Request an update
+	this->update();
 }
 
 void viewport::paintEvent ( QPaintEvent * event )
 {
-	//QPainter(this).drawImage(event->rect(), this->paintbuff, event->rect());
-	QMutexLocker lock(&solutionMutex);
-	int i;
-	QPainter painter(this);
-	painter.setRenderHint(QPainter::Antialiasing);
-	painter.eraseRect(this->geometry());
-	for(i=0;i<elements.size();i++) {
-		QPolygon polygon;
-		int n = elements[i].n1;
-		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		n = elements[i].n2;
-		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		n = elements[i].n3;
-		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		n = elements[i].n1;
-		polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		int level = 255;//*(solution[elements[i].condIndex]-1);		
-		painter.setBrush(getBrushForElement(elements[i].n1, elements[i].n2, elements[i].n3));
-		painter.drawConvexPolygon(polygon);
-	}
-	// Draw electrodes
-	for(i=0;i<electrodes.size();i++) {
-		node *base = &nodes[electrodes[i].baseNode];
-		node *n1 = &nodes[electrodes[i].n1];
-		node *n2 = &nodes[electrodes[i].n2];
-		node *n3 = &nodes[electrodes[i].n3];
-		painter.drawLine(
-				translateCoordinate(base->x, base->y),
-				translateCoordinate(n1->x, n1->y));
-		painter.drawLine(
-				translateCoordinate(base->x, base->y),
-				translateCoordinate(n2->x, n2->y));
-		painter.drawLine(
-				translateCoordinate(base->x, base->y),
-				translateCoordinate(n3->x, n3->y));
-	}
+	QPainter(this).drawImage(event->rect(), this->paintbuff, event->rect());
 }
 
 matrixViewModel::matrixViewModel(const matrix &m) : innermatrix(m)
@@ -216,4 +185,5 @@ QVariant  matrixViewModel::headerData (
      return QVariant();
  }
 
+#include "graphics.moc"
 

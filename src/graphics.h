@@ -29,15 +29,18 @@ class matrixViewModel : public QAbstractTableModel {
 };
 
 class viewport : public QWidget {
-		QImage paintbuff;
-		float *solution;
-		QMutex solutionMutex;
+  Q_OBJECT
+	      QImage paintbuff;
+	      float *solution;
+	      QMutex solutionMutex;
 	public:
 		viewport(int width, int height, const char *title);
 		QImage &getBuffer() {
 			return this->paintbuff;
 		}
 		void setCurrentSolution(float *val);		
+      public slots:
+		void solution_updated();
 	protected:
 	  QBrush getBrushForElement(int n1, int n2, int n3);
 	  QColor getColorForLevel(float level);

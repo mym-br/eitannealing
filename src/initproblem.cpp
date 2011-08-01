@@ -102,8 +102,10 @@ void fillElements() {
 	int numElements;	// Notice this includes also electrode elements
 	file >> numElements;
 	
-	elements.reserve(numElements);
 	int i;
+	
+	elements.reserve(numElements);
+	
 	for(i=0;i<numElements;i++) {
 	  int id;
 	  int n1, n2, n3;
@@ -120,6 +122,7 @@ void fillElements() {
 	  n3--;
 	  switch(id) {
 	      case 1001:	// external ring
+	      case 2001:	
 			innerNodes.erase(n1);
 			innerNodes.erase(n2);
 			innerNodes.erase(n3);
@@ -132,7 +135,7 @@ void fillElements() {
 			elements.push_back(temp);
 			break;		
 	      
-	      case 2001:	// internal elements
+		case 3001:	// internal elements
 			if(!outerRingNodes.count(n1))
 				innerNodes.insert(n1);
 			if(!outerRingNodes.count(n2))
@@ -171,6 +174,17 @@ void fillElements() {
 			 break;
 	  }
 	}
+	
+	
+	// Add all lower elements to the "outerRingNodes" set
+	std::cout << nodes.size();
+	for(i=0;i<nodes.size();i++) {
+	  if(nodes[i].y < 0) {
+		innerNodes.erase(i);
+		outerRingNodes.insert(i);		
+	  }
+	}
+	
 
 	using namespace boost::lambda;	// Lambda black magic
 	
@@ -188,14 +202,17 @@ void fillElements() {
 	// Outter ring coefficient
 	std::for_each(outerRingNodes.begin(), outerRingNodes.end(),
 		var(node2coefficient)[_1]=condIndex);
-	
+
+	/*// Inner coefficients
 	std::for_each(innerNodes.begin(), innerNodes.end(),
-		var(node2coefficient)[_1]=condIndex);
+		var(node2coefficient)[_1]=condIndex);*/
+	
 	condIndex++;
+	
 
 	// Inner coefficients
-	//std::for_each(innerNodes.begin(), innerNodes.end(),
-	//	var(node2coefficient)[_1]=var(condIndex)++);
+	std::for_each(innerNodes.begin(), innerNodes.end(),
+		var(node2coefficient)[_1]=var(condIndex)++);
 	
 	numcoefficients = condIndex;
 	groundNode = electrodes.back().baseNode;

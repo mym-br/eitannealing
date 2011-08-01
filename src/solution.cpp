@@ -256,42 +256,43 @@ float *solution::copySolution(const float *sol)
 float *solution::getNewRandomSolution()
 {
 	float *res = new float[numcoefficients];
+	int i = 0;
 /*
-	res[0] = 0.118859;
-	res[1] = 0.0911114;
-	res[2] = 0.100251;
-	res[3] = 0.106117;
-	res[4] = 0.160247;
-	res[5] = 0.105798;
-	res[6] = 0.106278;
-	res[7] = 0.104063;
-	res[8] = 0.0882884;
-	res[9] = 0.0978375;
-	res[10] = 0.0876754;
-	res[11] = 0.0793514;
-	res[12] = 0.0787333;
-	res[13] = 0.0845089;
-	res[14] = 0.0753199;
-	res[15] = 0.0786953;
-	res[16] = 0.0791697;
-	res[17] = 0.0832361;
-	res[18] = 0.0828951;
-	res[19] = 0.0927432;
-	res[20] = 0.101078;
-	res[21] = 0.100138;
-	res[22] = 0.102309;
-	res[23] = 0.112525;
-	res[24] = 0.125682;
-	res[25] = 0.0879498;
-	res[26] = 0.121403;
-	res[27] = 0.11835;
-	res[28] = 0.120835;
-	res[29] = 0.0954887;
-	res[30] = 0.132771;
-	res[31] = 0.118369;
-	res[32] = 1/2.82314;
-*/	
-	for(int i=0;i<numcoefficients;i++)
+	res[i++] = 0.0795333;
+	res[i++] = 0.154207;
+	res[i++] = 0.10827;
+	res[i++] = 0.107503;
+	res[i++] = 0.120324;
+	res[i++] = 0.115978;
+	res[i++] = 0.112217;
+	res[i++] = 0.109881;
+	res[i++] = 0.103229;
+	res[i++] = 0.0989397;
+	res[i++] = 0.0964289;
+	res[i++] = 0.0905536;
+	res[i++] = 0.0856748;
+	res[i++] = 0.0871923;
+	res[i++] = 0.0870397;
+	res[i++] = 0.0801445;
+	res[i++] = 0.0874562;
+	res[i++] = 0.0893944;
+	res[i++] = 0.0892118;
+	res[i++] = 0.0922962;
+	res[i++] = 0.109619;
+	res[i++] = 0.115378;
+	res[i++] = 0.120788;
+	res[i++] = 0.110558;
+	res[i++] = 0.115594;
+	res[i++] = 0.122183;
+	res[i++] = 0.11994;
+	res[i++] = 0.12327;
+	res[i++] = 0.123105;
+	res[i++] = 0.114889;
+	res[i++] = 0.122205;
+	res[i++] = 0.119641;
+	res[i++] = 0.35731;
+*/
+	for(i=0;i<numcoefficients;i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
 	return res;
@@ -301,7 +302,7 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 {
 	float *res = solution::copySolution(sol);
 	// head or tails
-	//if(genint(2)) { // Normal
+	if(genint(2)) { // Normal
 		int ncoef = genint(numcoefficients);	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {
@@ -324,7 +325,7 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 			data->swap = false;
 			data->ncoef = ncoef;
 		}
-	/*} else { // swap
+	} else { // swap
 		int ncoef = genint(innerAdjacency.size());
 		int node1, node2;
 
@@ -361,7 +362,7 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 			data->swap = true;
 			data->ncoef = ncoef;
 		}
-	}*/
+	}
 	return res;
 }
 

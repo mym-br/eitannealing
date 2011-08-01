@@ -7,7 +7,9 @@
 
 #include <QApplication>
 #include <QTableView>
+#include <QListView>
 #include <QThread>
+#include <QAction>
 #include <Eigen/Array>
 #include <boost/thread.hpp>
 #include <boost/random/mersenne_twister.hpp>
@@ -23,7 +25,7 @@
 #include "init_obs_problem.h"
 
 
-viewport *view;
+solutionView *view;
 
 #include <Eigen/QR>
 
@@ -93,7 +95,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt = 1.0;
+	float kt = 400;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
@@ -103,11 +105,11 @@ void workProc()
 	int solutions;
 	double e;
 	double sqe;
-	while(kt > 0.0075) {
+	while(kt > 0.0001) {
 		e = sqe = 0;
 		totalit = acceptit = 0;
 		iterations = solutions = 0;
-		while(totalit<6000 && acceptit < 2000) {
+		while(totalit<16000 && acceptit < 8000) {
 			next.reset(current->shuffle(&sdata, sh));
 			if(current->compareWith(*next, kt, 0.05)) {
 				iterations += current->getTotalIt();
@@ -131,9 +133,9 @@ void workProc()
 		double eav = e/solutions;
 		double sige = sqrt(sqe/solutions - eav*eav);
 		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << ((float)iterations)/(nobs*solutions) << std::endl;
-		for(int it=0;it<numcoefficients;it++) {
+		/*for(int it=0;it<numcoefficients;it++) {
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
-		}
+		}*/
 		
 		kt *= 0.95;
 	}
@@ -301,10 +303,19 @@ void setSol(float *sol);
      //matrixView.setWindowTitle("Stiffness");
      //matrixView.show();
 
-
-     view =new viewport(600, 600, argc>3?argv[4]:"Reverse Problem");
-	 view->setCurrentSolution(solution);
-     view->show();
+     qRegisterMetaType<QModelIndex>("QModelIndex");
+     view = new solutionView(numcoefficients);
+     QTableView list;
+     list.setModel(view);
+     QAction *copyDataAction = new QAction("Copy", &list);
+     TableViewCopyDataPopupMenu::getInstance()->connect(copyDataAction, SIGNAL(triggered()), SLOT(actionFired()));
+     list.addAction(copyDataAction);
+     list.setContextMenuPolicy(Qt::ActionsContextMenu);
+     list.show();
+     viewport graphics(600, 600, argc>3?argv[4]:"Reverse Problem");
+     graphics.show();
+     graphics.connect(view, SIGNAL(dataChanged(QModelIndex,QModelIndex)), SLOT(solution_updated(QModelIndex,QModelIndex)));
+     
           
      boost::thread worker(workProc);
 

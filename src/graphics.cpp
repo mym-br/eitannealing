@@ -12,8 +12,13 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QMutexLocker>
+#include <QMenu>
+#include <QTableView>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <algorithm>
+#include <QApplication>
+#include <QClipboard>
 
 
 QPoint translateCoordinate(float x, float y)
@@ -23,11 +28,8 @@ QPoint translateCoordinate(float x, float y)
 
 viewport::viewport(int width, int height, const char *title) : paintbuff(width, height, QImage::Format_RGB32)
 {
-	this->solution = new float[numcoefficients];
-	for(int i=0;i<numcoefficients;i++) solution[i] = 2;
 	this->setWindowTitle(title);
 	this->setFixedSize(width, height);
-	QPainter(this).fillRect(0, 0, width, height, qRgb(255, 255, 255));
 	this->paintbuff.fill(qRgb(255, 255, 255));
 }
 
@@ -39,7 +41,7 @@ QColor viewport::getColorForLevel(float level)
 	return QColor(val, val, val);
 }
 
-QBrush viewport::getBrushForElement(int n1, int n2, int n3)
+QBrush viewport::getBrushForElement(float *solution, int n1, int n2, int n3)
 {
 	// Reorder the elements so that sigma(n1) <= sigma(n2) <= sigma(n3)
 	float s1, s2, s3, f_aux;
@@ -96,18 +98,10 @@ QBrush viewport::getBrushForElement(int n1, int n2, int n3)
 	return QBrush(color);
 }
 
-void viewport::setCurrentSolution(float *val)
-{
-	QMutexLocker lock(&solutionMutex);
-	memcpy(this->solution, val, sizeof(float)*numcoefficients);
-	QMetaObject::invokeMethod(this, "solution_updated", Qt::QueuedConnection);
-}
-
-void viewport::solution_updated()
+void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight )
 {
       {		// Redraw on the buffer
-	    
-	    QMutexLocker lock(&solutionMutex);
+	    float *solution = (float *)topLeft.internalPointer() - topLeft.row();
 	    int i;
 	    QPainter painter(&this->paintbuff);
 	    painter.setRenderHint(QPainter::Antialiasing);
@@ -123,7 +117,7 @@ void viewport::solution_updated()
 		    n = elements[i].n1;
 		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
 		    int level = 255;//*(solution[elements[i].condIndex]-1);		
-		    painter.setBrush(getBrushForElement(elements[i].n1, elements[i].n2, elements[i].n3));
+		    painter.setBrush(getBrushForElement(solution, elements[i].n1, elements[i].n2, elements[i].n3));
 		    painter.drawConvexPolygon(polygon);
 	    }
 	    // Draw electrodes
@@ -150,6 +144,82 @@ void viewport::solution_updated()
 void viewport::paintEvent ( QPaintEvent * event )
 {
 	QPainter(this).drawImage(event->rect(), this->paintbuff, event->rect());
+}
+
+TableViewCopyDataPopupMenu::TableViewCopyDataPopupMenu() {}
+
+TableViewCopyDataPopupMenu *TableViewCopyDataPopupMenu::instance = NULL;
+
+TableViewCopyDataPopupMenu *TableViewCopyDataPopupMenu::getInstance() {
+	if(instance==NULL) instance = new TableViewCopyDataPopupMenu();
+	return instance;
+}
+
+/*void TableViewCopyDataPopupMenu::showMenu(const QPoint & pos )
+{
+      // Verifies if the sender is actually a QTableView
+      if(this->sender()->inherits("QTableView")) {
+		QMenu newMenu;
+		newMenu.addAction("Copy", this, SLOT(actionFired()))->setData(QVariant::fromValue(sender()));
+		newMenu.exec(pos);
+      }
+}*/
+
+void TableViewCopyDataPopupMenu::actionFired()
+{
+	    QAction *act = (QAction *) this->sender();
+	    QTableView *view = dynamic_cast<QTableView *>(act->parent());
+	    QModelIndexList selection = view->selectionModel()->selectedIndexes();
+	    QString data;
+	    QModelIndex current;
+	    foreach(current, selection) {
+		data.append(current.data(Qt::DisplayRole).toString());
+		data.append(" ");
+	    }
+	    QApplication::clipboard()->setText(data);
+}
+
+solutionView::solutionView(int rows) : rows(rows)
+{
+	this->sol = new float[rows];
+	std::fill(this->sol, this->sol+rows, 2.0);
+}
+
+solutionView::~solutionView()
+{
+	delete[] this->sol;
+}
+
+int solutionView::rowCount( const QModelIndex & parent ) const
+{
+	return this->rows;
+}
+
+QVariant  solutionView::data( const QModelIndex & index, int role ) const
+{
+    if (!index.isValid() || role != Qt::DisplayRole)
+        return QVariant();
+    return this->sol[index.row()];
+}
+
+
+QVariant  solutionView::headerData (
+		int section,
+		Qt::Orientation  orientation,
+		int role) const
+ {
+     if (role == Qt::DisplayRole)
+         return QString::number(section);
+     return QVariant();
+ }
+
+void solutionView::setCurrentSolution(const float *newsol)
+{
+	{
+		QMutexLocker(&this->solutionMutex);
+		std::copy(newsol, newsol + this->rows, this->sol);
+	}
+	emit dataChanged(this->createIndex(0,0, this->sol), this->createIndex(0,this->rows));
 }
 
 matrixViewModel::matrixViewModel(const matrix &m) : innermatrix(m)

@@ -69,6 +69,7 @@ SparseIncompleteLLT::SparseIncompleteLLT(const Eigen::SparseMatrix<double, Eigen
 			}
 		}
 	}
+
 }
 
 /** Computes b = L^-T L^-1 b */

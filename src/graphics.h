@@ -15,6 +15,7 @@
 #include <QAbstractTableModel>
 #include <QMutex>
 #include "solver.h"
+#include <string>
 
 
 class matrixViewModel : public QAbstractTableModel {
@@ -29,15 +30,21 @@ class matrixViewModel : public QAbstractTableModel {
 };
 
 class viewport : public QWidget {
+ Q_OBJECT
 		QImage paintbuff;
 		float *solution;
+		float *solvar;
 		QMutex solutionMutex;
+		QColor getColorForIndex(int i);
 	public:
 		viewport(int width, int height, const char *title);
 		QImage &getBuffer() {
 			return this->paintbuff;
 		}
-		void setCurrentSolution(float *val);
+		void setCurrentSolution(float *val, float *var);
+		void saveImage(const std::string &filename);
+	protected slots:
+		void _saveImage(const QString &filename);
 	protected:
 	  // override default paint event
 	  void paintEvent ( QPaintEvent * event );

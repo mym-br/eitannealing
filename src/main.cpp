@@ -19,6 +19,7 @@
 #include "solution.h"
 #include "observations.h"
 #include "random.h"
+#include <sstream>
 
 #include "init_obs_problem.h"
 
@@ -89,7 +90,7 @@ void workProc()
 	}*/
 
 
-
+	
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
@@ -98,16 +99,27 @@ void workProc()
 	int acceptit;
 	shuffleData sdata;
 	shuffler sh;
+	
 	current.reset(new solution());
+	std::cout.flush();
+	
 	int iterations;
 	int solutions;
 	double e;
 	double sqe;
+	int i;
+	int filecount = 0;
+	std::stringstream filename;
+	float solAv[65];
+	float solVa[65];
+	
 	while(kt > 0.0000001) {
+		for(i=0;i<65;i++) solAv[i] =0;
+		for(i=0;i<65;i++) solVa[i] =0;
 		e = sqe = 0;
 		totalit = acceptit = 0;
 		iterations = solutions = 0;
-		while(totalit<6000 && acceptit < 1000) {
+		while(totalit<12288 && acceptit < 4096) {
 			next.reset(current->shuffle(&sdata, sh));
 			if(current->compareWith(*next, kt, 0.01)) {
 				iterations += current->getTotalIt();
@@ -124,8 +136,31 @@ void workProc()
 			sqe += current->getDEstimate()*current->getDEstimate();
 
 			totalit++;
-			if(totalit % 25 == 0) {
-				view->setCurrentSolution(current->getSolution());
+			
+			for(i=0;i<65;i++) {
+			  float v = current->getSolution()[i];
+			  solAv[i] += v;
+			  solVa[i] += v*v;
+			}			
+			if(totalit % 1024 == 0) {
+			  
+			      for(i=0;i<65;i++) {
+				solAv[i] /= 1024;
+				solVa[i] /= 1024;
+				solVa[i] -= solAv[i]*solAv[i];
+				if(solVa[i]>0) {
+				  solVa[i] = std::sqrt(solVa[i])/0.28867513;			
+				} else solVa[i]=0;
+			      }
+			      view->setCurrentSolution(solAv, solVa);
+      			      for(i=0;i<65;i++) {
+				solAv[i] = 0;
+				solVa[i] = 0;
+			      }
+			      
+			      filename.str("");
+			      filename << "img/sol" << std::setw(5) << std::setfill('0') << filecount++ << ".png";
+			      view->saveImage(filename.str());
 			}
 		}
 		double eav = e/solutions;

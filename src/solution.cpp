@@ -248,7 +248,6 @@ float *solution::getNewRandomSolution()
 {
 	float *res = new float[65];
 	res[0] = 1;
-
 	for(int i=1;i<65;i++)
 		res[i] = 1+genreal();
 

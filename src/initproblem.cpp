@@ -123,6 +123,7 @@ void fillElements() {
 	  switch(id) {
 	      case 1001:	// external ring
 	      case 2001:	
+	      case 3001:
 			innerNodes.erase(n1);
 			innerNodes.erase(n2);
 			innerNodes.erase(n3);
@@ -135,7 +136,7 @@ void fillElements() {
 			elements.push_back(temp);
 			break;		
 	      
-		case 3001:	// internal elements
+		case 4001:	// internal elements
 			if(!outerRingNodes.count(n1))
 				innerNodes.insert(n1);
 			if(!outerRingNodes.count(n2))
@@ -176,14 +177,14 @@ void fillElements() {
 	}
 	
 	
-	// Add all lower elements to the "outerRingNodes" set
+	/*// Add all lower elements to the "outerRingNodes" set
 	std::cout << nodes.size();
 	for(i=0;i<nodes.size();i++) {
 	  if(nodes[i].y < 0) {
 		innerNodes.erase(i);
 		outerRingNodes.insert(i);		
 	  }
-	}
+	}*/
 	
 
 	using namespace boost::lambda;	// Lambda black magic

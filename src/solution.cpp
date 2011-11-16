@@ -302,8 +302,7 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 {
 	float *res = solution::copySolution(sol);
 	// head or tails
-	//if(genint(2)) { // Normal
-	if(true) {
+	if(genint(2)) { // Normal
 		int ncoef = genint(numcoefficients);	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {

@@ -26,18 +26,46 @@ QPoint translateCoordinate(float x, float y)
 	return QPoint((int)(1800*x+0.5)+300, 300 - (int)(1800*y+.5));
 }
 
-viewport::viewport(int width, int height, const char *title) : paintbuff(width, height, QImage::Format_RGB32)
+viewport::viewport(int width, int height, const char *title) : scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32)
 {
 	this->setWindowTitle(title);
-	this->setFixedSize(width, height);
+	this->setFixedSize(width, height+scale.height());
 	this->paintbuff.fill(qRgb(255, 255, 255));
+	// prepare scale
+	this->scale.fill(qRgb(255, 255, 255));
+	
+	QLinearGradient color(20,0,this->width()-20,0);
+	
+	color.setColorAt(0, getColorForLevel(mincond));	
+	for(float t=0.125f; t < 1.0f; t+= 0.125f) {
+	    float level = maxcond*t + (1-t)*mincond;
+	    color.setColorAt(t, getColorForLevel(level));	
+	}
+	color.setColorAt(1, getColorForLevel(maxcond));
+	QPainter painter(&scale);
+	painter.setBrush(color);
+	//painter.setPen(Qt::NoPen);
+	painter.drawRect(20, 10, scale.width()-40, 30);	
+	painter.setPen(Qt::SolidLine);
+	for(int i = 0; i <= 4; i++) {
+	  int x = (int)((scale.width()-40)*((float)i/4)+0.5f)+20;
+	  float level = (float)i/4;
+	  level = maxcond*level + (1-level)*mincond;
+	  painter.drawLine(x,40,x,45);
+	  painter.drawText(x-20, 45, 41, 20, Qt::AlignHCenter | Qt::AlignTop, QString::number(level));
+	  
+	}
+	  
+	
 }
 
 QColor viewport::getColorForLevel(float level)
 {
 	if(level > maxcond) level=maxcond;
 	if(level < mincond) level=mincond;
-	int val = ((level-mincond)/(maxcond-mincond))*255;
+	float fval = ((level-mincond)/(maxcond-mincond));
+	fval = std::pow(fval, 1.8f)*255;
+	int val = (int)fval;
 	return QColor(val, val, val);
 }
 
@@ -93,6 +121,10 @@ QBrush viewport::getBrushForElement(float *solution, int n1, int n2, int n3)
 		translateCoordinate(nodes[n1].x+x, nodes[n1].y+y));
 	
 	color.setColorAt(0, getColorForLevel(s1));	
+	for(float t=0.125f; t < 1.0f; t+= 0.125f) {
+	    float level = s3*t + (1-t)*s1;
+	    color.setColorAt(t, getColorForLevel(level));	
+	}
 	color.setColorAt(1, getColorForLevel(s3));
 
 	return QBrush(color);
@@ -106,6 +138,7 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 	    QPainter painter(&this->paintbuff);
 	    painter.setRenderHint(QPainter::Antialiasing);
 	    painter.eraseRect(this->geometry());
+	    painter.setPen(Qt::NoPen);
 	    for(i=0;i<elements.size();i++) {
 		    QPolygon polygon;
 		    int n = elements[i].n1;
@@ -136,14 +169,23 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 				    translateCoordinate(base->x, base->y),
 				    translateCoordinate(n3->x, n3->y));
 	    }
+	    painter.setPen(Qt::SolidLine);
+	    painter.setBrush(Qt::NoBrush);
+	    painter.drawEllipse(QRect(translateCoordinate(-0.150f, 0.150f), translateCoordinate(0.150f, -0.150f)));
 	}
+	
+	    
 	// Request an update
 	this->update();
 }
 
 void viewport::paintEvent ( QPaintEvent * event )
 {
-	QPainter(this).drawImage(event->rect(), this->paintbuff, event->rect());
+	QPainter painter(this);
+	painter.drawImage(event->rect(), this->paintbuff, event->rect());
+	
+	painter.drawImage(event->rect(), this->scale, event->rect().translated(0,-this->paintbuff.height()));
+	
 }
 
 TableViewCopyDataPopupMenu::TableViewCopyDataPopupMenu() {}

@@ -46,6 +46,7 @@ Q_OBJECT
 class viewport : public QWidget {
 Q_OBJECT
 	QImage paintbuff;
+	QImage scale;
 	public:
 	    viewport(int width, int height, const char *title);
 	    QImage &getBuffer() {

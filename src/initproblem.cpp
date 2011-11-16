@@ -122,8 +122,7 @@ void fillElements() {
 	  n3--;
 	  switch(id) {
 	      case 1001:	// external ring
-	      case 2001:	
-	      case 3001:
+	      //case 3001:
 			innerNodes.erase(n1);
 			innerNodes.erase(n2);
 			innerNodes.erase(n3);
@@ -136,7 +135,7 @@ void fillElements() {
 			elements.push_back(temp);
 			break;		
 	      
-		case 4001:	// internal elements
+		case 2001:	// internal elements
 			if(!outerRingNodes.count(n1))
 				innerNodes.insert(n1);
 			if(!outerRingNodes.count(n2))

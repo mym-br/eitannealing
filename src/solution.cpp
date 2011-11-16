@@ -290,8 +290,8 @@ float *solution::getNewRandomSolution()
 	res[i++] = 0.114889;
 	res[i++] = 0.122205;
 	res[i++] = 0.119641;
-	res[i++] = 0.35731;
-*/
+	res[i++] = 0.35731;*/
+
 	for(i=0;i<numcoefficients;i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
@@ -302,7 +302,8 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 {
 	float *res = solution::copySolution(sol);
 	// head or tails
-	if(genint(2)) { // Normal
+	//if(genint(2)) { // Normal
+	if(true) {
 		int ncoef = genint(numcoefficients);	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {

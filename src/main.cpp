@@ -95,7 +95,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt = 400;
+	float kt = 0.000001;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
@@ -105,13 +105,13 @@ void workProc()
 	int solutions;
 	double e;
 	double sqe;
-	while(kt > 0.0001) {
+	while(kt > 0.0000001) {
 		e = sqe = 0;
 		totalit = acceptit = 0;
 		iterations = solutions = 0;
-		while(totalit<16000 && acceptit < 8000) {
+		while(totalit<15000 && acceptit < 3000) {
 			next.reset(current->shuffle(&sdata, sh));
-			if(current->compareWith(*next, kt, 0.05)) {
+			if(current->compareWith(*next, kt, 0.01)) {
 				iterations += current->getTotalIt();
 				solutions++;
 				sh.addShufflerFeedback(sdata, true);

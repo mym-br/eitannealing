@@ -221,13 +221,13 @@ void solution::initSimulations()
 	{
 		simulations[i] = new CG_Solver(*stiffness, currents[i], *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
-		simulations[i]->do_iteration();
-		simulations[i]->do_iteration();
-		simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
 		double err = simulations[i]->getErrorl2Estimate();
 		double aux;
 		int ndecr = 0;
-		while(ndecr<3) {
+		while(ndecr<2) {
 			simulations[i]->do_iteration();
 			aux = simulations[i]->getErrorl2Estimate();
 			if(aux>=err) ndecr = 0;

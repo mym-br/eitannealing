@@ -42,6 +42,7 @@ void CG_Solver::init()
 	//rmod_1 = rmod = r.squaredNorm();
 	q = A*p;
 	gamma = rmod/q.dot(p);
+	r0norm2 = rmod;
 	r0norm = sqrt(rmod);
 	alpha = 1/gamma;
 

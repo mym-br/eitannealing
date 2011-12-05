@@ -52,7 +52,7 @@ viewport::viewport(int width, int height, const char *title) : scale(width, 70, 
 	  float level = (float)i/4;
 	  level = maxcond*level + (1-level)*mincond;
 	  painter.drawLine(x,40,x,45);
-	  painter.drawText(x-20, 45, 41, 20, Qt::AlignHCenter | Qt::AlignTop, QString::number(level));
+	  painter.drawText(x-25, 45, 51, 20, Qt::AlignHCenter | Qt::AlignTop, QString::number(level));
 	  
 	}
 	  

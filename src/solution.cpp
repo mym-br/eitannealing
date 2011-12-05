@@ -104,6 +104,37 @@ bool solution::compareWith(solution &target, float kt, float prob)
 }
 
 
+bool solution::compareWithMinIt(solution &target, float kt,  int minit)
+{
+	double delta, expdelta;
+	// Ensure errors are within required margin
+	ensureMinIt(minit);
+	target.ensureMinIt(minit);
+	delta = target.totalDist - this->totalDist;
+	expdelta = exp(-delta/kt);
+	if(delta <= 0) {
+	  return true;
+	}
+	if(genreal()<expdelta) return true;
+	return false;
+}
+
+bool solution::compareWithMaxE2(solution &target, float kt,  double e2)
+{
+	double delta, expdelta;
+	// Ensure errors are within required margin
+	ensureMaxE2(e2);
+	target.ensureMaxE2(e2);
+	delta = target.totalDist - this->totalDist;
+	expdelta = exp(-delta/kt);
+	if(delta <= 0) {
+	  return true;
+	}
+	if(genreal()<expdelta) return true;
+	return false;
+}
+
+
 solution::solution(const float *sigma):
 				sol(solution::copySolution(sigma)),
 				stiffness(solution::getNewStiffness(sol)),
@@ -162,13 +193,13 @@ void solution::initSimulations(const solution &base)
 		// Reuse previous solutions as initial values
 		simulations[i] = new CG_Solver(*stiffness, currents[i], base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
-		simulations[i]->do_iteration();
-		simulations[i]->do_iteration();
-		simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
 		double err = simulations[i]->getErrorl2Estimate();
 		double aux;
 		int ndecr = 0;
-		while(ndecr<3) {
+		while(ndecr<2) {
 			simulations[i]->do_iteration();
 			aux = simulations[i]->getErrorl2Estimate();
 			if(aux>=err) ndecr = 0;
@@ -302,8 +333,7 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 {
 	float *res = solution::copySolution(sol);
 	// head or tails
-	//if(genint(2)) { // Normal
-	if(true) {
+	if(genint(2)) { // Normal
 		int ncoef = genint(numcoefficients);	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {
@@ -394,6 +424,77 @@ solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
 		exit(0);
 	}
 	return res;
+}
+
+void solution::saturate()
+{
+      ensureMinIt(nodes.size()+30);
+}
+
+void solution::ensureMinIt(unsigned int it)
+{     
+      static Eigen::VectorXd aux(electrodes.size()-1);
+      for(int i = 0; i<nobs;i++) {
+	    CG_Solver *sim = this->simulations[i];
+	    while(sim->getIteration()<it) {
+		simulations[i]->do_iteration();
+		this->totalit++;
+		// Recalcule expected distance and boundaries
+		aux = simulations[i]->getX().end(electrodes.size()-1);
+		aux -= tensions[i];
+		distance[i] = aux.norm();
+		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
+		maxdist[i] = distance[i] + err[i];
+		mindist[i] = max(distance[i] - err[i],0);
+		err_x_dist[i] = maxdist[i]*err[i];
+		totalDist = distance.norm();
+		minTotalDist = mindist.norm();
+		maxTotalDist = maxdist.norm();
+		// reevaluate critical
+		double max = err_x_dist[0];
+		critical = 0;
+		for(int j = 1; j<nobs;j++) {
+		  if(max < err_x_dist[j]) {
+			max = err_x_dist[j];
+			critical = j;
+		  }
+		}
+		critErr = err[critical];
+	    }
+      }
+}
+
+void solution::ensureMaxE2(double e2)
+{     
+      static Eigen::VectorXd aux(electrodes.size()-1);
+      for(int i = 0; i<nobs;i++) {
+	    CG_Solver *sim = this->simulations[i];
+	    while(sim->getLastE2()>e2) {
+		simulations[i]->do_iteration();
+		this->totalit++;
+		// Recalcule expected distance and boundaries
+		aux = simulations[i]->getX().end(electrodes.size()-1);
+		aux -= tensions[i];
+		distance[i] = aux.norm();
+		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
+		maxdist[i] = distance[i] + err[i];
+		mindist[i] = max(distance[i] - err[i],0);
+		err_x_dist[i] = maxdist[i]*err[i];
+		totalDist = distance.norm();
+		minTotalDist = mindist.norm();
+		maxTotalDist = maxdist.norm();
+		// reevaluate critical
+		double max = err_x_dist[0];
+		critical = 0;
+		for(int j = 1; j<nobs;j++) {
+		  if(max < err_x_dist[j]) {
+			max = err_x_dist[j];
+			critical = j;
+		  }
+		}
+		critErr = err[critical];
+	    }
+      }
 }
 
 solution::~solution()

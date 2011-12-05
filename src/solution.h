@@ -107,6 +107,8 @@ class solution {
 		solution(const float *sol);
 		solution();	// New random solution
 		bool compareWith(solution &target, float kt, float prob);
+		bool compareWithMinIt(solution &target, float kt, int minit);
+		bool compareWithMaxE2(solution &target, float kt, double e2);
 		solution *shuffle(shuffleData *data, const shuffler &sh) const;
 
 		void improve();
@@ -140,6 +142,12 @@ class solution {
 		int getTotalIt() const {
 			return this->totalit;
 		}
+		
+		void saturate();
+		
+		void ensureMinIt(unsigned int it);
+		
+		void ensureMaxE2(double e2);
 
 		~solution();
 

@@ -6,6 +6,7 @@
  */
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QTableView>
 #include <QListView>
 #include <QThread>
@@ -34,6 +35,10 @@ matrix *stiffness;
 matrix *stiffness0;
 
 float *currentSolution;
+
+float param;
+
+bool e2test = false;
 
 void workProc() 
 {
@@ -95,23 +100,33 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt = 0.000001;
+	float kt =  0.1;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
 	shuffler sh;
 	current.reset(new solution());
+	
 	int iterations;
 	int solutions;
 	double e;
 	double sqe;
-	while(kt > 0.0000001) {
+	iterations = 0;
+	while(kt > 0.0005) {
 		e = sqe = 0;
 		totalit = acceptit = 0;
-		iterations = solutions = 0;
-		while(totalit<15000 && acceptit < 3000) {
+		solutions = 0;
+		iterations = 0;		
+		while(totalit<12000 && acceptit < 2000) {
 			next.reset(current->shuffle(&sdata, sh));
-			if(current->compareWith(*next, kt, 0.01)) {
+			bool decision;
+			if(e2test)
+			  decision = current->compareWithMaxE2(*next, kt, param);
+			else
+			  decision = current->compareWith(*next, kt, param);
+			if(decision) {
+			//if(current->compareWithMinIt(*next, kt, 13)) {
+			//if(current->compareWithMaxE2(*next, kt, param)) {
 				iterations += current->getTotalIt();
 				solutions++;
 				sh.addShufflerFeedback(sdata, true);
@@ -132,13 +147,21 @@ void workProc()
 		}
 		double eav = e/solutions;
 		double sige = sqrt(sqe/solutions - eav*eav);
+		//solution probe(current->getSolution());
+		//probe.saturate();
 		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << ((float)iterations)/(nobs*solutions) << std::endl;
+		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
 		}*/
 		
 		kt *= 0.95;
 	}
+	
+	solution probe(current->getSolution());
+	probe.saturate();
+	std::cout << "real:" << probe.getDEstimate() << " iterations: " << iterations << std::endl;
+		
 
 #ifdef GGGGGGGGGGGG
 
@@ -243,9 +266,20 @@ void workProc()
 
 void setSol(float *sol);
 
- int main(int argc, char *argv[])
+#include <time.h>
+
+int main(int argc, char *argv[])
  {
-     QApplication app(argc, argv);
+    struct timespec time;
+    clock_gettime(CLOCK_REALTIME, &time);
+   //init_genrand64(time.tv_nsec);
+   if(argc > 4)
+     param = atof(argv[4]);
+   else
+     param = 0.875f;
+   if(argc > 5)
+     e2test = true;
+   QApplication app(argc, argv);
      initProblem(argv[1]);
 	 initObs(argv[2], argv[3]);
 	 buildNodeCoefficients();
@@ -304,6 +338,7 @@ void setSol(float *sol);
      //matrixView.show();
 
      qRegisterMetaType<QModelIndex>("QModelIndex");
+     
      view = new solutionView(numcoefficients);
      QTableView list;
      list.setModel(view);
@@ -321,7 +356,7 @@ void setSol(float *sol);
 
      int retval =  app.exec();
      worker.join();
-     return retval;
+     return 0;
  }
  
 

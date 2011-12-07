@@ -112,7 +112,9 @@ void workProc()
 	double e;
 	double sqe;
 	iterations = 0;
-	while(kt > 0.0005) {
+	int no_avance_count = 0;
+	double prevE = 10000000000.0;
+	while(kt > 0.0005 && no_avance_count < 3) {
 		e = sqe = 0;
 		totalit = acceptit = 0;
 		solutions = 0;
@@ -155,7 +157,15 @@ void workProc()
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
 		}*/
 		
+		
 		kt *= 0.95;
+		double variation = fabs(prevE-current->getDEstimate())/prevE;
+		std::cout << "variation: " << variation << std::endl;
+		if((fabs(prevE-current->getDEstimate())/prevE) < 2.0e-15)
+		  no_avance_count++;
+		else
+		  no_avance_count = 0;		
+		prevE = current->getDEstimate();
 	}
 	
 	solution probe(current->getSolution());

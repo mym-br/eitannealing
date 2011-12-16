@@ -100,7 +100,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt =  0.1;
+	float kt =  0.005;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
@@ -118,7 +118,7 @@ void workProc()
 		e = sqe = 0;
 		totalit = acceptit = 0;
 		solutions = 0;
-		iterations = 0;		
+		//iterations = 0;		
 		while(totalit<12000 && acceptit < 2000) {
 			next.reset(current->shuffle(&sdata, sh));
 			bool decision;
@@ -160,7 +160,8 @@ void workProc()
 		
 		kt *= 0.95;
 		double variation = fabs(prevE-current->getDEstimate())/prevE;
-		std::cout << "variation: " << variation << std::endl;
+		std::cout << "totalit:" << iterations << std::endl;
+		//std::cout << "variation: " << variation << std::endl;
 		if((fabs(prevE-current->getDEstimate())/prevE) < 2.0e-15)
 		  no_avance_count++;
 		else
@@ -282,7 +283,7 @@ int main(int argc, char *argv[])
  {
     struct timespec time;
     clock_gettime(CLOCK_REALTIME, &time);
-   //init_genrand64(time.tv_nsec);
+   init_genrand64(time.tv_nsec);
    if(argc > 4)
      param = atof(argv[4]);
    else
@@ -291,9 +292,10 @@ int main(int argc, char *argv[])
      e2test = true;
    QApplication app(argc, argv);
      initProblem(argv[1]);
+
 	 initObs(argv[2], argv[3]);
 	 buildNodeCoefficients();
-
+/*
 	 float *solution = new float[numcoefficients];
 	 for(int i=0;i<numcoefficients;i++) solution[i] = 1/4.76;
 

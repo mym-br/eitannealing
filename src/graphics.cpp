@@ -296,6 +296,38 @@ QVariant  matrixViewModel::headerData (
          return QString::number(section);
      return QVariant();
  }
+ 
+ 
+matrix2ViewModel::matrix2ViewModel(const matrix2 &m) : innermatrix(m)
+{}
 
+int matrix2ViewModel::rowCount( const QModelIndex & parent ) const
+{
+        return this->innermatrix.rows();
+}
+
+int matrix2ViewModel::columnCount( const QModelIndex & parent ) const
+{
+        return this->innermatrix.cols();
+}
+
+QVariant  matrix2ViewModel::data( const QModelIndex & index, int role ) const
+{
+    if (!index.isValid() || role != Qt::DisplayRole)
+        return QVariant();
+    return this->innermatrix.coeff(index.row(), index.column());
+}
+
+
+QVariant  matrix2ViewModel::headerData (
+                int section,
+                Qt::Orientation  orientation,
+                int role) const
+ {
+     if (role == Qt::DisplayRole)
+         return QString::number(section);
+     return QVariant();
+ }
+ 
 #include "graphics.moc"
 

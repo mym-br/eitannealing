@@ -15,7 +15,7 @@
 #include <QAbstractTableModel>
 #include <QMutex>
 #include "solver.h"
-
+#include "solver_lb.h"
 
 class matrixViewModel : public QAbstractTableModel {
 	private:
@@ -26,6 +26,17 @@ class matrixViewModel : public QAbstractTableModel {
 		int columnCount( const QModelIndex & parent = QModelIndex() ) const;
 		QVariant  data( const QModelIndex & index, int role = Qt::DisplayRole ) const;
 		QVariant  headerData ( int section, Qt::Orientation  orientation, int role = Qt::DisplayRole ) const;
+};
+
+class matrix2ViewModel : public QAbstractTableModel {
+        private:
+                const matrix2 &innermatrix;
+        public:
+                matrix2ViewModel(const matrix2 &);
+                int rowCount( const QModelIndex & parent = QModelIndex() ) const;
+                int columnCount( const QModelIndex & parent = QModelIndex() ) const;
+                QVariant  data( const QModelIndex & index, int role = Qt::DisplayRole ) const;
+                QVariant  headerData ( int section, Qt::Orientation  orientation, int role = Qt::DisplayRole ) const;
 };
 
 class solutionView : public QAbstractListModel {

@@ -18,6 +18,7 @@ set(eitannealingtest_SRCS
   src/solution.cpp
   src/mt19937-64/mt19937-64.c
   src/observations.cpp
+  src/solver_lb.cpp
 )
 set(libs ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY})
 

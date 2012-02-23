@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
    QApplication app(argc, argv);
      initProblem(argv[1]);
 
-	 initObs(argv[2], argv[3]);
+	 //initObs(argv[2], argv[3]);
 	 buildNodeCoefficients();
 /*
 	 float *solution = new float[numcoefficients];
@@ -349,6 +349,24 @@ int main(int argc, char *argv[])
      //matrixView.setWindowTitle("Stiffness");
      //matrixView.show();
 
+     float *sol = new float[numcoefficients];
+     for(int i=0;i<numcoefficients;i++) sol[i] = 1.0;
+     matrix *Kii, *Kcc;
+     matrix2 *Kic;
+     assembleProblemMatrix_lb(sol, &Kii, &Kic, &Kcc, 32);
+     QTableView matrixView1, matrixView2, matrixView3;
+     matrixView1.setModel(new matrixViewModel(*Kii));
+     matrixView1.setWindowTitle("Kii");
+     matrixView1.show();
+     matrixView2.setModel(new matrix2ViewModel(*Kic));
+     matrixView2.setWindowTitle("Kic");
+     matrixView2.show();
+     matrixView3.setModel(new matrixViewModel(*Kcc));
+     matrixView3.setWindowTitle("Kcc");
+     matrixView3.show();
+     
+     
+     
      qRegisterMetaType<QModelIndex>("QModelIndex");
      
      view = new solutionView(numcoefficients);
@@ -364,10 +382,10 @@ int main(int argc, char *argv[])
      graphics.connect(view, SIGNAL(dataChanged(QModelIndex,QModelIndex)), SLOT(solution_updated(QModelIndex,QModelIndex)));
      
           
-     boost::thread worker(workProc);
+     //boost::thread worker(workProc);
 
      int retval =  app.exec();
-     worker.join();
+     //worker.join();
      return 0;
  }
  

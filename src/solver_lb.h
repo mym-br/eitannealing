@@ -19,21 +19,34 @@ typedef Eigen::SparseMatrix<double, Eigen::RowMajor> matrix2;
 class LB_Solver {
         protected:
                 int it;
-          
-                void init();
-                                                
+                
+                const matrix &Aii;
+                const matrix2 &Aic;
+                const SparseIncompleteLLT       &precond;
+                
+                double JhatNorm2;
+                double ATJhatNorm2;
+                
+                double g;
+                double pi, phi2;
+                double c, gamma_ip, delta;
+                double phi;
+                Eigen::VectorXd p, pc;
+                Eigen::VectorXd r, rc;
+                Eigen::VectorXd s, q;
+                
+                                                          
         public:
         
                 
-                int getIteration() const ;
-                double getResidueSquaredNorm() const ;
-                
+                int getIteration() const {
+                  return it;
+                }
+                                
                 double getErrorl2Estimate() const ;
 
-                LB_Solver(matrix &Aii, matrix *Aic, Eigen::VectorXd &b, const SparseIncompleteLLT &precond);
+                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, Eigen::VectorXd &J, Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond);
                 void do_iteration();
-           
-           
            
 };
 

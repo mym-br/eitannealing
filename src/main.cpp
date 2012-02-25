@@ -281,9 +281,9 @@ void setSol(float *sol);
 
 int main(int argc, char *argv[])
  {
-    struct timespec time;
-    clock_gettime(CLOCK_REALTIME, &time);
-   init_genrand64(time.tv_nsec);
+  //  struct timespec time;
+  //  clock_gettime(CLOCK_REALTIME, &time);
+  // init_genrand64(time.tv_nsec);
    if(argc > 4)
      param = atof(argv[4]);
    else
@@ -354,17 +354,17 @@ int main(int argc, char *argv[])
      matrix *Kii, *Kcc;
      matrix2 *Kic;
      assembleProblemMatrix_lb(sol, &Kii, &Kic, &Kcc, 32);
-     SparseIncompleteLLT precond(*Kii);
-     Eigen::VectorXd J(currents[0].end(31));
+     
+	 SparseIncompleteLLT precond(*Kii);
+	 Eigen::VectorXd J(currents[0].end(31));
      Eigen::VectorXd Phi(tensions[0].end(31));
      LB_Solver solver(Kii, Kic, Kcc, J, Phi, precond);
      
-     for(int i=0;i<30;i++) {
+     for(int i=0;i<100;i++) {
        std::cout << solver.getIteration() << ":" <<  solver.getErrorl2Estimate() << std::endl;
        solver.do_iteration();       
      }
      
-     /*
      QTableView matrixView1, matrixView2, matrixView3;
      matrixView1.setModel(new matrixViewModel(*Kii));
      matrixView1.setWindowTitle("Kii");
@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
      matrixView2.show();
      matrixView3.setModel(new matrixViewModel(*Kcc));
      matrixView3.setWindowTitle("Kcc");
-     matrixView3.show();*/
+     matrixView3.show();
      
      
      qRegisterMetaType<QModelIndex>("QModelIndex");

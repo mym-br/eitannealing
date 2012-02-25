@@ -5,43 +5,45 @@
 LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, Eigen::VectorXd &J, Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond):
     Aii(*_Aii), Aic(*_Aic), precond(precond)
 {
-    
+    it = 0;
     // 0
     r = -_Aic->transpose()*Phi;
     rc = J.end(_Acc->rows()) - *_Acc*Phi;
     JhatNorm2 = r.squaredNorm()+rc.squaredNorm();
     delta = sqrt(JhatNorm2);
-    
     p = r/delta; pc = rc/delta;
     
     // S = (ACi)T*p
     s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
     precond.solveInPlace(s);
-    ATJhatNorm2 = s.squaredNorm();
+	ATJhatNorm2 = s.squaredNorm();
     gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
-    
-    ATJhatNorm2*=JhatNorm2;
+	ATJhatNorm2*=JhatNorm2;
     
     q = s/gamma_ip;              // uses gamma of *NEXT* iteration
-    std::cout << "Gamma:" << gamma_ip << std::endl;
-    // *** Gauss
+	// *** Gauss
     g=0;
     
     // 1
-    precond.solveInPlace(q); // q  <- q*C^-1
-    r = Aii*q.lazy(); rc = Aic*q.lazy();
+	qaux = q;
+    precond.solveInPlace(qaux); // q  <- q*C^-1
+    r = Aii*qaux.lazy(); rc = Aic*qaux.lazy();
+	r -= gamma_ip*p; rc -= gamma_ip*pc;
     delta = sqrt(r.squaredNorm()+rc.squaredNorm());
-    p = r/delta; pc = rc/delta;
-    s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
-    precond.solveInPlace(s);
-        // *** Gauss, as next value for gamma will be pertinent to iteration 2!
+	p = r/delta; pc = rc/delta;
+	s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
+	precond.solveInPlace(s);
+	s -= delta*q;
+	    // *** Gauss, as next value for gamma will be pertinent to iteration 2!
         phi2 = gamma_ip*gamma_ip+delta*delta;
+		phi = sqrt(phi2);
+		c = gamma_ip/phi;
+		si = delta/phi;
+		pi = 1/phi2;
+		g+=pi;    
     gamma_ip = s.norm();
     q = s/gamma_ip;
 
-    // *** Gauss
-    pi = 1/phi2;
-    g+=pi;
     
     
     
@@ -50,20 +52,25 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, Eigen::VectorXd 
 
 void LB_Solver::do_iteration()
 {
-    precond.solveInPlace(q); // q  <- q*C^-1
-    r = Aii*q.lazy(); rc = Aic*q.lazy();
+    qaux = q;
+    precond.solveInPlace(qaux); // q  <- q*C^-1
+    r = Aii*qaux.lazy(); rc = Aic*qaux.lazy();
+	r -= gamma_ip*p; rc -= gamma_ip*pc;
     delta = sqrt(r.squaredNorm()+rc.squaredNorm());
-    p = r/delta; pc = rc/delta;
+	p = r/delta; pc = rc/delta;
     s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
     precond.solveInPlace(s);
-        // *** Gauss, as next value for gamma will be pertinent to *NEXT*iteration!
-        phi2 = gamma_ip*gamma_ip+delta*delta;    
+	s -= delta*q;
+        // *** Gauss, as next value for gamma will be pertinent to iteration 2!
+		psi_im = si*gamma_ip;
+		phi2 = c*c*gamma_ip*gamma_ip+delta*delta;
+		phi = sqrt(phi2);
+		c *= gamma_ip/phi;
+		si = delta/phi;
+		pi *= psi_im*psi_im/phi2;
+		g+=pi;    		
     gamma_ip = s.norm();
     q = s/gamma_ip;
-        
-    // *** Gauss
-    pi /= phi2;
-    g+=pi;
     
     it++;
 }

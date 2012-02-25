@@ -28,12 +28,12 @@ class LB_Solver {
                 double ATJhatNorm2;
                 
                 double g;
-                double pi, phi2;
+                double pi, phi2, phi;
                 double c, gamma_ip, delta;
-                double phi;
+				double si, psi_im;
                 Eigen::VectorXd p, pc;
                 Eigen::VectorXd r, rc;
-                Eigen::VectorXd s, q;
+                Eigen::VectorXd s, q, qaux;
                 
                                                           
         public:

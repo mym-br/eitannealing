@@ -20,6 +20,7 @@
 #include "solver.h"
 #include "nodecoefficients.h"
 #include "solution.h"
+#include "solution_lb.h"
 #include "observations.h"
 #include "random.h"
 
@@ -99,13 +100,13 @@ void workProc()
 
 
 	// Simulated annealing
-	std::auto_ptr<solution> current, next;
-	float kt =  0.005;
+	std::auto_ptr<solution_lb> current, next;
+	float kt =  1.0;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
 	shuffler sh;
-	current.reset(new solution());
+	current.reset(new solution_lb());
 	
 	int iterations;
 	int solutions;
@@ -120,12 +121,10 @@ void workProc()
 		solutions = 0;
 		//iterations = 0;		
 		while(totalit<12000 && acceptit < 2000) {
+                  
 			next.reset(current->shuffle(&sdata, sh));
 			bool decision;
-			if(e2test)
-			  decision = current->compareWithMaxE2(*next, kt, param);
-			else
-			  decision = current->compareWith(*next, kt, param);
+			decision = current->compareWith(*next, kt, param);
 			if(decision) {
 			//if(current->compareWithMinIt(*next, kt, 13)) {
 			//if(current->compareWithMaxE2(*next, kt, param)) {
@@ -143,7 +142,7 @@ void workProc()
 			sqe += current->getDEstimate()*current->getDEstimate();
 
 			totalit++;
-			if(totalit % 25 == 0) {
+                        if(totalit % 100 == 0) {
 				view->setCurrentSolution(current->getSolution());				
 			}
 		}
@@ -169,9 +168,9 @@ void workProc()
 		prevE = current->getDEstimate();
 	}
 	
-	solution probe(current->getSolution());
-	probe.saturate();
-	std::cout << "real:" << probe.getDEstimate() << " iterations: " << iterations << std::endl;
+	//solution probe(current->getSolution());
+	//probe.saturate();
+	//std::cout << "real:" << probe.getDEstimate() << " iterations: " << iterations << std::endl;
 		
 
 #ifdef GGGGGGGGGGGG
@@ -349,32 +348,6 @@ int main(int argc, char *argv[])
      //matrixView.setWindowTitle("Stiffness");
      //matrixView.show();
 
-     float *sol = new float[numcoefficients];
-     for(int i=0;i<numcoefficients;i++) sol[i] = 1.0;
-     matrix *Kii, *Kcc;
-     matrix2 *Kic;
-     assembleProblemMatrix_lb(sol, &Kii, &Kic, &Kcc, 32);
-     
-	 SparseIncompleteLLT precond(*Kii);
-	 Eigen::VectorXd J(currents[0].end(31));
-     Eigen::VectorXd Phi(tensions[0].end(31));
-     LB_Solver solver(Kii, Kic, Kcc, J, Phi, precond, 0.03);
-     
-     for(int i=0;i<100;i++) {
-       //std::cout << solver.getIteration() << ":" <<  solver.getErrorl2Estimate() << std::endl;
-       solver.do_iteration();       
-     }
-     
-     QTableView matrixView1, matrixView2, matrixView3;
-     matrixView1.setModel(new matrixViewModel(*Kii));
-     matrixView1.setWindowTitle("Kii");
-     matrixView1.show();
-     matrixView2.setModel(new matrix2ViewModel(*Kic));
-     matrixView2.setWindowTitle("Kic");
-     matrixView2.show();
-     matrixView3.setModel(new matrixViewModel(*Kcc));
-     matrixView3.setWindowTitle("Kcc");
-     matrixView3.show();
      
      
      qRegisterMetaType<QModelIndex>("QModelIndex");
@@ -392,7 +365,7 @@ int main(int argc, char *argv[])
      graphics.connect(view, SIGNAL(dataChanged(QModelIndex,QModelIndex)), SLOT(solution_updated(QModelIndex,QModelIndex)));
      
           
-     //boost::thread worker(workProc);
+     boost::thread worker(workProc);
 
      int retval =  app.exec();
      //worker.join();

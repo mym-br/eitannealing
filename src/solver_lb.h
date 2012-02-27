@@ -7,7 +7,6 @@
 
 #ifndef SOLVER_LB_H_
 #define SOLVER_LB_H_
-#endif
 
 #include "solver.h"
 
@@ -59,10 +58,12 @@ class LB_Solver {
 					return getErrorl2Estimate();
 				}
 
-                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, Eigen::VectorXd &J, Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a);
+                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a);
                 void do_iteration();
            
 };
 
 
 void assembleProblemMatrix_lb(float *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc,int numElect);
+
+#endif  // SOLVER_LB_H_

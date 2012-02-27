@@ -2,8 +2,8 @@
 #include "nodecoefficients.h"
 #include "problemdescription.h"
 
-LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, Eigen::VectorXd &J, Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a):
-    Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(false)
+LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a):
+    Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(true)
 {
     it = 0;
     // 0
@@ -89,7 +89,6 @@ void LB_Solver::do_iteration()
 	beta = gamma_ip*delta;
 		
 	gr = g_im + pi_im*(psi_im*psi_im/phi2t);
-	std::cout << "gr[" << it+1 << "]:" << gr << std::endl; 
     
     it++;
 }
@@ -102,6 +101,7 @@ double LB_Solver::getErrorl2Estimate() const
 
 double LB_Solver::getMinErrorl2Estimate() const
 {
+    if(gr<g) return 0;
     if(!lowerSafe) return 0;
 	double v = JhatNorm2 - ATJhatNorm2*gr;
 	if(v<0) return 0;

@@ -107,7 +107,7 @@ solution_lb::solution_lb(const float *sigma):
 				err_x_dist(nobs)
 {
 	assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
-    SparseIncompleteLLT precond(*Aii);
+        precond = new SparseIncompleteLLT(*Aii);
 					
 	this->initSimulations();
 	this->initErrors();
@@ -125,7 +125,7 @@ solution_lb::solution_lb():
 		err_x_dist(nobs)
 {
 	assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
-    SparseIncompleteLLT precond(*Aii);
+        precond = new SparseIncompleteLLT(*Aii);
 	this->initSimulations();
 	this->initErrors();
 }
@@ -144,7 +144,7 @@ void solution_lb::initSimulations()
 	this->totalit = 0;
 	for(i=0;i<nobs;i++)
 	{
-		simulations[i] = new LB_Solver(
+                simulations[i] = new LB_Solver(
 			Aii, Aic, Acc, Eigen::VectorXd(currents[i].end(31)), 
 			Eigen::VectorXd(tensions[i].end(31)), *precond, a);
 		simulations[i]->do_iteration();

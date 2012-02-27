@@ -358,10 +358,10 @@ int main(int argc, char *argv[])
 	 SparseIncompleteLLT precond(*Kii);
 	 Eigen::VectorXd J(currents[0].end(31));
      Eigen::VectorXd Phi(tensions[0].end(31));
-     LB_Solver solver(Kii, Kic, Kcc, J, Phi, precond);
+     LB_Solver solver(Kii, Kic, Kcc, J, Phi, precond, 0.03);
      
      for(int i=0;i<100;i++) {
-       std::cout << solver.getIteration() << ":" <<  solver.getErrorl2Estimate() << std::endl;
+       //std::cout << solver.getIteration() << ":" <<  solver.getErrorl2Estimate() << std::endl;
        solver.do_iteration();       
      }
      

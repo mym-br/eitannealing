@@ -27,13 +27,23 @@ class LB_Solver {
                 double JhatNorm2;
                 double ATJhatNorm2;
                 
-                double g;
+                
+				double g;
                 double pi, phi2, phi;
                 double c, gamma_ip, delta;
 				double si, psi_im;
                 Eigen::VectorXd p, pc;
                 Eigen::VectorXd r, rc;
                 Eigen::VectorXd s, q, qaux;
+
+				bool lowerSafe;
+				double g_im;
+				double pi_im;
+				double a;
+				double dt, at;
+				double phi2t;
+				double gr;
+				double alpha, beta;
                 
                                                           
         public:
@@ -44,8 +54,12 @@ class LB_Solver {
                 }
                                 
                 double getErrorl2Estimate() const ;
+				double getMinErrorl2Estimate() const ;
+				double getMaxErrorl2Estimate() const {
+					return getErrorl2Estimate();
+				}
 
-                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, Eigen::VectorXd &J, Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond);
+                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, Eigen::VectorXd &J, Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a);
                 void do_iteration();
            
 };

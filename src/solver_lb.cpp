@@ -2,8 +2,8 @@
 #include "nodecoefficients.h"
 #include "problemdescription.h"
 
-LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, Eigen::VectorXd &J, Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond):
-    Aii(*_Aii), Aic(*_Aic), precond(precond)
+LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, Eigen::VectorXd &J, Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a):
+    Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(false)
 {
     it = 0;
     // 0
@@ -19,7 +19,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, Eigen::VectorXd 
 	ATJhatNorm2 = s.squaredNorm();
     gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
 	ATJhatNorm2*=JhatNorm2;
-    
+	   
     q = s/gamma_ip;              // uses gamma of *NEXT* iteration
 	// *** Gauss
     g=0;
@@ -41,12 +41,17 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, Eigen::VectorXd 
 		si = delta/phi;
 		pi = 1/phi2;
 		g+=pi;    
-    gamma_ip = s.norm();
-    q = s/gamma_ip;
+		// This is due to gauss-radau
+		alpha = gamma_ip*gamma_ip+delta*delta;
+				
+	gamma_ip = s.norm();
+	q = s/gamma_ip;
 
-    
-    
-    
+	// Gauss-radau
+	beta = gamma_ip*delta;
+	at = a;
+	dt = alpha - a;
+        
     it = 1;        
 }
 
@@ -67,10 +72,24 @@ void LB_Solver::do_iteration()
 		phi = sqrt(phi2);
 		c *= gamma_ip/phi;
 		si = delta/phi;
+		pi_im = pi;
 		pi *= psi_im*psi_im/phi2;
-		g+=pi;    		
+		g_im = g;
+		g+=pi;    
+		// This is due to gauss-radau
+		alpha = gamma_ip*gamma_ip+delta*delta;
+		
     gamma_ip = s.norm();
-    q = s/gamma_ip;
+	q = s/gamma_ip;
+
+	// Gauss-radau
+	at = a + beta*beta/dt;
+	phi2t = at - psi_im*psi_im;
+	dt = alpha - a - (beta*beta/dt);
+	beta = gamma_ip*delta;
+		
+	gr = g_im + pi_im*(psi_im*psi_im/phi2t);
+	std::cout << "gr[" << it+1 << "]:" << gr << std::endl; 
     
     it++;
 }
@@ -78,6 +97,15 @@ void LB_Solver::do_iteration()
 double LB_Solver::getErrorl2Estimate() const
 {
     return sqrt(JhatNorm2 - ATJhatNorm2*g);
+}
+
+
+double LB_Solver::getMinErrorl2Estimate() const
+{
+    if(!lowerSafe) return 0;
+	double v = JhatNorm2 - ATJhatNorm2*gr;
+	if(v<0) return 0;
+	return sqrt(v);
 }
 
 

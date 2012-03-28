@@ -316,7 +316,11 @@ void assembleProblemMatrix(float *cond, matrix **stiffnes)
 		while(aux) { // Col-major storage
 			while(aux->node < i) aux = aux->next; // skip upper triangular
 			int row = aux->node;
-			val = 0.0;
+                        if(row==groundNode) {
+                          aux = aux->next;
+                          continue;   // Skip ground node
+                        }
+                        val = 0.0;
 			while(aux && aux->node==row) {
 				val += aux->coefficient*cond[aux->condIndex];
 				aux = aux->next;

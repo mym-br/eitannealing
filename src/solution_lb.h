@@ -62,7 +62,7 @@ class solution_lb {
 
 
 			void initSimulations();
-			//void initSimulations(const solution &base);
+			void initSimulations(const solution_lb &base);
 			void initErrors();
 
 			float *getShufledSolution();
@@ -117,9 +117,9 @@ class solution_lb {
 			return this->totalit;
 		}
 		
-		//void saturate();
+		void saturate();
 		
-		//void ensureMinIt(unsigned int it);
+		void ensureMinIt(unsigned int it);
 		
 		//void ensureMaxE2(double e2);
 

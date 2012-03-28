@@ -20,6 +20,44 @@
 #define min(x,y) ((x)<(y)?(x):(y))
 #endif
 
+const float base[] = {
+  0.13807, 0.125363, 0.106238, 0.0994108, 0.144801, 0.12248, 0.133051, 0.128964, 0.13664, 0.138327, 0.15113, 0.123861, 0.0936534, 0.107083, 0.0969518, 0.0918484, 0.0992923, 0.118951, 0.10938, 0.102443, 0.136631, 0.124224, 0.132069, 0.11404, 0.119842, 0.11939, 0.111648, 0.131918, 0.107573, 0.0992579, 0.105823, 0.133198, 0.22967
+/*    
+    0.09,//0.102741,
+    0.24316,
+    0.153582,
+    0.242394,
+    0.201954,
+    0.1922,
+    0.193071,
+    0.176909,
+    0.177522,
+    0.156914,
+    0.159333,
+    0.140742,
+    0.128991,
+    0.141002,
+    0.135405,
+    0.126562,
+    0.138666,
+    0.145703,
+    0.138299,
+    0.150642,
+    0.187453,
+    0.180399,
+    0.199719,
+    0.176805,
+    0.212709,
+    0.196534,
+    0.207548,
+    0.221224,
+    0.214724,
+    0.170313,
+    0.15991,
+    0.16019,
+    0.365//0.375*/
+};
+
 void solution_lb::improve()
 {
 	// Do another iteration on the critical solver
@@ -106,11 +144,28 @@ solution_lb::solution_lb(const float *sigma):
 				err(nobs),
 				err_x_dist(nobs)
 {
-	assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
+        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
         precond = new SparseIncompleteLLT(*Aii);
-					
+                                        
 	this->initSimulations();
 	this->initErrors();
+}
+
+// New randomly modified solution
+solution_lb::solution_lb(float *sigma, const solution_lb &base):
+                sol(sigma),
+                simulations(new LB_Solver *[nobs]),
+                distance(nobs),
+                maxdist(nobs),
+                mindist(nobs),
+                err(nobs),
+                err_x_dist(nobs)
+{
+        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
+        precond = new SparseIncompleteLLT(*Aii);
+        
+        this->initSimulations(base);
+        this->initErrors();
 }
 
 
@@ -124,7 +179,7 @@ solution_lb::solution_lb():
 		err(nobs),
 		err_x_dist(nobs)
 {
-	assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
+        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
         precond = new SparseIncompleteLLT(*Aii);
 	this->initSimulations();
 	this->initErrors();
@@ -132,25 +187,49 @@ solution_lb::solution_lb():
 
 void solution_lb::initSimulations()
 {
-	// FIXME: Get a more acurate estimative of lowest eigenvalue!
-	// Get a geometric average of coefficients
-	double s = 1;
-	for(int i=0; i< numcoefficients;i++)
-		s*=sol[i];
-	s = pow(s, 1/numcoefficients);
-	double a = 0.01*s;
+	
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
-	for(i=0;i<nobs;i++)
+        // 1st solution estimates also least eigenvalue
+        LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
+                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), 
+                        Eigen::VectorXd(tensions[0].end(31)), *precond, 90, 0.000001);
+        double a = solver->getLeastEvEst();
+        simulations[0] = solver;
+	for(i=1;i<nobs;i++)
 	{
                 simulations[i] = new LB_Solver(
-			Aii, Aic, Acc, Eigen::VectorXd(currents[i].end(31)), 
+                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].end(31)), 
 			Eigen::VectorXd(tensions[i].end(31)), *precond, a);
 		simulations[i]->do_iteration();
 		this->totalit += simulations[i]->getIteration();
 	}
 }
+
+void solution_lb::initSimulations(const solution_lb &base)
+{
+        // Prepare solvers
+        int i;
+        this->totalit = 0;
+        const LB_Solver_EG_Estimate *baseEVSolver = dynamic_cast<const LB_Solver_EG_Estimate *>(base.simulations[0]);
+        // 1st solution estimates also least eigenvalue
+        LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
+                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(31)), 
+                        Eigen::VectorXd(tensions[0].end(31)), *precond, 
+                        baseEVSolver->getX(), baseEVSolver->getEvector(), 90, 0.000001);
+        double a = solver->getLeastEvEst();
+        simulations[0] = solver;
+        for(i=1;i<nobs;i++)
+        {
+                simulations[i] = new LB_Solver(
+                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].end(31)), 
+                        Eigen::VectorXd(tensions[i].end(31)), *precond, a, base.simulations[i]->getX());
+                simulations[i]->do_iteration();
+                this->totalit += simulations[i]->getIteration();
+        }
+}
+
 
 void solution_lb::initErrors()
 {
@@ -195,42 +274,10 @@ float *solution_lb::getNewRandomSolution()
 {
 	float *res = new float[numcoefficients];
 	int i = 0;
-/*
-	res[i++] = 0.0795333;
-	res[i++] = 0.154207;
-	res[i++] = 0.10827;
-	res[i++] = 0.107503;
-	res[i++] = 0.120324;
-	res[i++] = 0.115978;
-	res[i++] = 0.112217;
-	res[i++] = 0.109881;
-	res[i++] = 0.103229;
-	res[i++] = 0.0989397;
-	res[i++] = 0.0964289;
-	res[i++] = 0.0905536;
-	res[i++] = 0.0856748;
-	res[i++] = 0.0871923;
-	res[i++] = 0.0870397;
-	res[i++] = 0.0801445;
-	res[i++] = 0.0874562;
-	res[i++] = 0.0893944;
-	res[i++] = 0.0892118;
-	res[i++] = 0.0922962;
-	res[i++] = 0.109619;
-	res[i++] = 0.115378;
-	res[i++] = 0.120788;
-	res[i++] = 0.110558;
-	res[i++] = 0.115594;
-	res[i++] = 0.122183;
-	res[i++] = 0.11994;
-	res[i++] = 0.12327;
-	res[i++] = 0.123105;
-	res[i++] = 0.114889;
-	res[i++] = 0.122205;
-	res[i++] = 0.119641;
-	res[i++] = 0.35731;*/
+        for(;i<sizeof(base)/sizeof(*base);i++)
+            res[i] = base[i]*0.95;
 
-	for(i=0;i<numcoefficients;i++)
+	for(;i<numcoefficients;i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
 	return res;
@@ -242,9 +289,17 @@ float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) c
 	// head or tails
 	if(genint(2)) { // Normal
 		int ncoef = genint(numcoefficients);	// Lower values fixed;
-
+                float minc, maxc;
+                if(ncoef<33) {
+                  maxc = base[ncoef];
+                  minc = base[ncoef]*0.9;
+                } else {
+                  maxc = maxcond;
+                  minc = mincond;
+                }
+                
 		if(sh.shuffleConsts[ncoef]==0) {
-			res[ncoef] = mincond+genreal()*(maxcond-mincond);
+			res[ncoef] = minc+genreal()*(maxc-minc);
 		} else {
 			float val;
 			do {
@@ -254,9 +309,9 @@ float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) c
 					rnd += genreal();
 				rnd /= sh.shuffleConsts[ncoef];
 				rnd -= 0.5;
-				rnd *= (maxcond - mincond);
+				rnd *= (maxc - minc);
 				val += rnd;
-			} while((val < mincond) || (val > maxcond));
+			} while((val < minc) || (val > maxc));
 			res[ncoef] = val;
 		}
 		if(data) {
@@ -306,16 +361,54 @@ float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) c
 
 solution_lb *solution_lb::shuffle(shuffleData *data, const shuffler &sh) const
 {
-	float *sigma = getShuffledSolution(data, sh);
+	float* sigma = getShuffledSolution(data, sh);
 	solution_lb *res;
 	try {
-		res = new solution_lb(sigma);
+		res = new solution_lb(sigma, *this);
 	} catch(...) {
+                
 		for(int i=0;i<65;i++)
 			std::cout << i << ":" << sigma[i] << std::endl;
 		exit(0);
-	}
+	}	
 	return res;
+}
+
+void solution_lb::saturate()
+{
+      ensureMinIt(nodes.size()+30);
+}
+
+void solution_lb::ensureMinIt(unsigned int it)
+{     
+      static Eigen::VectorXd aux(electrodes.size()-1);
+      for(int i = 0; i<nobs;i++) {
+            LB_Solver *sim = this->simulations[i];
+            while(sim->getIteration()<it) {
+                simulations[i]->do_iteration();
+                this->totalit++;
+                
+                distance[i] = simulations[i]->getErrorl2Estimate();
+                maxdist[i] = simulations[i]->getMaxErrorl2Estimate();
+                mindist[i] = simulations[i]->getMinErrorl2Estimate();
+                err[i] = maxdist[i]-mindist[i];
+                err_x_dist[i] = maxdist[i]*err[i];
+                totalDist = distance.norm();
+                minTotalDist = mindist.norm();
+                maxTotalDist = maxdist.norm();        
+                
+               // reevaluate critical
+                double max = err_x_dist[0];
+                critical = 0;
+                for(int j = 1; j<nobs;j++) {
+                  if(max < err_x_dist[j]) {
+                        max = err_x_dist[j];
+                        critical = j;
+                  }
+                }
+                critErr = err[critical];
+            }
+      }
 }
 
 

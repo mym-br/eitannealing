@@ -100,13 +100,13 @@ void workProc()
 
 
 	// Simulated annealing
-	std::auto_ptr<solution_lb> current, next;
-	float kt =  1.0;
+	std::auto_ptr<solution> current, next;
+	float kt =  0.05;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
 	shuffler sh;
-	current.reset(new solution_lb());
+	current.reset(new solution);
 	
 	int iterations;
 	int solutions;
@@ -115,16 +115,16 @@ void workProc()
 	iterations = 0;
 	int no_avance_count = 0;
 	double prevE = 10000000000.0;
-	while(kt > 0.0005 && no_avance_count < 3) {
+	while(kt > 0.00000005 && no_avance_count < 3) {
 		e = sqe = 0;
 		totalit = acceptit = 0;
 		solutions = 0;
-		//iterations = 0;		
+		iterations = 0;		
 		while(totalit<12000 && acceptit < 2000) {
                   
 			next.reset(current->shuffle(&sdata, sh));
 			bool decision;
-			decision = current->compareWith(*next, kt, param);
+			decision = current->compareWith(*next, kt, 1-param);
 			if(decision) {
 			//if(current->compareWithMinIt(*next, kt, 13)) {
 			//if(current->compareWithMaxE2(*next, kt, param)) {
@@ -156,7 +156,17 @@ void workProc()
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
 		}*/
 		
-		
+		/*solution_lb probe(current->getSolution());
+                probe.saturate();
+                std::cout << "last (max):" << current->getDMax() << "last (min):" << current->getDMin() << " LB:" << probe.getDEstimate() <<  std::endl;
+                *//*for(int kk=0;kk<9000;kk++) {
+                  std::cout << (kk/32) << " Dest:" << current->getDEstimate() << std::endl;
+                  current->improve();
+                }*/
+                  
+                
+                
+                
 		kt *= 0.95;
 		double variation = fabs(prevE-current->getDEstimate())/prevE;
 		std::cout << "totalit:" << iterations << std::endl;
@@ -165,10 +175,9 @@ void workProc()
 		  no_avance_count++;
 		else
 		  no_avance_count = 0;		
-		prevE = current->getDEstimate();
+		prevE = current->getDEstimate();                        
 	}
 	
-	//solution probe(current->getSolution());
 	//probe.saturate();
 	//std::cout << "real:" << probe.getDEstimate() << " iterations: " << iterations << std::endl;
 		
@@ -286,7 +295,7 @@ int main(int argc, char *argv[])
    if(argc > 4)
      param = atof(argv[4]);
    else
-     param = 0.875f;
+     param = 0.8f;
    if(argc > 5)
      e2test = true;
    QApplication app(argc, argv);
@@ -348,6 +357,38 @@ int main(int argc, char *argv[])
      //matrixView.setWindowTitle("Stiffness");
      //matrixView.show();
 
+     /*
+     float *sol = new float[numcoefficients];
+     for(int i=0;i<numcoefficients;i++) sol[i]=1.0;
+     matrix *Aii, *Acc;
+     matrix2 *Aic;
+     assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
+     SparseIncompleteLLT precond(*Aii);
+     LB_Solver_EG_Estimate solver(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, 75, 0.00001);
+     std::cout << solver.getLeastEvEst() << std::endl;
+     std::cout << "\nGauss: " << solver.getMaxErrorl2Estimate() << " Radau: " << solver.getMinErrorl2Estimate() << std::endl;
+     
+     
+     LB_Solver solver2(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, solver.getLeastEvEst());
+     //Eigen::VectorXd jtop = -Aic->transpose()*tensions[0].end(32);
+     //Eigen::VectorXd jbot = currents[0].end(32) - *Acc*tensions[0].end(32);
+     for(int i=0;i<45;i++) {
+       solver2.do_iteration();
+       //Eigen::VectorXd x(solver2.getX());
+       //double val = 0;
+       //val += (jtop-(*Aii)*x).squaredNorm();
+       //val += (jbot-(*Aic)*x).squaredNorm();
+       //std::cout << solver2.getIteration() << ":" << solver2.getX().norm() << std::endl;
+       //std::cout << solver2.getIteration() << ":" << sqrt(val) << std::endl;
+       //std::cout << i << ":" << solver2.getMinErrorl2Estimate() << "-" << solver2.getMaxErrorl2Estimate() << std::endl;
+     }
+     
+     LB_Solver solver3(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, solver.getLeastEvEst(), solver2.getX());
+     for(int i=0;i<45;i++) {
+       solver3.do_iteration();
+       std::cout << i << ":" << solver3.getMinErrorl2Estimate() << "-" << solver3.getMaxErrorl2Estimate() << std::endl;
+     }*/
+     
      
      
      qRegisterMetaType<QModelIndex>("QModelIndex");
@@ -368,7 +409,7 @@ int main(int argc, char *argv[])
      boost::thread worker(workProc);
 
      int retval =  app.exec();
-     //worker.join();
+     worker.join();
      return 0;
  }
  

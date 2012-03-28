@@ -176,6 +176,16 @@ void fillElements() {
 	}
 	
 	
+	/*// Add an outter layer of elements to the "outerRingNodes" set
+        std::cout << nodes.size();
+        for(i=0;i<nodes.size();i++) {
+          float radius2 = nodes[i].y*nodes[i].y+nodes[i].x*nodes[i].x;
+          if(radius2 > 0.011744) {
+                innerNodes.erase(i);
+                outerRingNodes.insert(i);               
+          }
+        }*/
+	
 	/*// Add all lower elements to the "outerRingNodes" set
 	std::cout << nodes.size();
 	for(i=0;i<nodes.size();i++) {

@@ -9,11 +9,11 @@
 #define SOLVER_LB_H_
 
 #include "solver.h"
+#include <memory>
 
 // FIXME: IS Col-Major faster than Row-Major?
 
 typedef Eigen::SparseMatrix<double, Eigen::RowMajor> matrix2;
-
 
 class LB_Solver {
         protected:
@@ -25,7 +25,6 @@ class LB_Solver {
                 
                 double JhatNorm2;
                 double ATJhatNorm2;
-                
                 
 				double g;
                 double pi, phi2, phi;
@@ -43,7 +42,10 @@ class LB_Solver {
 				double phi2t;
 				double gr;
 				double alpha, beta;
-                
+                                
+                Eigen::VectorXd x0, x, w;
+                float fit;
+                void init();
                                                           
         public:
         
@@ -59,11 +61,37 @@ class LB_Solver {
 				}
 
                 LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a);
+                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a, const Eigen::VectorXd &x0);
                 void do_iteration();
+                
+                const Eigen::VectorXd getX() const {
+                        return this->x+this->x0;
+                }
+                
+                virtual ~LB_Solver() {};
            
 };
 
+class LB_Solver_EG_Estimate : public LB_Solver
+{
+  typedef Eigen::SparseMatrix<double, Eigen::UpperTriangular> UMatrix;
+  
+  double ev;
+  Eigen::VectorXd evec;
+  
+  public:
+    LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, int n, float e);
+    LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, const Eigen::VectorXd &x0, const Eigen::VectorXd &egHint, int n, float e); 
+    double getLeastEvEst() const {
+      return this->ev;
+    }
+    
+    Eigen::VectorXd getEvector() const {
+      return this->evec;
+    }
+};
 
+void assembleProblemElectrodeIdentityMatrix(float *cond, matrix2 **Kic, int numElect);
 void assembleProblemMatrix_lb(float *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc,int numElect);
 
 #endif  // SOLVER_LB_H_

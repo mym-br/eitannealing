@@ -101,7 +101,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt =  0.05;
+	float kt =  0.5;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
@@ -115,7 +115,7 @@ void workProc()
 	iterations = 0;
 	int no_avance_count = 0;
 	double prevE = 10000000000.0;
-	while(kt > 0.00000005 && no_avance_count < 3) {
+	while(kt > 0.000000005 && no_avance_count < 3) {
 		e = sqe = 0;
 		totalit = acceptit = 0;
 		solutions = 0;
@@ -169,7 +169,7 @@ void workProc()
                 
 		kt *= 0.95;
 		double variation = fabs(prevE-current->getDEstimate())/prevE;
-		std::cout << "totalit:" << iterations << std::endl;
+		//std::cout << "totalit:" << iterations << std::endl;
 		//std::cout << "variation: " << variation << std::endl;
 		if((fabs(prevE-current->getDEstimate())/prevE) < 2.0e-15)
 		  no_avance_count++;
@@ -287,6 +287,13 @@ void setSol(float *sol);
 
 #include <time.h>
 
+double get_time()
+{
+    struct timespec t;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t);
+    return ((double)t.tv_sec + (double)t.tv_nsec*1e-9)*1000;
+}
+
 int main(int argc, char *argv[])
  {
   //  struct timespec time;
@@ -295,7 +302,7 @@ int main(int argc, char *argv[])
    if(argc > 4)
      param = atof(argv[4]);
    else
-     param = 0.8f;
+     param = 0.875f;
    if(argc > 5)
      e2test = true;
    QApplication app(argc, argv);
@@ -313,13 +320,22 @@ int main(int argc, char *argv[])
 	 //solution[node2coefficient[358]] = 1.0;
 	 //solution[node2coefficient[346]] = 1.0;	 
 	 
-     /*
+     
 	 
      assembleProblemMatrix(solution, &stiffness0);
 	 
-	 SparseIncompleteLLT precond(*stiffness0);
+	 
+	 double start = get_time();
+	 for(int i=0;i<10000;i++)
+	   new SparseIncompleteLLT(*stiffness0);
+	 std::cout << "Time:" << (get_time()-start)/10000 << std::endl;
+	 exit(0);
+	   
+	 
+	 /*
+	 
 
-	 CG_Solver solver(*stiffness0, currents[29], precond);
+	// CG_Solver solver(*stiffness0, currents[29], precond);
 
 	 for(int i=0;i<900;i++)
 		 solver.do_iteration();

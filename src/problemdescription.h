@@ -37,8 +37,8 @@ extern std::map<int, int> node2coefficient;
 extern int numcoefficients;
 extern int groundNode;
 
-const double mincond = 0.001;
-const double maxcond = 0.275;
+const double mincond = 0.005;
+const double maxcond = 0.3815;
 void initProblem(char *meshfilename);
 
 #endif /* PROBLEMDESCRIPTION_H_ */

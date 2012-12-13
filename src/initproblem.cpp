@@ -183,14 +183,14 @@ void fillElements() {
 	// Prepare node <-> condindex map
 	int condIndex = 0;
 	// Electrode coefficients
-	std::for_each(electrodes.begin(), electrodes.end(),
-		[&](triangularEletrode e) {
-		  node2coefficient[e.baseNode] = condIndex++; 
-		});
-
+	for(auto e:electrodes) {
+	  node2coefficient[e.baseNode] = condIndex++;
+	}
+	  
 	// Outter ring coefficient
-	std::for_each(outerRingNodes.begin(), outerRingNodes.end(),
-		[&](int e){node2coefficient[e] = condIndex;});
+	for(auto e:outerRingNodes) {
+	  node2coefficient[e] = condIndex;
+	}
 
 	/*// Inner coefficients
 	std::for_each(innerNodes.begin(), innerNodes.end(),
@@ -200,10 +200,10 @@ void fillElements() {
 	
 
 	// Inner coefficients
-	std::for_each(innerNodes.begin(), innerNodes.end(),
-		[&](int i) {
-		  node2coefficient[i] = condIndex++; 
-		});
+	for(auto i:innerNodes) {
+	  node2coefficient[i] = condIndex++;
+	  
+	}
 	
 	numcoefficients = condIndex;
 	groundNode = electrodes.back().baseNode;
@@ -223,17 +223,8 @@ void fillElements() {
 	    auxAdjacency.insert(std::pair<int,int>(n2, n1));
 	  }
 	};
-	/*boost::function<void(int,int)> insertAdjNodePair = 
-	111	bind((std::pair<adjacencySet::iterator, bool> (adjacencySet::*)(adjacencySet::const_reference))&adjacencySet::insert,
-			&auxAdjacency,
-			if_then_else_return(_1<_2,
-				bind(constructor<std::pair<int, int> >(), _1, _2),
-				bind(constructor<std::pair<int, int> >(), _2, _1)));*/
-	// Check variables, true if the corresponding node is NOT in outerRingNodes
-	//bool n1ok, n2ok, n3ok; 
-	//var_type<bool>::type vn1ok(var(n1ok)), vn2ok(var(n2ok)), vn3ok(var(n3ok));	
 	// For each element, add its node pairs in order
-	std::for_each(elements.begin(), elements.end(), [&](triangularElement e) { 
+	for(auto e: elements) {
 		bool n1ok = (outerRingNodes.find(e.n1)==outerRingNodes.end());
 		bool n2ok = (outerRingNodes.find(e.n2)==outerRingNodes.end());
 		bool n3ok = (outerRingNodes.find(e.n3)==outerRingNodes.end());
@@ -241,9 +232,8 @@ void fillElements() {
 		if(n1ok && n2ok) insertAdjNodePair(e.n1, e.n2);
 		if(n1ok && n3ok) insertAdjNodePair(e.n1, e.n3);
 		if(n2ok && n3ok) insertAdjNodePair(e.n2, e.n3);
-	});
+	}
 	
-
 	innerAdjacency.resize(auxAdjacency.size());
 	std::copy(auxAdjacency.begin(), auxAdjacency.end(), innerAdjacency.begin());
 }

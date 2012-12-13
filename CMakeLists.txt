@@ -4,6 +4,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_mod
 find_package(Qt4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread)
 find_package(Eigen2 REQUIRED)
+find_package(CXX11)
+
+IF(CMAKE_COMPILER_IS_GNUCXX)
+	SET(CMAKE_CXX_FLAGS "-std=c++11")
+endif()
 
 include_directories(${QT_INCLUDES} ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIR} ${EIGEN2_INCLUDES})
 

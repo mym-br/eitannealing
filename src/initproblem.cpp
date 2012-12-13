@@ -13,12 +13,8 @@
 #include <string>
 #include <algorithm>
 #include <set>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/construct.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/lambda/control_structures.hpp>
-#include <boost/function.hpp>
 #include <iostream>
+#include <boost/iterator/iterator_concepts.hpp>
 
 
 std::ifstream file;
@@ -40,14 +36,13 @@ int groundNode;
 
 void addToElectrode(int n1, int n2, int n3)
 {
-	using namespace boost::lambda;
 	// Boost Lambda for locally-defined functor
 	// STL has no support for pointer to member :(
 		
 	// find the electrode node
 	std::vector<triangularEletrode>::iterator electrode = 
 	    std::find_if(electrodes.begin(), electrodes.end(),
-		      ((&_1 ->* &triangularEletrode::baseNode)==n1));
+			 [n1](triangularEletrode e){return e.baseNode==n1;});
 	
 	if(electrode==electrodes.end()) {	// New electrode
 	      triangularEletrode aux;
@@ -185,23 +180,17 @@ void fillElements() {
 	  }
 	}*/
 	
-
-	using namespace boost::lambda;	// Lambda black magic
-	
-
-
-
-
 	// Prepare node <-> condindex map
 	int condIndex = 0;
 	// Electrode coefficients
 	std::for_each(electrodes.begin(), electrodes.end(),
-		var(node2coefficient)[(&_1 ->* &triangularEletrode::baseNode)]
-			=var(condIndex)++);
+		[&](triangularEletrode e) {
+		  node2coefficient[e.baseNode] = condIndex++; 
+		});
 
 	// Outter ring coefficient
 	std::for_each(outerRingNodes.begin(), outerRingNodes.end(),
-		var(node2coefficient)[_1]=condIndex);
+		[&](int e){node2coefficient[e] = condIndex;});
 
 	/*// Inner coefficients
 	std::for_each(innerNodes.begin(), innerNodes.end(),
@@ -212,7 +201,9 @@ void fillElements() {
 
 	// Inner coefficients
 	std::for_each(innerNodes.begin(), innerNodes.end(),
-		var(node2coefficient)[_1]=var(condIndex)++);
+		[&](int i) {
+		  node2coefficient[i] = condIndex++; 
+		});
 	
 	numcoefficients = condIndex;
 	groundNode = electrodes.back().baseNode;
@@ -220,39 +211,38 @@ void fillElements() {
 	// Prepare inner nodes adjacency map
 	//	Adjacency is established between nodes that are NOT in the outter ring
 	//	set AND share at least one element
-	// FIXME: That's probably lambda overuse!!!!
 	typedef std::set<std::pair<int, int> > adjacencySet;
 	adjacencySet auxAdjacency;	
 	// Functor that adds an ordered pair to innerAdjacency
 	//  Notice the pair is ordered first, so the pair (2,1) is translated
 	//	to (1,2)
-	boost::function<void(int,int)> insertAdjNodePair = 
-		bind((std::pair<adjacencySet::iterator, bool> (adjacencySet::*)(adjacencySet::const_reference))&adjacencySet::insert,
+	auto insertAdjNodePair = [&auxAdjacency](int n1, int n2) {
+	  if(n1<n2) {
+	    auxAdjacency.insert(std::pair<int,int>(n1, n2));   
+	  } else {
+	    auxAdjacency.insert(std::pair<int,int>(n2, n1));
+	  }
+	};
+	/*boost::function<void(int,int)> insertAdjNodePair = 
+	111	bind((std::pair<adjacencySet::iterator, bool> (adjacencySet::*)(adjacencySet::const_reference))&adjacencySet::insert,
 			&auxAdjacency,
 			if_then_else_return(_1<_2,
 				bind(constructor<std::pair<int, int> >(), _1, _2),
-				bind(constructor<std::pair<int, int> >(), _2, _1)));
+				bind(constructor<std::pair<int, int> >(), _2, _1)));*/
 	// Check variables, true if the corresponding node is NOT in outerRingNodes
-	bool n1ok, n2ok, n3ok; 
-	var_type<bool>::type vn1ok(var(n1ok)), vn2ok(var(n2ok)), vn3ok(var(n3ok));	
+	//bool n1ok, n2ok, n3ok; 
+	//var_type<bool>::type vn1ok(var(n1ok)), vn2ok(var(n2ok)), vn3ok(var(n3ok));	
 	// For each element, add its node pairs in order
-	std::for_each(elements.begin(), elements.end(), (
-		(vn1ok = bind<size_t>(&std::set<int>::count, &outerRingNodes, 
-						&_1->* &triangularElement::n1)==0),
-		(vn2ok = bind<size_t>(&std::set<int>::count, &outerRingNodes, 
-						&_1->* &triangularElement::n2)==0),
-		(vn3ok = bind<size_t>(&std::set<int>::count, &outerRingNodes, 
-						&_1->* &triangularElement::n3)==0),
-		if_then(vn1ok && vn2ok, bind(insertAdjNodePair,
-						&_1 ->* &triangularElement::n1,
-						&_1 ->* &triangularElement::n2)),
-		if_then(vn1ok && vn3ok, bind(insertAdjNodePair,
-						&_1 ->* &triangularElement::n1,
-						&_1 ->* &triangularElement::n3)),
-		if_then(vn2ok && vn3ok, bind(insertAdjNodePair,
-						&_1 ->* &triangularElement::n2,
-						&_1 ->* &triangularElement::n3))		
-	));
+	std::for_each(elements.begin(), elements.end(), [&](triangularElement e) { 
+		bool n1ok = (outerRingNodes.find(e.n1)==outerRingNodes.end());
+		bool n2ok = (outerRingNodes.find(e.n2)==outerRingNodes.end());
+		bool n3ok = (outerRingNodes.find(e.n3)==outerRingNodes.end());
+		
+		if(n1ok && n2ok) insertAdjNodePair(e.n1, e.n2);
+		if(n1ok && n3ok) insertAdjNodePair(e.n1, e.n3);
+		if(n2ok && n3ok) insertAdjNodePair(e.n2, e.n3);
+	});
+	
 
 	innerAdjacency.resize(auxAdjacency.size());
 	std::copy(auxAdjacency.begin(), auxAdjacency.end(), innerAdjacency.begin());

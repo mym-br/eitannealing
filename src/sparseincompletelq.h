@@ -1,12 +1,19 @@
 #ifndef SPARSEINCOMPLETELQ_H
 #define SPARSEINCOMPLETELQ_H
 
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+
 class SparseIncompleteLQ
 {
-  protected:
+  public:
     typedef double Scalar;
 
-    typedef Eigen::SparseMatrix<Scalar, Eigen::LowerTriangular> LMatrixType;
+    typedef Eigen::SparseMatrix<Scalar, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor > BaseMatrixType;
+  
+  protected:
+    typedef Eigen::SparseMatrix<Scalar, Eigen::LowerTriangular | Eigen::ColMajor> LMatrixType;
+  
     LMatrixType m_matrix;
 
   public:
@@ -22,7 +29,7 @@ class SparseIncompleteLQ
     void multInPlace(Eigen::VectorXd &b) const;
 
   
-    SparseIncompleteLQ(const Eigen::SparseMatrix<double, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor >& matrix, unsigned int iq, unsigned int il);
+    SparseIncompleteLQ(const BaseMatrixType& matrix, unsigned int iq, unsigned int il);
 };
 
 #endif // SPARSEINCOMPLETELQ_H

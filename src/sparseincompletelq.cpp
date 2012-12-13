@@ -15,11 +15,12 @@ SparseIncompleteLQ::SparseIncompleteLQ(
     VSV QRows;
     // building Q vector
     std::map<int, double> buildingQ;
-    std::vector<double> buildingSQ;
+    std::vector<element> buildingSQ;
     // building L vector
     std::map<int, double> buildingL;
     std::vector<element> buildingSL;
     
+    this->m_matrix.startFill(il*A.cols());
     
     // first step: extract first rows
     
@@ -34,32 +35,43 @@ SparseIncompleteLQ::SparseIncompleteLQ(
 	      buildingL[qit->first] += it.value()*qit->second;
 	}
       }
-      // Extract l1 largest L elements: first add all elements to a vector
-      buildingSL.clear();
-      std::copy(buildingL.begin(), buildingL.end(), buildingSL.begin());
-      // Get l1 largest elements
-      if(il<buildingSL.size()) {
-	//std::partial_sort(buildingSL.begin(),buildingSL.begin()+il, buildingSL.end(), 
-	//   (bind<double>(fabs,&_1 ->* &element::second)>bind<double>(fabs,&_2 ->* &element::second)));
-	std::partial_sort(buildingSL.begin(),buildingSL.begin()+il, buildingSL.end(), 
-	   [](const element &e1, const element &e2){return fabs(e1.second)>fabs(e2.second);});
-	buildingSL.resize(il);
+      // Extract il largest L elements: first add all elements to a vector
+      buildingSL.resize(il <= buildingL.size()?il:buildingL.size());
+      std::partial_sort_copy(buildingL.begin(), buildingL.end(),buildingSL.begin(), buildingSL.end(),
+	[](const element &e1, const element &e2){return fabs(e1.second)>fabs(e2.second);}
+      );
+      // Now re-sort them according to index FIXME: Is this step actually necessary?
+      std::sort(buildingSL.begin(),buildingSL.end(),
+	[](const element &e1, const element &e2){return e1.first<e2.first;});
+      // And push them back to building matrix, while subtracting projections from previous vectors
+      for(auto e:buildingSL) {
+	// At most iq complexity
+	for(auto q:QColumns[e.first]) {
+	    buildingQ[q.first] -= e.second*q.second;	  
+	}
+	this->m_matrix.fill(e.first,col) = e.second;
       }
-
-      // And push them back to building matrix
-	
-      // Now subtract projections with previous vectors
-      for(VSV::iterator i=QColumns.begin(); i!=QColumns.end(); i++) {
-	
+      // Extract largest elements from Q
+      buildingSQ.resize(std::min(iq,(unsigned int)buildingQ.size()));
+      std::partial_sort_copy(buildingQ.begin(), buildingQ.end(),buildingSQ.begin(), buildingSQ.end(),
+	[](const element &e1, const element &e2){return fabs(e1.second)>fabs(e2.second);}
+      );
+      // Normalize it and update rows
+      double normq2 = 0;
+      for(auto q:buildingSQ){
+	normq2 += q.second * q.second;	
       }
-      // Extract largest elements
-      // And normalize
-      
-      
+      double inormq = 1/sqrt(normq2);
+      for(auto q:buildingSQ){
+	q.second*=inormq;	
+	// Update rows here
+	QRows[q.first].push_back(element(col, q.second));
+      }
+      // And add it to built columns
+      QColumns.push_back(buildingSQ);
       
     }
-    
-    // FIXME: should we SORT L vector?
+    //this->m_matrix.endFill();
     
     
 }

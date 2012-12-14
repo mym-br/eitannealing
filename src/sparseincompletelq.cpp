@@ -3,7 +3,8 @@
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 
-using namespace boost::lambda;	// FIXME: Replace boost lambda with C++11 lambda
+#include <iostream>
+
 SparseIncompleteLQ::SparseIncompleteLQ(
   const Eigen::SparseMatrix<double, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor >& A, unsigned int iq, unsigned int il)
 {
@@ -23,7 +24,7 @@ SparseIncompleteLQ::SparseIncompleteLQ(
     this->m_matrix.startFill(il*A.cols());
     
     // first step: extract first rows
-    
+    QRows.resize(A.rows());
     for(int col=0;col<A.cols();col++) {
       buildingQ.clear();
       buildingL.clear();
@@ -31,8 +32,8 @@ SparseIncompleteLQ::SparseIncompleteLQ(
 	// insert everything in current building column
 	buildingQ[it.row()] = it.value();
 	// And do a scalar product with previous columns... put result in building L
-	for(std::vector<element>::iterator qit = QRows[it.row()].begin(); qit!=QRows[it.row()].end(); qit++) {
-	      buildingL[qit->first] += it.value()*qit->second;
+	for(auto& qit:QRows[it.row()]) {
+	  buildingL[qit.first] += it.value()*qit.second;
 	}
       }
       // Extract il largest L elements: first add all elements to a vector
@@ -44,34 +45,40 @@ SparseIncompleteLQ::SparseIncompleteLQ(
       std::sort(buildingSL.begin(),buildingSL.end(),
 	[](const element &e1, const element &e2){return e1.first<e2.first;});
       // And push them back to building matrix, while subtracting projections from previous vectors
-      for(auto e:buildingSL) {
+      for(auto& e:buildingSL) {
 	// At most iq complexity
-	for(auto q:QColumns[e.first]) {
+	for(auto& q:QColumns[e.first]) {
 	    buildingQ[q.first] -= e.second*q.second;	  
 	}
 	this->m_matrix.fill(e.first,col) = e.second;
+	//std::cout << e.second << "[" << e.first << "] ";
       }
       // Extract largest elements from Q
       buildingSQ.resize(std::min(iq,(unsigned int)buildingQ.size()));
       std::partial_sort_copy(buildingQ.begin(), buildingQ.end(),buildingSQ.begin(), buildingSQ.end(),
 	[](const element &e1, const element &e2){return fabs(e1.second)>fabs(e2.second);}
       );
-      // Normalize it and update rows
-      double normq2 = 0;
-      for(auto q:buildingSQ){
-	normq2 += q.second * q.second;	
+      // Normalize it (add norm to output matrix!) and update rows
+      double normq = 0;
+      for(auto& q:buildingSQ){
+	normq += q.second * q.second;	
       }
-      double inormq = 1/sqrt(normq2);
-      for(auto q:buildingSQ){
-	q.second*=inormq;	
+      normq = sqrt(normq);
+      this->m_matrix.fill(col, col) = normq;
+      //std::cout << normq << "[" << col << "]\n";
+      double inormq = 1/normq;
+      for(auto& q:buildingSQ){
+	q.second*=inormq;
+	//std::cout << q.second << "[" <<q.first << "] ";
 	// Update rows here
 	QRows[q.first].push_back(element(col, q.second));
       }
+      //std::cout << std::endl;
       // And add it to built columns
       QColumns.push_back(buildingSQ);
       
     }
-    //this->m_matrix.endFill();
+    this->m_matrix.endFill();
     
     
 }

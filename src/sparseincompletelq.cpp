@@ -5,6 +5,14 @@
 
 #include <iostream>
 
+void SparseIncompleteLQ::multInPlace(Eigen::VectorXd& b) const
+{
+  const int size = m_matrix.rows();
+  ei_assert(size==b.rows());
+  m_matrix.solveTriangularInPlace(b);
+}
+
+
 SparseIncompleteLQ::SparseIncompleteLQ(
   const Eigen::SparseMatrix<double, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor >& A, unsigned int iq, unsigned int il)
 {

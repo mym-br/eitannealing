@@ -22,10 +22,7 @@ class SparseIncompleteLQ
     inline const LMatrixType& matrixL(void) const { return m_matrix; }
 
     bool solveInPlace(Eigen::VectorXd &b) const;
-    bool halfSolveInPlace(Eigen::VectorXd &b) const;
-    bool halfSolveInPlaceT(Eigen::VectorXd &b) const;
 
-    void halfMultInPlace(Eigen::VectorXd &b) const;
     void multInPlace(Eigen::VectorXd &b) const;
 
   

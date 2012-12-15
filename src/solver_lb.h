@@ -16,6 +16,8 @@
 typedef Eigen::SparseMatrix<double, Eigen::RowMajor> matrix2;
 
 class LB_Solver {
+	public:
+		typedef SparseIncompleteLLT Preconditioner;
         protected:
                 int it;
                 
@@ -60,8 +62,8 @@ class LB_Solver {
 					return getErrorl2Estimate();
 				}
 
-                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a);
-                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, double a, const Eigen::VectorXd &x0);
+                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a);
+                LB_Solver(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a, const Eigen::VectorXd &x0);
                 void do_iteration();
                 
                 const Eigen::VectorXd getX() const {
@@ -80,8 +82,8 @@ class LB_Solver_EG_Estimate : public LB_Solver
   Eigen::VectorXd evec;
   
   public:
-    LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, int n, float e);
-    LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, const Eigen::VectorXd &x0, const Eigen::VectorXd &egHint, int n, float e); 
+    LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, int n, float e);
+    LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, const Eigen::VectorXd &x0, const Eigen::VectorXd &egHint, int n, float e); 
     double getLeastEvEst() const {
       return this->ev;
     }

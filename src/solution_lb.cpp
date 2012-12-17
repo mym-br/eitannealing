@@ -149,7 +149,7 @@ solution_lb::solution_lb(const float *sigma):
 				err_x_dist(nobs)
 {
         assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
-        precond = new SparseIncompleteLLT(*Aii);
+        precond.reset(LB_Solver::makePreconditioner(*Aii));
                                         
 	this->initSimulations();
 	this->initErrors();
@@ -166,7 +166,7 @@ solution_lb::solution_lb(float *sigma, const solution_lb &base):
                 err_x_dist(nobs)
 {
         assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
-        precond = new SparseIncompleteLLT(*Aii);
+        precond.reset(LB_Solver::makePreconditioner(*Aii));
         
         this->initSimulations(base);
         this->initErrors();
@@ -184,7 +184,7 @@ solution_lb::solution_lb():
 		err_x_dist(nobs)
 {
         assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
-        precond = new SparseIncompleteLLT(*Aii);
+        precond.reset(LB_Solver::makePreconditioner(*Aii));
 	this->initSimulations();
 	this->initErrors();
 }
@@ -422,7 +422,6 @@ solution_lb::~solution_lb()
 	delete Aii;
 	delete Aic;
 	delete Acc;
-	delete precond;
 	for(int i=0;i<nobs;i++) {
 		delete simulations[i];
 	}

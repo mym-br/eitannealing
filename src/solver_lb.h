@@ -9,6 +9,7 @@
 #define SOLVER_LB_H_
 
 #include "solver.h"
+#include "sparseincompletelq.h"
 #include <memory>
 
 // FIXME: IS Col-Major faster than Row-Major?
@@ -17,13 +18,14 @@ typedef Eigen::SparseMatrix<double, Eigen::RowMajor> matrix2;
 
 class LB_Solver {
 	public:
+		//typedef SparseIncompleteLQ Preconditioner;
 		typedef SparseIncompleteLLT Preconditioner;
-        protected:
+	protected:
                 int it;
                 
                 const matrix &Aii;
                 const matrix2 &Aic;
-                const SparseIncompleteLLT       &precond;
+                const Preconditioner       &precond;
                 
                 double JhatNorm2;
                 double ATJhatNorm2;
@@ -67,10 +69,15 @@ class LB_Solver {
                 void do_iteration();
                 
                 const Eigen::VectorXd getX() const {
-                        return this->x+this->x0;
+			 Eigen::VectorXd xaux(this->x);
+			 precond.solveInPlace(xaux);
+                        return xaux+this->x0;
                 }
                 
                 virtual ~LB_Solver() {};
+		static Preconditioner *makePreconditioner(const matrix2 &A) {
+		    return new Preconditioner(A);//,10,6);
+		}
            
 };
 

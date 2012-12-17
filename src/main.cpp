@@ -23,6 +23,7 @@
 #include "solution_lb.h"
 #include "observations.h"
 #include "random.h"
+#include "sparseincompletelq.h"
 
 #include "init_obs_problem.h"
 
@@ -100,13 +101,13 @@ void workProc()
 
 
 	// Simulated annealing
-	std::auto_ptr<solution> current, next;
-	float kt =  0.5;
+	std::auto_ptr<solution_lb> current, next;
+	float kt =  0.0005;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
 	shuffler sh;
-	current.reset(new solution);
+	current.reset(new solution_lb);
 	
 	int iterations;
 	int solutions;
@@ -326,10 +327,10 @@ int main(int argc, char *argv[])
 	 
 	 
 	 double start = get_time();
-	 for(int i=0;i<10000;i++)
-	   new SparseIncompleteLLT(*stiffness0);
-	 std::cout << "Time:" << (get_time()-start)/10000 << std::endl;
-	 exit(0);
+	 for(int i=0;i<100;i++)
+	   new SparseIncompleteLQ(*stiffness0,18,6);
+	 std::cout << "Time:" << (get_time()-start)/100 << std::endl;
+	 exit(0);*/
 	   
 	 
 	 /*

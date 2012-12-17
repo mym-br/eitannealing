@@ -13,6 +13,7 @@ class solution_lb;
 #include "solution.h"
 #include "solver_lb.h"
 #include "problemdescription.h"
+#include <memory>
 
 
 /*
@@ -40,7 +41,7 @@ class solution_lb {
 			float *sol;
 			matrix *Aii, *Acc;
 			matrix2 *Aic; 
-			SparseIncompleteLLT *precond;
+			std::unique_ptr<LB_Solver::Preconditioner> precond;
 
 			LB_Solver **simulations;
 			Eigen::VectorXd distance;

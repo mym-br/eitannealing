@@ -10,9 +10,9 @@ class SparseIncompleteLQ
     typedef double Scalar;
 
     typedef Eigen::SparseMatrix<Scalar, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor > BaseMatrixType;
-  
+  // FIXME: This is actually a QR decomposition!
   protected:
-    typedef Eigen::SparseMatrix<Scalar, Eigen::LowerTriangular | Eigen::ColMajor> LMatrixType;
+    typedef Eigen::SparseMatrix<Scalar, Eigen::UpperTriangular | Eigen::ColMajor> LMatrixType;
   
     LMatrixType m_matrix;
 
@@ -22,7 +22,8 @@ class SparseIncompleteLQ
     inline const LMatrixType& matrixL(void) const { return m_matrix; }
 
     bool solveInPlace(Eigen::VectorXd &b) const;
-
+    bool solveInPlaceT(Eigen::VectorXd &b) const;
+    
     void multInPlace(Eigen::VectorXd &b) const;
 
   

@@ -30,6 +30,9 @@ class SparseIncompleteLLT
     inline const CholMatrixType& matrixL(void) const { return m_matrix; }
 
     bool solveInPlace(Eigen::VectorXd &b) const;
+    bool solveInPlaceT(Eigen::VectorXd &b) const {
+      return solveInPlace(b);	// symmetric preconditioner!
+    }
     bool halfSolveInPlace(Eigen::VectorXd &b) const;
     bool halfSolveInPlaceT(Eigen::VectorXd &b) const;
 

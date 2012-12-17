@@ -21,7 +21,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::Vec
     rc = J.end(_Acc->rows()) - *_Acc*Phi;      
     //std::cout << "Before:" << sqrt(r.squaredNorm()+rc.squaredNorm()); 
     Eigen::VectorXd xaux(x0);
-    precond.solveInPlace(xaux);
+    //precond.solveInPlace(xaux);
     r -=  Aii*xaux;
     rc -= Aic*xaux;
     //std::cout << "After:" << sqrt(r.squaredNorm()+rc.squaredNorm()) << std::endl;
@@ -37,7 +37,7 @@ void LB_Solver::init()
     
     // S = (ACi)T*p
     s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
-    precond.solveInPlace(s);
+    precond.solveInPlaceT(s);
 	ATJhatNorm2 = s.squaredNorm();
     gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
     	ATJhatNorm2*=JhatNorm2;
@@ -57,7 +57,7 @@ void LB_Solver::init()
     delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 	p = r/delta; pc = rc/delta;
 	s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
-	precond.solveInPlace(s);
+	precond.solveInPlaceT(s);
 	s -= delta*q;
 	    // *** Gauss, as next value for gamma will be pertinent to iteration 2!
         phi2 = gamma_ip*gamma_ip+delta*delta;
@@ -90,7 +90,7 @@ void LB_Solver::do_iteration()
     delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 	p = r/delta; pc = rc/delta;
     s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
-    precond.solveInPlace(s);
+    precond.solveInPlaceT(s);
 	s -= delta*q;
         // *** Gauss, as next value for gamma will be pertinent to next iteration!
 		psi_im = si*gamma_ip;
@@ -139,7 +139,7 @@ double LB_Solver::getMinErrorl2Estimate() const
 	return sqrt(v);//+this->getX().norm()*0.0005;
 }
 
-LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix2* Aic, matrix* Acc, const Eigen::VectorXd& J, const Eigen::VectorXd& Phi, const SparseIncompleteLLT& precond, int n, float e): 
+LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix2* Aic, matrix* Acc, const Eigen::VectorXd& J, const Eigen::VectorXd& Phi, const Preconditioner& precond, int n, float e): 
         LB_Solver(Aii, Aic, Acc, J, Phi, precond, 0)
 {
       UMatrix U(n,n);
@@ -183,7 +183,7 @@ LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix2* Aic, matrix* 
 }
 
 
-LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const SparseIncompleteLLT &precond, const Eigen::VectorXd &x0, const Eigen::VectorXd &egHint, int n, float e):
+LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, const Eigen::VectorXd &x0, const Eigen::VectorXd &egHint, int n, float e):
  LB_Solver(Aii, Aic, Acc, J, Phi, precond, 0, x0)
 {
     UMatrix U(n,n);

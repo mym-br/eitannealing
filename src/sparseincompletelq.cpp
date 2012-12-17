@@ -5,16 +5,26 @@
 
 #include <iostream>
 
-void SparseIncompleteLQ::multInPlace(Eigen::VectorXd& b) const
+bool SparseIncompleteLQ::solveInPlace(Eigen::VectorXd& b) const
 {
   const int size = m_matrix.rows();
   ei_assert(size==b.rows());
   m_matrix.solveTriangularInPlace(b);
+  return true;
+}
+
+bool SparseIncompleteLQ::solveInPlaceT(Eigen::VectorXd& b) const
+{
+  const int size = m_matrix.rows();
+  ei_assert(size==b.rows());
+  m_matrix.transpose().solveTriangularInPlace(b);
+  return true;
 }
 
 
 SparseIncompleteLQ::SparseIncompleteLQ(
-  const Eigen::SparseMatrix<double, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor >& A, unsigned int iq, unsigned int il)
+  const Eigen::SparseMatrix<double, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor >& A, unsigned int iq, unsigned int il):
+      m_matrix(A.cols(), A.cols())
 {
     typedef std::pair<int, Scalar> element;
     typedef std::vector<std::vector<element> > VSV;
@@ -49,7 +59,7 @@ SparseIncompleteLQ::SparseIncompleteLQ(
       std::partial_sort_copy(buildingL.begin(), buildingL.end(),buildingSL.begin(), buildingSL.end(),
 	[](const element &e1, const element &e2){return fabs(e1.second)>fabs(e2.second);}
       );
-      // Now re-sort them according to index FIXME: Is this step actually necessary?
+      // Now re-sort them according to index
       std::sort(buildingSL.begin(),buildingSL.end(),
 	[](const element &e1, const element &e2){return e1.first<e2.first;});
       // And push them back to building matrix, while subtracting projections from previous vectors
@@ -58,8 +68,9 @@ SparseIncompleteLQ::SparseIncompleteLQ(
 	for(auto& q:QColumns[e.first]) {
 	    buildingQ[q.first] -= e.second*q.second;	  
 	}
-	this->m_matrix.fill(e.first,col) = e.second;
 	//std::cout << e.second << "[" << e.first << "] ";
+	this->m_matrix.fill(e.first,col) = e.second;
+	
       }
       // Extract largest elements from Q
       buildingSQ.resize(std::min(iq,(unsigned int)buildingQ.size()));

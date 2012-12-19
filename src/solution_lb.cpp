@@ -21,6 +21,8 @@
 #endif
 
 const float base[] = {
+  // ueta_circuito_0XXX_AMPLITUDES_10mA.txt
+  0.0962959, 0.202657, 0.136188, 0.205733, 0.171565, 0.165175, 0.163677, 0.151598, 0.151849, 0.136051, 0.137322, 0.123318, 0.114067, 0.123119, 0.118788, 0.112003, 0.121462, 0.126865, 0.121439, 0.130946, 0.158523, 0.153706, 0.167477, 0.151688, 0.176961, 0.165414, 0.170706, 0.183611, 0.176578, 0.147866, 0.14479, 0.143259, 0.381499
   
   //0.34648, 0.406421, 0.396935, 0.372705, 0.513649, 0.443898, 0.471985, 0.467473, 0.490282, 0.498275, 0.530917, 0.463241, 0.372647, 0.397438, 0.37826, 0.374614, 0.391259, 0.428486, 0.406962, 0.40457, 0.474347, 0.474314, 0.470977, 0.435977, 0.442748, 0.470965, 0.422019, 0.482234, 0.413204, 0.375263, 0.385004, 0.425495, 1.35
   //0.0607283, 0.0665641, 0.0672715, 0.0644222, 0.0831744, 0.0800821, 0.095222, 0.087998, 0.0795147, 0.07844, 0.0820809, 0.0738347, 0.0615422, 0.0666471, 0.0630172, 0.0626265, 0.0654864, 0.0707983, 0.067319, 0.0661263, 0.0802712, 0.0783579, 0.0762317, 0.0713599, 0.0815007, 0.0752741, 0.0709489, 0.0902495, 0.0724872, 0.062839, 0.0674892, 0.0733704
@@ -198,7 +200,7 @@ void solution_lb::initSimulations()
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
                         Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), 
-                        Eigen::VectorXd(tensions[0].end(31)), *precond, 90, 0.000001);
+                        Eigen::VectorXd(tensions[0].end(31)), *precond, 45, 0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	for(i=1;i<nobs;i++)
@@ -221,7 +223,7 @@ void solution_lb::initSimulations(const solution_lb &base)
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
                         Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(31)), 
                         Eigen::VectorXd(tensions[0].end(31)), *precond, 
-                        baseEVSolver->getX(), baseEVSolver->getEvector(), 90, 0.000001);
+                        baseEVSolver->getX(), baseEVSolver->getEvector(), 45, 0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
         for(i=1;i<nobs;i++)
@@ -279,7 +281,7 @@ float *solution_lb::getNewRandomSolution()
 	float *res = new float[numcoefficients];
 	int i = 0;
         //for(;i<sizeof(base)/sizeof(*base);i++)
-        //    res[i] = base[i]*0.95;
+            res[i] = base[i];
 
 	for(;i<numcoefficients;i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
@@ -292,7 +294,7 @@ float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) c
 	float *res = solution_lb::copySolution(sol);
 	// head or tails
 	if(genint(2)) { // Normal
-		int ncoef = genint(numcoefficients);	// Lower values fixed;
+		int ncoef = genint(numcoefficients-sizeof(base)/sizeof(*base))+sizeof(base)/sizeof(*base);	// Lower values fixed;
                 float minc, maxc;
                 /*if(ncoef<32) {
                   maxc = base[ncoef];

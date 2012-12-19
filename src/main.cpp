@@ -173,7 +173,7 @@ void workProc()
                 
                 
                 
-		kt *= 0.95;
+		kt *= 0.9;
 		double variation = fabs(prevE-current->getDEstimate())/prevE;
 		//std::cout << "totalit:" << iterations << std::endl;
 		//std::cout << "variation: " << variation << std::endl;

@@ -100,6 +100,7 @@ class solution {
 
 			// shuffle constructor
 			solution(float *sol, const solution &base);
+			double regularisation;
 
 
 	public:
@@ -110,6 +111,10 @@ class solution {
 		bool compareWithMinIt(solution &target, float kt, int minit);
 		bool compareWithMaxE2(solution &target, float kt, double e2);
 		solution *shuffle(shuffleData *data, const shuffler &sh) const;
+		double getRegularisationValue() const {
+		  return this->regularisation;
+		  
+		}
 
 		void improve();
 

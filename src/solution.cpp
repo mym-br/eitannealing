@@ -11,6 +11,7 @@
 #include "problemdescription.h"
 #include <iostream>
 #include <boost/numeric/interval.hpp>
+#include "gradientnormregularisation.h"
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -39,9 +40,9 @@ void solution::improve()
 	maxdist[critical] = distance[critical] + err[critical];
 	mindist[critical] = max(distance[critical] - err[critical],0);
 	err_x_dist[critical] = maxdist[critical]*err[critical];
-	totalDist = distance.norm();
-	minTotalDist = mindist.norm();
-	maxTotalDist = maxdist.norm();
+	totalDist = distance.norm()+regularisation;
+	minTotalDist = mindist.norm()+regularisation;
+	maxTotalDist = maxdist.norm()+regularisation;
 	// reevaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
@@ -242,6 +243,8 @@ void solution::initSimulations()
 
 void solution::initErrors()
 {
+	// Calc regularisation value
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*3;
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
@@ -258,9 +261,9 @@ void solution::initErrors()
 		mindist[i] = max(distance[i] - err[i],0);
 		err_x_dist[i] = maxdist[i]*err[i];
 	}
-	totalDist = distance.norm();
-	minTotalDist = mindist.norm();
-	maxTotalDist = maxdist.norm();
+	totalDist = distance.norm()+regularisation;
+	minTotalDist = mindist.norm()+regularisation;
+	maxTotalDist = maxdist.norm()+regularisation;
 	// evaluate critical
 	double max = err_x_dist[0];
 	critical = 0;

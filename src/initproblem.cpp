@@ -16,6 +16,8 @@
 #include <iostream>
 #include <boost/iterator/iterator_concepts.hpp>
 
+#include "gradientnormregularisation.h"
+
 
 std::ifstream file;
 
@@ -117,6 +119,7 @@ void fillElements() {
 	  n3--;
 	  switch(id) {
 	      case 1001:	// external ring
+	      case 2001:
 	      //case 3001:
 			innerNodes.erase(n1);
 			innerNodes.erase(n2);
@@ -130,7 +133,8 @@ void fillElements() {
 			elements.push_back(temp);
 			break;		
 	      
-		case 2001:	// internal elements
+		
+		case 3001:	// internal elements
 			if(!outerRingNodes.count(n1))
 				innerNodes.insert(n1);
 			if(!outerRingNodes.count(n2))
@@ -256,5 +260,7 @@ void initProblem(char *filename)
 	fillNodes();
 	fillElements();//	fillElectrodes();
 	electrodeh = 0.0004;
-	totalheight = 0.03;
+	totalheight = 0.020;
 }
+
+

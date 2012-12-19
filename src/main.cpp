@@ -24,6 +24,7 @@
 #include "observations.h"
 #include "random.h"
 #include "sparseincompletelq.h"
+#include "gradientnormregularisation.h"
 
 #include "init_obs_problem.h"
 
@@ -101,27 +102,28 @@ void workProc()
 
 
 	// Simulated annealing
-	std::auto_ptr<solution_lb> current, next;
-	float kt =  0.0005;
+	std::auto_ptr<solution> current, next;
+	float kt =  0.005;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
 	shuffler sh;
-	current.reset(new solution_lb);
+	current.reset(new solution);
 	
 	int iterations;
 	int solutions;
 	double e;
+	double r;
 	double sqe;
 	iterations = 0;
 	int no_avance_count = 0;
 	double prevE = 10000000000.0;
 	while(kt > 0.000000005 && no_avance_count < 3) {
-		e = sqe = 0;
+		e = sqe = r = 0;
 		totalit = acceptit = 0;
 		solutions = 0;
 		iterations = 0;		
-		while(totalit<12000 && acceptit < 2000) {
+		while(totalit<15000 && acceptit < 3000) {
                   
 			next.reset(current->shuffle(&sdata, sh));
 			bool decision;
@@ -140,18 +142,21 @@ void workProc()
 				sh.addShufflerFeedback(sdata, false);
 			}
 			e += current->getDEstimate();
+			r += current->getRegularisationValue();
 			sqe += current->getDEstimate()*current->getDEstimate();
 
 			totalit++;
                         if(totalit % 100 == 0) {
+				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
 				view->setCurrentSolution(current->getSolution());				
 			}
 		}
 		double eav = e/solutions;
+		double rav = r/solutions;
 		double sige = sqrt(sqe/solutions - eav*eav);
 		//solution probe(current->getSolution());
 		//probe.saturate();
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << ((float)iterations)/(nobs*solutions) << std::endl;
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << "<< ((float)iterations)/(nobs*solutions) << std::endl;
 		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
@@ -311,11 +316,16 @@ int main(int argc, char *argv[])
 
 	 initObs(argv[2], argv[3]);
 	 buildNodeCoefficients();
+	 gradientNormRegularisation::initInstance();
+	 /*float *solution = new float[numcoefficients];
+	 for(int i=0;i<numcoefficients;i++) solution[i] = 1;
+	 
+	 solution[100] = 2;
+	 
+	 std::cout << "Regularization:" << gradientNormRegularisation::getInstance()->getRegularisation(solution);
+	 std::cout << std::endl;
+
 /*
-	 float *solution = new float[numcoefficients];
-	 for(int i=0;i<numcoefficients;i++) solution[i] = 1/4.76;
-
-
 	 //solution[32] = 1.5;
 	 //solution[node2coefficient[288]] = 1.5;
 	 //solution[node2coefficient[358]] = 1.0;

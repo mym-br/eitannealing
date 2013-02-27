@@ -103,7 +103,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt =  0.005;
+	float kt =  1;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
@@ -156,7 +156,7 @@ void workProc()
 		double sige = sqrt(sqe/solutions - eav*eav);
 		//solution probe(current->getSolution());
 		//probe.saturate();
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << "<< ((float)iterations)/(nobs*solutions) << std::endl;
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations)/(nobs*solutions) << std::endl;
 		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
@@ -181,7 +181,12 @@ void workProc()
 		  no_avance_count++;
 		else
 		  no_avance_count = 0;		
-		prevE = current->getDEstimate();                        
+		prevE = current->getDEstimate();  
+		
+		
+		
+		// For hybrid objective function
+		if(totalit>6000) break;
 	}
 	
 	//probe.saturate();
@@ -337,10 +342,11 @@ int main(int argc, char *argv[])
 	 
 	 
 	 double start = get_time();
-	 for(int i=0;i<100;i++)
-	   new SparseIncompleteLQ(*stiffness0,18,6);
-	 std::cout << "Time:" << (get_time()-start)/100 << std::endl;
-	 exit(0);*/
+	 for(int i=0;i<1000;i++)
+	   new SparseIncompleteLQ(*stiffness0,15,6);
+	  //new SparseIncompleteLLT(*stiffness0);
+	 std::cout << "Time:" << (get_time()-start)/1000 << std::endl;
+	 exit(0);
 	   
 	 
 	 /*

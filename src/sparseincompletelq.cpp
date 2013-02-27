@@ -1,9 +1,8 @@
 #include "sparseincompletelq.h"
 #include <Eigen/Sparse>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
 
 #include <iostream>
+#include <set>
 
 bool SparseIncompleteLQ::solveInPlace(Eigen::VectorXd& b) const
 {

@@ -56,7 +56,7 @@ class solution_lb {
 			double maxTotalDist;
 			int critical;
 			double critErr;
-
+			double regularisation;
 			int totalit;
 
 
@@ -117,6 +117,10 @@ class solution_lb {
 		int getTotalIt() const {
 			return this->totalit;
 		}
+		
+		double getRegularisationValue() const {
+			    return this->regularisation;
+			}
 		
 		void saturate();
 		

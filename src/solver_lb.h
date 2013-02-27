@@ -76,7 +76,7 @@ class LB_Solver {
                 
                 virtual ~LB_Solver() {};
 		static Preconditioner *makePreconditioner(const matrix2 &A) {
-		    return new Preconditioner(A);//,10,6);
+		    return new Preconditioner(A);//,15,6);
 		}
            
 };

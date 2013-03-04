@@ -1,17 +1,19 @@
 /*
  * solution.h
  *
- *  Created on: Sep 12, 2010
+ *  Created on: Feb 26, 2012
  *      Author: thiago
  */
 
-#ifndef SOLUTION_H_
-#define SOLUTION_H_
+#ifndef SOLUTION_LB_H_
+#define SOLUTION_LB_H_
 
-class solution;
+class solution_lb;
 
-#include "solver.h"
+#include "solution.h"
+#include "solver_lb.h"
 #include "problemdescription.h"
+#include <memory>
 
 
 /*
@@ -31,39 +33,17 @@ class solution;
  *
  */
 
-struct shuffleData {
-	int ncoef;
-	bool swap;
-};
 
-struct shuffler {
-	int * shuffleConsts;
-	int * swapshuffleconsts;
-	shuffler() {
-		shuffleConsts = new int[numcoefficients];
-		swapshuffleconsts = new int[innerAdjacency.size()];
-
-		for(int i=0;i<numcoefficients;i++) shuffleConsts[i] = 0;
-		for(int i=0;i<innerAdjacency.size();i++) swapshuffleconsts[i] = 0;
-	}
-	~shuffler() {
-		delete[] shuffleConsts;
-		delete[] swapshuffleconsts;
-
-	}
-	void addShufflerFeedback(const shuffleData &data, bool pos);
-};
-
-class solution {
+class solution_lb {
 	private:
 
 
 			float *sol;
-			matrix *stiffness;
-			SparseIncompleteLLT *precond;
+			matrix *Aii, *Acc;
+			matrix2 *Aic; 
+			std::unique_ptr<LB_Solver::Preconditioner> precond;
 
-
-			CG_Solver **simulations;
+			LB_Solver **simulations;
 			Eigen::VectorXd distance;
 			Eigen::VectorXd maxdist;
 			Eigen::VectorXd mindist;
@@ -76,14 +56,14 @@ class solution {
 			double maxTotalDist;
 			int critical;
 			double critErr;
-
+			double regularisation;
 			int totalit;
 
 
 
 
 			void initSimulations();
-			void initSimulations(const solution &base);
+			void initSimulations(const solution_lb &base);
 			void initErrors();
 
 			float *getShufledSolution();
@@ -92,29 +72,19 @@ class solution {
 
 			float *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
-			static matrix *getNewStiffness(float *sol) {
-				matrix *aux;
-				assembleProblemMatrix(sol, &aux);
-				return aux;
-			}
-
+			
 			// shuffle constructor
-			solution(float *sol, const solution &base);
-			double regularisation;
+			solution_lb(float *sol, const solution_lb &base);
 
 
 	public:
 
-		solution(const float *sol);
-		solution();	// New random solution
-		bool compareWith(solution &target, float kt, float prob);
-		bool compareWithMinIt(solution &target, float kt, int minit);
-		bool compareWithMaxE2(solution &target, float kt, double e2);
-		solution *shuffle(shuffleData *data, const shuffler &sh) const;
-		double getRegularisationValue() const {
-		  return this->regularisation;
-		  
-		}
+		solution_lb(const float *sol);
+		solution_lb();	// New random solution
+		bool compareWith(solution_lb &target, float kt, float prob);
+		//bool compareWithMinIt(solution &target, float kt, int minit);
+		//bool compareWithMaxE2(solution &target, float kt, double e2);
+		solution_lb *shuffle(shuffleData *data, const shuffler &sh) const;
 
 		void improve();
 
@@ -148,14 +118,17 @@ class solution {
 			return this->totalit;
 		}
 		
+		double getRegularisationValue() const {
+			    return this->regularisation;
+			}
+		
 		void saturate();
 		
 		void ensureMinIt(unsigned int it);
 		
-		void ensureMaxE2(double e2);
+		//void ensureMaxE2(double e2);
 
-		~solution();
-
+		~solution_lb();
 };
 
 

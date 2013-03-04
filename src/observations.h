@@ -13,8 +13,9 @@
 extern int nobs;
 
 extern Eigen::VectorXd *tensions;
+extern Eigen::VectorXd *rebased_tensions;
 extern Eigen::VectorXd *currents;
 
-void initObs();
+void initObs(char *filecurrents, char* filename);
 
 #endif /* OBSERVATIONS_H_ */

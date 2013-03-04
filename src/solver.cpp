@@ -5,6 +5,7 @@
  *      Author: thiago
  */
 
+
 #include "solver.h"
 #include "nodecoefficients.h"
 #include "problemdescription.h"
@@ -41,6 +42,7 @@ void CG_Solver::init()
 	//rmod_1 = rmod = r.squaredNorm();
 	q = A*p;
 	gamma = rmod/q.dot(p);
+	r0norm2 = rmod;
 	r0norm = sqrt(rmod);
 	alpha = 1/gamma;
 
@@ -306,15 +308,19 @@ void assembleProblemMatrix(float *cond, matrix **stiffnes)
 	*stiffnes = out;*/
 
 
-	matrix *out = new matrix(numNodes-1, numNodes-1);
+	matrix *out = new matrix(nodes.size()-1, nodes.size()-1);
 	double val;
-	out->startFill(3*(numNodes-1)); // estimate of the number of nonzeros (optional)
-	for (int i=0; i<numNodes-1; ++i) {
+	out->startFill(3*(nodes.size()-1)); // estimate of the number of nonzeros (optional)
+	for (int i=0; i<nodes.size()-1; ++i) {
 		nodeCoefficients *aux = nodeCoef[i];
 		while(aux) { // Col-major storage
 			while(aux->node < i) aux = aux->next; // skip upper triangular
 			int row = aux->node;
-			val = 0.0;
+                        if(row==groundNode) {
+                          aux = aux->next;
+                          continue;   // Skip ground node
+                        }
+                        val = 0.0;
 			while(aux && aux->node==row) {
 				val += aux->coefficient*cond[aux->condIndex];
 				aux = aux->next;

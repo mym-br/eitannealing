@@ -59,6 +59,8 @@ class CG_Solver {
 		const SparseIncompleteLLT	&precond;
 		Eigen::VectorXd z;
 
+		
+		
 
 		/* Lanczos
 		Eigen::VectorXd v;
@@ -81,6 +83,8 @@ class CG_Solver {
 		circularbuff<double,8> err;
 		//double merr;
 		double r0norm;
+		double r0norm2;
+		
 
 		circularbuff<double,8> eta_;
 		circularbuff<double,8> alpha_;
@@ -129,6 +133,10 @@ class CG_Solver {
 		
 		const SparseIncompleteLLT	&getPrecond() {
 			return this->precond;
+		}
+		
+		double getLastE2() const {
+		  return rmod/r0norm2;
 		}
 
 		//matrix buildJacobiMatrx();

@@ -4,10 +4,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_mod
 find_package(Qt4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread)
 find_package(Eigen2 REQUIRED)
+find_package(CXX11)
+
+IF(CMAKE_COMPILER_IS_GNUCXX)
+	SET(CMAKE_CXX_FLAGS "-std=c++11")
+endif()
 
 include_directories(${QT_INCLUDES} ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIR} ${EIGEN2_INCLUDES})
 
-set(eitannealingtest_SRCS
+set(eitannealingtest_SRCS src/gradientnormregularisation.cpp src/sparseincompletelq.cpp
   src/graphics.cpp
   src/initproblem.cpp
   src/main.cpp
@@ -18,12 +23,17 @@ set(eitannealingtest_SRCS
   src/solution.cpp
   src/mt19937-64/mt19937-64.c
   src/observations.cpp
+  src/solver_lb.cpp
+  src/solution_lb.cpp
 )
 set(libs ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY})
 
 qt4_automoc(${eitannealingtest_SRCS})
 
 if(${MSVC}) #Under Visual Studio it is better to specify the path and let pragmas guide the linker
+	if(NOT MSVC_VERSION LESS 1600) 
+	   add_definitions(-D_HAS_CPP0X=0)
+    endif(NOT MSVC_VERSION LESS 1600)
 	link_directories(${Boost_LIBRARY_DIRS})
 else(${MSVC})
     set(libs ${libs} ${Boost_LIBRARIES})

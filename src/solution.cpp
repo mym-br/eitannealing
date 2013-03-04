@@ -10,6 +10,8 @@
 #include "observations.h"
 #include "problemdescription.h"
 #include <iostream>
+#include <boost/numeric/interval.hpp>
+#include "gradientnormregularisation.h"
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -23,21 +25,24 @@ void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(numElectrodes-1);
+	static Eigen::VectorXd aux(electrodes.size()-1);
 
 	// Do another iteration on the critical solver
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
-	aux = tensions[critical] - simulations[critical]->getX().start(numElectrodes-1);
+	
+	aux = simulations[critical]->getX().end(electrodes.size()-1);
+	aux -= tensions[critical];
+					
 	distance[critical] = aux.norm();
 	err[critical] = sqrt(simulations[critical]->getErrorl2Estimate());
 	maxdist[critical] = distance[critical] + err[critical];
 	mindist[critical] = max(distance[critical] - err[critical],0);
 	err_x_dist[critical] = maxdist[critical]*err[critical];
-	totalDist = distance.norm();
-	minTotalDist = mindist.norm();
-	maxTotalDist = maxdist.norm();
+	totalDist = distance.norm()+regularisation;
+	minTotalDist = mindist.norm()+regularisation;
+	maxTotalDist = maxdist.norm()+regularisation;
 	// reevaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
@@ -95,6 +100,37 @@ bool solution::compareWith(solution &target, float kt, float prob)
 
 
 	// Now randomly accept based on the energy
+	if(genreal()<expdelta) return true;
+	return false;
+}
+
+
+bool solution::compareWithMinIt(solution &target, float kt,  int minit)
+{
+	double delta, expdelta;
+	// Ensure errors are within required margin
+	ensureMinIt(minit);
+	target.ensureMinIt(minit);
+	delta = target.totalDist - this->totalDist;
+	expdelta = exp(-delta/kt);
+	if(delta <= 0) {
+	  return true;
+	}
+	if(genreal()<expdelta) return true;
+	return false;
+}
+
+bool solution::compareWithMaxE2(solution &target, float kt,  double e2)
+{
+	double delta, expdelta;
+	// Ensure errors are within required margin
+	ensureMaxE2(e2);
+	target.ensureMaxE2(e2);
+	delta = target.totalDist - this->totalDist;
+	expdelta = exp(-delta/kt);
+	if(delta <= 0) {
+	  return true;
+	}
 	if(genreal()<expdelta) return true;
 	return false;
 }
@@ -158,13 +194,13 @@ void solution::initSimulations(const solution &base)
 		// Reuse previous solutions as initial values
 		simulations[i] = new CG_Solver(*stiffness, currents[i], base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
-		simulations[i]->do_iteration();
-		simulations[i]->do_iteration();
-		simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
 		double err = simulations[i]->getErrorl2Estimate();
 		double aux;
 		int ndecr = 0;
-		while(ndecr<3) {
+		while(ndecr<2) {
 			simulations[i]->do_iteration();
 			aux = simulations[i]->getErrorl2Estimate();
 			if(aux>=err) ndecr = 0;
@@ -186,13 +222,13 @@ void solution::initSimulations()
 	{
 		simulations[i] = new CG_Solver(*stiffness, currents[i], *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
-		simulations[i]->do_iteration();
-		simulations[i]->do_iteration();
-		simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
+		//simulations[i]->do_iteration();
 		double err = simulations[i]->getErrorl2Estimate();
 		double aux;
 		int ndecr = 0;
-		while(ndecr<3) {
+		while(ndecr<2) {
 			simulations[i]->do_iteration();
 			aux = simulations[i]->getErrorl2Estimate();
 			if(aux>=err) ndecr = 0;
@@ -207,19 +243,27 @@ void solution::initSimulations()
 
 void solution::initErrors()
 {
+	// Calc regularisation value
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*90;
 	int i;
+	// Just some scrap space to avoid dynamic allocations
+	//		WARNING: Obviously thread-unsafe!!!!
+	static Eigen::VectorXd aux(electrodes.size()-1);
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<nobs;i++) {
 		// Compare with observation
-		distance[i] = (simulations[i]->getX().start(numElectrodes-1)-tensions[i]).norm();
+		aux = simulations[i]->getX().end(aux.size());
+		aux -= tensions[i];
+		
+		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
 		mindist[i] = max(distance[i] - err[i],0);
 		err_x_dist[i] = maxdist[i]*err[i];
 	}
-	totalDist = distance.norm();
-	minTotalDist = mindist.norm();
-	maxTotalDist = maxdist.norm();
+	totalDist = distance.norm()+regularisation;
+	minTotalDist = mindist.norm()+regularisation;
+	maxTotalDist = maxdist.norm()+regularisation;
 	// evaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
@@ -235,10 +279,9 @@ void solution::initErrors()
 
 float *solution::copySolution(const float *sol)
 {
-	float *res = new float[65];
-	res[0] = 1;
+	float *res = new float[numcoefficients];
 
-	for(int i=1;i<65;i++)
+	for(int i=0;i<numcoefficients;i++)
 		res[i] = sol[i];
 
 	return res;
@@ -246,10 +289,44 @@ float *solution::copySolution(const float *sol)
 
 float *solution::getNewRandomSolution()
 {
-	float *res = new float[65];
-	res[0] = 1;
-	for(int i=1;i<65;i++)
-		res[i] = 1+genreal();
+	float *res = new float[numcoefficients];
+	int i = 0;
+/*
+	res[i++] = 0.0795333;
+	res[i++] = 0.154207;
+	res[i++] = 0.10827;
+	res[i++] = 0.107503;
+	res[i++] = 0.120324;
+	res[i++] = 0.115978;
+	res[i++] = 0.112217;
+	res[i++] = 0.109881;
+	res[i++] = 0.103229;
+	res[i++] = 0.0989397;
+	res[i++] = 0.0964289;
+	res[i++] = 0.0905536;
+	res[i++] = 0.0856748;
+	res[i++] = 0.0871923;
+	res[i++] = 0.0870397;
+	res[i++] = 0.0801445;
+	res[i++] = 0.0874562;
+	res[i++] = 0.0893944;
+	res[i++] = 0.0892118;
+	res[i++] = 0.0922962;
+	res[i++] = 0.109619;
+	res[i++] = 0.115378;
+	res[i++] = 0.120788;
+	res[i++] = 0.110558;
+	res[i++] = 0.115594;
+	res[i++] = 0.122183;
+	res[i++] = 0.11994;
+	res[i++] = 0.12327;
+	res[i++] = 0.123105;
+	res[i++] = 0.114889;
+	res[i++] = 0.122205;
+	res[i++] = 0.119641;
+	res[i++] = 0.35731;*/
+	for(i=0;i<numcoefficients;i++)
+		res[i] = mincond+genreal()*(maxcond-mincond);
 
 	return res;
 }
@@ -259,43 +336,35 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 	float *res = solution::copySolution(sol);
 	// head or tails
 	if(genint(2)) { // Normal
-		int ncoef = genint(64);
+		int ncoef = genint(numcoefficients);	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {
-			res[ncoef+1] = 1+genreal();
+			res[ncoef] = mincond+genreal()*(maxcond-mincond);
 		} else {
 			float val;
 			do {
-				val = res[ncoef+1];
+				val = res[ncoef];
 				double rnd = 0;
 				for(int i=0;i<sh.shuffleConsts[ncoef];i++)
 					rnd += genreal();
 				rnd /= sh.shuffleConsts[ncoef];
 				rnd -= 0.5;
+				rnd *= (maxcond - mincond);
 				val += rnd;
-			} while((val < 1) || (val > 2));
-			res[ncoef+1] = val;
+			} while((val < mincond) || (val > maxcond));
+			res[ncoef] = val;
 		}
 		if(data) {
 			data->swap = false;
 			data->ncoef = ncoef;
 		}
 	} else { // swap
-		int ncoef = genint(2*7*8);
+		int ncoef = genint(innerAdjacency.size());
 		int node1, node2;
-		// Vertical or horizontal?
-		if(ncoef < 8*7) { // vertical
-			int col = ncoef/7;
-			int row = ncoef%7;
-			node1 = 1+8*col + row;
-			node2 = 2+8*col + row;
 
-		} else { // horizontal
-			int row = (ncoef-7*8)/7;
-			int col = (ncoef-7*8)%7;
-			node1 = 1+8*col + row;
-			node2 = 9+8*col + row;
-		}
+		node1 = node2coefficient[innerAdjacency[ncoef].first];
+		node2 = node2coefficient[innerAdjacency[ncoef].second];
+		
 		// Order nodes
 		if(res[node1]>res[node2]) {
 			int aux = node1;
@@ -303,12 +372,12 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 			node2 = aux;
 		}
 		float v1 = res[node1], v2 = res[node2];
-		float a = max( min(v1-1, 2-v2), min(2-v1, v2-1));
+		float a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
 
 		float delta;
 		do {
 			if(sh.swapshuffleconsts[ncoef]==0) {
-				delta = a*(res[node1] - genreal() - 1);
+				delta = a*(genreal()*2 - 1);
 			} else {
 				double rnd = 0;
 				for(int i=0;i<sh.swapshuffleconsts[ncoef];i++)
@@ -319,7 +388,7 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 			}
 			v1 = res[node1] - delta;
 			v2 = res[node2] + delta;
-		} while((v1 < 1) || (v2 < 1) || (v1 > 2) || (v2 > 2));
+		} while((v1 < mincond) || (v2 < mincond) || (v1 > maxcond) || (v2 > maxcond));
 		res[node1] = v1;
 		res[node2] = v2;
 		if(data) {
@@ -357,6 +426,77 @@ solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
 		exit(0);
 	}
 	return res;
+}
+
+void solution::saturate()
+{
+      ensureMinIt(nodes.size()+30);
+}
+
+void solution::ensureMinIt(unsigned int it)
+{     
+      static Eigen::VectorXd aux(electrodes.size()-1);
+      for(int i = 0; i<nobs;i++) {
+	    CG_Solver *sim = this->simulations[i];
+	    while(sim->getIteration()<it) {
+		simulations[i]->do_iteration();
+		this->totalit++;
+		// Recalcule expected distance and boundaries
+		aux = simulations[i]->getX().end(electrodes.size()-1);
+		aux -= tensions[i];
+		distance[i] = aux.norm();
+		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
+		maxdist[i] = distance[i] + err[i];
+		mindist[i] = max(distance[i] - err[i],0);
+		err_x_dist[i] = maxdist[i]*err[i];
+		totalDist = distance.norm();
+		minTotalDist = mindist.norm();
+		maxTotalDist = maxdist.norm();
+		// reevaluate critical
+		double max = err_x_dist[0];
+		critical = 0;
+		for(int j = 1; j<nobs;j++) {
+		  if(max < err_x_dist[j]) {
+			max = err_x_dist[j];
+			critical = j;
+		  }
+		}
+		critErr = err[critical];
+	    }
+      }
+}
+
+void solution::ensureMaxE2(double e2)
+{     
+      static Eigen::VectorXd aux(electrodes.size()-1);
+      for(int i = 0; i<nobs;i++) {
+	    CG_Solver *sim = this->simulations[i];
+	    while(sim->getLastE2()>e2) {
+		simulations[i]->do_iteration();
+		this->totalit++;
+		// Recalcule expected distance and boundaries
+		aux = simulations[i]->getX().end(electrodes.size()-1);
+		aux -= tensions[i];
+		distance[i] = aux.norm();
+		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
+		maxdist[i] = distance[i] + err[i];
+		mindist[i] = max(distance[i] - err[i],0);
+		err_x_dist[i] = maxdist[i]*err[i];
+		totalDist = distance.norm();
+		minTotalDist = mindist.norm();
+		maxTotalDist = maxdist.norm();
+		// reevaluate critical
+		double max = err_x_dist[0];
+		critical = 0;
+		for(int j = 1; j<nobs;j++) {
+		  if(max < err_x_dist[j]) {
+			max = err_x_dist[j];
+			critical = j;
+		  }
+		}
+		critErr = err[critical];
+	    }
+      }
 }
 
 solution::~solution()

@@ -252,7 +252,7 @@ void solution_lb::initErrors()
 {
 	int i;
 	// Calc regularisation value
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*0.015;
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*0.010;
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<nobs;i++) {
 		// Compare with observation

@@ -103,7 +103,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt =  1;
+	float kt = 0.05;// 3.18007e-6;
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
@@ -120,7 +120,7 @@ void workProc()
 	iterations = 0;
 	int no_avance_count = 0;
 	double prevE = 10000000000.0;
-	while(kt > 0.000000005 && no_avance_count < 3) {
+	while(kt > 0.00000000005 && no_avance_count < 3) {
 		e = sqe = r = 0;
 		totalit = acceptit = 0;
 		solutions = 0;
@@ -186,9 +186,6 @@ void workProc()
 		prevE = current->getDEstimate();  
 		
 		
-		
-		// For hybrid objective function
-		if(totalit>6000) break;
 	}
 	
 	//probe.saturate();

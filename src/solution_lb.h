@@ -41,7 +41,7 @@ class solution_lb {
 			float *sol;
 			matrix *Aii, *Acc;
 			matrix2 *Aic; 
-			std::unique_ptr<LB_Solver::Preconditioner> precond;
+			std::auto_ptr<LB_Solver::Preconditioner> precond;
 
 			LB_Solver **simulations;
 			Eigen::VectorXd distance;

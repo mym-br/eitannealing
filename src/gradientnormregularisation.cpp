@@ -1,23 +1,32 @@
+#include <fstream>
+#include <string>
+#include <algorithm>
+#include <set>
+#include <boost/lambda/lambda.hpp>
+#include <boost/lambda/construct.hpp>
+#include <boost/lambda/bind.hpp>
+#include <boost/lambda/control_structures.hpp>
+#include <boost/function.hpp>
+#include <iostream>
+
 #include "gradientnormregularisation.h"
 #include "problemdescription.h"
 #include "solver.h"
-#include <algorithm>
-#include <iostream>
-#include <boost/concept_check.hpp>
 
-std::unique_ptr<gradientNormRegularisation> gradientNormRegularisation::instance;
+std::auto_ptr<gradientNormRegularisation> gradientNormRegularisation::instance;
 
 gradientNormRegularisation::n2cmatrix *gradientNormRegularisation::buildCoefficient2NodeMatrix(triangularEletrode *last)
 {
+    using namespace boost::lambda;
     n2cmatrix *m = new n2cmatrix(nodes.size()-1,numcoefficients);
     
     m->startFill();
     for(int i = 0; i<nodes.size()-1; i++)  {
       int coefficient = node2coefficient[i];
       if(coefficient <32) {// electrode node
-	auto ee = std::find_if(electrodes.begin(), electrodes.end(), [i](const triangularEletrode &e) {
-	  return e.baseNode == i;  
-	});
+	 std::vector<triangularEletrode>::iterator ee = 
+	    std::find_if(electrodes.begin(), electrodes.end(),
+			 ((&_1 ->* &triangularEletrode::baseNode)==i));
 	if(ee!= electrodes.end())
 	  coefficient = node2coefficient[ee->n2];
 	else continue;
@@ -27,9 +36,8 @@ gradientNormRegularisation::n2cmatrix *gradientNormRegularisation::buildCoeffici
     m->endFill();
     
     // now get last electrode
-    *last = *std::find_if(electrodes.begin(), electrodes.end(), [](const triangularEletrode &e) {
-	  return e.baseNode == nodes.size()-1;  
-	});
+    *last = *std::find_if(electrodes.begin(), electrodes.end(),
+		 ((&_1 ->* &triangularEletrode::baseNode)==nodes.size()-1));
     return m;
 }
 

@@ -7,7 +7,8 @@ find_package(Eigen2 REQUIRED)
 
 include_directories(${QT_INCLUDES} ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIR} ${EIGEN2_INCLUDES})
 
-set(eitannealingtest_SRCS src/gradientnormregularisation.cpp src/sparseincompletelq.cpp
+set(eitannealingtest_SRCS src/gradientnormregularisation.cpp 
+  #src/sparseincompletelq.cpp
   src/graphics.cpp
   src/initproblem.cpp
   src/main.cpp

@@ -21,6 +21,8 @@
 #define min(x,y) ((x)<(y)?(x):(y))
 #endif
 
+#ifdef USE_PREVIOUS_DATA
+
 const float base[] = {
   // densermesh tri01a.ampl_calibrado
   //0.228468, 0.274277, 0.277748, 0.276384, 0.369586, 0.316081, 0.354511, 0.350053, 0.377487, 0.372943, 0.359078, 0.329245, 0.242468, 0.239446, 0.220835, 0.249638, 0.346346, 0.358612, 0.317659, 0.326589, 0.300691, 0.342779, 0.318762, 0.356848, 0.360735, 0.357942, 0.37484, 0.37047, 0.283102, 0.259762, 0.211597, 0.243358, 0.381399
@@ -72,6 +74,8 @@ const float base[] = {
     0.16019,
     0.365//0.375*/
 };
+
+#endif /* USE_PREVIOUS_DATA */
 
 void solution_lb::improve()
 {
@@ -293,9 +297,10 @@ float *solution_lb::getNewRandomSolution()
 {
 	float *res = new float[numcoefficients];
 	int i = 0;
+#ifdef USE_PREVIOUS_DATA
         for(;i<sizeof(base)/sizeof(*base);i++)
             res[i] = base[i];
-
+#endif /* USE_PREVIOUS_DATA */
 	for(;i<numcoefficients;i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
@@ -309,10 +314,13 @@ float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) c
 	if(genint(2)) { // Normal
 		int ncoef = genint(numcoefficients);
                 float minc, maxc;
-                if(ncoef<sizeof(base)/sizeof(*base)) {
+#ifdef USE_PREVIOUS_DATA
+		if(ncoef<sizeof(base)/sizeof(*base)) {
                   maxc = min(maxcond,base[ncoef]*1.1);
                   minc = max(base[ncoef]*0.9, mincond);
-                } else {
+                } else
+#endif		  
+		{
                   maxc = maxcond;
                   minc = mincond;
                 }

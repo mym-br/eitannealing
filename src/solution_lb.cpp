@@ -10,7 +10,7 @@
 #include "observations.h"
 #include "problemdescription.h"
 #include <iostream>
-#include <boost/numeric/interval.hpp>
+//#include <boost/numeric/interval.hpp>
 #include "gradientnormregularisation.h"
 
 #ifndef max

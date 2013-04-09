@@ -12,8 +12,7 @@
 #include <QThread>
 #include <QAction>
 #include <Eigen/Array>
-#include <boost/thread.hpp>
-#include <boost/random/mersenne_twister.hpp>
+#include <thread>
 #include <ctime>
 #include "problemdescription.h"
 #include "graphics.h"
@@ -437,8 +436,10 @@ int main(int argc, char *argv[])
      graphics.show();
      graphics.connect(view, SIGNAL(dataChanged(QModelIndex,QModelIndex)), SLOT(solution_updated(QModelIndex,QModelIndex)));
      
-          
-     boost::thread worker(workProc);
+//          
+     //boost::thread worker(workProc);
+     
+     std::thread worker(workProc);
 
      int retval =  app.exec();
      worker.join();

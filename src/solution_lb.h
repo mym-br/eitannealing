@@ -35,7 +35,7 @@ class solution_lb;
 
 
 class solution_lb {
-	private:
+	protected:
 
 
 			float *sol;
@@ -129,7 +129,31 @@ class solution_lb {
 		//void ensureMaxE2(double e2);
 
 		~solution_lb();
+		
+		
+#ifdef __GENERATE_LB_BENCHMARKS
+		solution_lb(const float *sol, char benchmarktag);
+#endif	// __GENERATE_LB_BENCHMARKS
 };
 
+
+class solution_lb_benchmarked : public solution_lb
+{
+public: 
+  struct benchmark_entry {
+      unsigned int timestamp;
+      double e_low;
+      double e_high;
+    } *vector;
+    int i;
+    int n;
+    
+    solution_lb_benchmarked(const float *sigma, benchmark_entry *bench, int n);
+    
+    void performBenchmark();
+    
+protected:
+  static int getTimestamp();
+};
 
 #endif /* SOLUTION_H_ */

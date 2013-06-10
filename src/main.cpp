@@ -101,13 +101,14 @@ void workProc()
 
 
 	// Simulated annealing
-	std::auto_ptr<solution> current, next;
-	float kt = 0.05;// 3.18007e-6;
+	std::auto_ptr<solution_lb> current, next;
+	float kt = 0.001;// 3.18007e-6;
+	
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
 	shuffler sh;
-	current.reset(new solution);
+	current.reset(new solution_lb);
 	
 	std::cout.flush();
 	

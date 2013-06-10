@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <set>
 #include <iostream>
-#include <boost/iterator/iterator_concepts.hpp>
 
 #include "gradientnormregularisation.h"
 

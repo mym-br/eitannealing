@@ -213,7 +213,7 @@ void solution_lb::initSimulations()
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
                         Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), 
-                        Eigen::VectorXd(tensions[0].end(31)), *precond,  80, 0.0001);
+                        Eigen::VectorXd(tensions[0].end(31)), *precond,  100, 0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
@@ -237,7 +237,8 @@ void solution_lb::initSimulations(const solution_lb &base)
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
                         Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(31)), 
                         Eigen::VectorXd(tensions[0].end(31)), *precond, 
-                        baseEVSolver->getX(), baseEVSolver->getEvector(), 80, 0.0001);
+                        baseEVSolver->getX(),
+			baseEVSolver->getEvector(), 100, 0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
@@ -245,7 +246,9 @@ void solution_lb::initSimulations(const solution_lb &base)
         {
                 simulations[i] = new LB_Solver(
                         Aii, Aic, Acc, Eigen::VectorXd(currents[i].end(31)), 
-                        Eigen::VectorXd(tensions[i].end(31)), *precond, a, base.simulations[i]->getX());
+                        Eigen::VectorXd(tensions[i].end(31)), *precond, a,
+					       base.simulations[i]->getX());
+
                 simulations[i]->do_iteration();
                 this->totalit += simulations[i]->getIteration();
         }
@@ -312,18 +315,15 @@ float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) c
 	float *res = solution_lb::copySolution(sol);
 	// head or tails
 	if(genint(2)) { // Normal
+#ifndef USE_PREVIOUS_DATA
 		int ncoef = genint(numcoefficients);
-                float minc, maxc;
-#ifdef USE_PREVIOUS_DATA
-		if(ncoef<sizeof(base)/sizeof(*base)) {
-                  maxc = min(maxcond,base[ncoef]*1.1);
-                  minc = max(base[ncoef]*0.9, mincond);
-                } else
-#endif		  
-		{
+                
+#else // USE_PREVIOUS_DATA
+		int ncoef = genint(numcoefficients-(sizeof(base)/sizeof(float)))+(sizeof(base)/sizeof(float));
+#endif	// float minc, maxc;	  
+		float minc, maxc;
                   maxc = maxcond;
-                  minc = mincond;
-                }
+                  minc = mincond;              
                 
 		if(sh.shuffleConsts[ncoef]==0) {
 			res[ncoef] = minc+genreal()*(maxc-minc);
@@ -450,4 +450,58 @@ solution_lb::~solution_lb()
 	}
 	delete[] simulations;
 }
+#ifdef __GENERATE_LB_BENCHMARKS
+solution_lb::solution_lb(const float *sigma, char benchmarktag):
+				sol(solution_lb::copySolution(sigma)),
+				simulations(new LB_Solver *[nobs]),
+				distance(nobs),
+				maxdist(nobs),
+				mindist(nobs),
+				err(nobs),
+				err_x_dist(nobs)
+{
+}
 
+solution_lb_benchmarked::solution_lb_benchmarked(const float *sigma, benchmark_entry *bench, int n):solution_lb(sigma), vector(bench), n(n)
+{
+	vector[0].timestamp = getTimestamp();
+	vector[0].e_low = -1;
+	vector[0].e_high = -1;
+	assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
+	vector[1].timestamp = getTimestamp();
+	vector[1].e_low = -2;
+	vector[1].e_high = -2;
+        precond.reset(LB_Solver::makePreconditioner(*Aii));
+	vector[2].timestamp = getTimestamp();
+	vector[2].e_low = -3;
+	vector[2].e_high = -3;                                                
+	this->initSimulations();
+	this->initErrors();
+	vector[3].timestamp = getTimestamp();
+	vector[3].e_low = getDMin();
+	vector[3].e_high = getDMax();
+	i = 4;        
+}
+
+void solution_lb_benchmarked::performBenchmark()
+{
+    while(i<n) {
+      this->improve();
+      vector[i].timestamp = getTimestamp();
+      vector[i].e_low = getDMin();
+      vector[i].e_high = getDMax();
+      i++;
+    }
+}
+
+
+// Linux-only
+#include <sys/time.h>
+
+int solution_lb_benchmarked::getTimestamp()
+{
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    return time.tv_sec*1000000 + time.tv_usec;
+}
+#endif // __GENERATE_LB_BENCHMARKS

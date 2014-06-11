@@ -7,7 +7,7 @@
 
 std::unique_ptr<gradientNormRegularisation> gradientNormRegularisation::instance;
 
-gradientNormRegularisation::n2cmatrix *gradientNormRegularisation::buildCoefficient2NodeMatrix(triangularEletrode *last)
+gradientNormRegularisation::n2cmatrix *gradientNormRegularisation::buildCoefficient2NodeMatrix(genericEletrode **last)
 {
     n2cmatrix *m = new n2cmatrix(nodes.size()-1,numcoefficients);
     
@@ -15,11 +15,11 @@ gradientNormRegularisation::n2cmatrix *gradientNormRegularisation::buildCoeffici
     for(int i = 0; i<nodes.size()-1; i++)  {
       int coefficient = node2coefficient[i];
       if(coefficient <32) {// electrode node
-	auto ee = std::find_if(electrodes.begin(), electrodes.end(), [i](const triangularEletrode &e) {
+	auto ee = std::find_if(gelectrodes.begin(), gelectrodes.end(), [i](const genericEletrode &e) {
 	  return e.baseNode == i;  
 	});
-	if(ee!= electrodes.end())
-	  coefficient = node2coefficient[ee->n2];
+	if(ee!= gelectrodes.end())
+	  coefficient = node2coefficient[ee->nodesPairs.begin()->first];
 	else continue;
       }
       m->fill(i,coefficient)=1;
@@ -27,9 +27,9 @@ gradientNormRegularisation::n2cmatrix *gradientNormRegularisation::buildCoeffici
     m->endFill();
     
     // now get last electrode
-    *last = *std::find_if(electrodes.begin(), electrodes.end(), [](const triangularEletrode &e) {
+    *last = &(*std::find_if(gelectrodes.begin(), gelectrodes.end(), [](const genericEletrode &e) {
 	  return e.baseNode == nodes.size()-1;  
-	});
+	}));
     return m;
 }
 
@@ -39,7 +39,12 @@ gradientNormRegularisation::gradientNormRegularisation()
     matrix *base;
     assembleProblemMatrix(&sol[0], &base);
     this->regularizationMatrix.reset(base);
-    this->adaptMatrix.reset(gradientNormRegularisation::buildCoefficient2NodeMatrix(&this->lastElectrode));
+    genericEletrode *last;
+    this->adaptMatrix.reset(gradientNormRegularisation::buildCoefficient2NodeMatrix(&last));
+    for(std::pair<int, int> & nodes : last->nodesPairs) {
+      this->lastElectrodeNodes.insert(nodes.first);
+      this->lastElectrodeNodes.insert(nodes.second);
+    }
 }
 
 void gradientNormRegularisation::initInstance()
@@ -52,8 +57,8 @@ double gradientNormRegularisation::getRegularisation(const float *sol) const
     Eigen::VectorXd s(Eigen::VectorXf::Map(sol, numcoefficients).cast<double>());
     Eigen::VectorXd c(*adaptMatrix*s);
     Eigen::VectorXd d(*regularizationMatrix*c);
-    d[lastElectrode.n1] = 0;
-    d[lastElectrode.n2] = 0;
-    d[lastElectrode.n3] = 0;
+    for(int node : lastElectrodeNodes) {
+      d[node] = 0;
+    }
     return c.dot(d);
 }

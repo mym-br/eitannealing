@@ -154,7 +154,7 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 		    painter.drawConvexPolygon(polygon);
 	    }
 	    // Draw electrodes
-	    for(i=0;i<electrodes.size();i++) {
+	    /*for(i=0;i<electrodes.size();i++) {
 		    node *base = &nodes[electrodes[i].baseNode];
 		    node *n1 = &nodes[electrodes[i].n1];
 		    node *n2 = &nodes[electrodes[i].n2];
@@ -168,7 +168,7 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 		    painter.drawLine(
 				    translateCoordinate(base->x, base->y),
 				    translateCoordinate(n3->x, n3->y));
-	    }
+	    }*/
 	    painter.setPen(Qt::SolidLine);
 	    painter.setBrush(Qt::NoBrush);
 	    painter.drawEllipse(QRect(translateCoordinate(-0.150f, 0.150f), translateCoordinate(0.150f, -0.150f)));

@@ -25,8 +25,6 @@
 #include "sparseincompletelq.h"
 #include "gradientnormregularisation.h"
 
-#include "init_obs_problem.h"
-
 
 solutionView *view;
 

@@ -1,9 +1,9 @@
 /*
- * problemdescription.h
- *
- *  Created on: Jun 25, 2010
- *      Author: thiago
- */
+* problemdescription.h
+*
+*  Created on: Jun 25, 2010
+*      Author: thiago
+*/
 
 #ifndef PROBLEMDESCRIPTION_H_
 #define PROBLEMDESCRIPTION_H_
@@ -20,17 +20,17 @@ struct triangularElement {
 	int condIndex;
 };
 
-struct triangularEletrode {
+struct genericEletrode {
 	int baseNode;
-	int n1, n2, n3;
-	//int getBaseNode() const {return this->baseNode;}
+	std::vector<std::pair<int, int> > nodesPairs;
 };
 
 extern float electrodeh;
 extern float totalheight;
 extern std::vector<node> nodes;
 extern std::vector<triangularElement> elements;
-extern std::vector<triangularEletrode> electrodes;
+//extern std::vector<triangularEletrode> electrodes;
+extern std::vector<genericEletrode> gelectrodes;
 extern std::vector<std::pair<int, int> > innerAdjacency;
 
 extern std::map<int, int> node2coefficient;

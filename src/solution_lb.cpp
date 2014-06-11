@@ -408,7 +408,7 @@ void solution_lb::saturate()
 
 void solution_lb::ensureMinIt(unsigned int it)
 {     
-      static Eigen::VectorXd aux(electrodes.size()-1);
+      static Eigen::VectorXd aux(gelectrodes.size()-1);
       for(int i = 0; i<nobs;i++) {
             LB_Solver *sim = this->simulations[i];
             while(sim->getIteration()<it) {

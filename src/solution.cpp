@@ -25,14 +25,14 @@ void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(electrodes.size()-1);
+	static Eigen::VectorXd aux(gelectrodes.size()-1);
 
 	// Do another iteration on the critical solver
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
 	
-	aux = simulations[critical]->getX().end(electrodes.size()-1);
+	aux = simulations[critical]->getX().end(gelectrodes.size()-1);
 	aux -= tensions[critical];
 					
 	distance[critical] = aux.norm();
@@ -248,7 +248,7 @@ void solution::initErrors()
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(electrodes.size()-1);
+	static Eigen::VectorXd aux(gelectrodes.size()-1);
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<nobs;i++) {
 		// Compare with observation
@@ -435,14 +435,14 @@ void solution::saturate()
 
 void solution::ensureMinIt(unsigned int it)
 {     
-      static Eigen::VectorXd aux(electrodes.size()-1);
+      static Eigen::VectorXd aux(gelectrodes.size()-1);
       for(int i = 0; i<nobs;i++) {
 	    CG_Solver *sim = this->simulations[i];
 	    while(sim->getIteration()<it) {
 		simulations[i]->do_iteration();
 		this->totalit++;
 		// Recalcule expected distance and boundaries
-		aux = simulations[i]->getX().end(electrodes.size()-1);
+		aux = simulations[i]->getX().end(gelectrodes.size()-1);
 		aux -= tensions[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
@@ -468,14 +468,14 @@ void solution::ensureMinIt(unsigned int it)
 
 void solution::ensureMaxE2(double e2)
 {     
-      static Eigen::VectorXd aux(electrodes.size()-1);
+      static Eigen::VectorXd aux(gelectrodes.size()-1);
       for(int i = 0; i<nobs;i++) {
 	    CG_Solver *sim = this->simulations[i];
 	    while(sim->getLastE2()>e2) {
 		simulations[i]->do_iteration();
 		this->totalit++;
 		// Recalcule expected distance and boundaries
-		aux = simulations[i]->getX().end(electrodes.size()-1);
+		aux = simulations[i]->getX().end(gelectrodes.size()-1);
 		aux -= tensions[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());

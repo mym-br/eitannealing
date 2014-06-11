@@ -19,7 +19,6 @@ set(eitannealingtest_SRCS src/gradientnormregularisation.cpp src/sparseincomplet
   src/nodecoeficients.cpp
   src/solver.cpp
   src/incomplete_cholesky.cpp
-  src/init_obs_problem.cpp
   src/solution.cpp
   src/mt19937-64/mt19937-64.c
   src/observations.cpp

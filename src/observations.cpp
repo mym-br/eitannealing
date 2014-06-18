@@ -87,15 +87,16 @@ void initObs(char *filecurrents, char* filename)
 	int baseIndex = current.size()-n;
 	for(int i=0;i<nobs;i++) {
 		double c;
+		int entry, exit;
+		filec >> entry;
+		filec >> exit;
 		filec >> c;
+		entry--; exit--;	// zero-based
 		currents[i] = current;
-		if(i!=n)
-			currents[i][baseIndex+i] = 1;
-		if(i+4<n)
-			currents[i][baseIndex+i+4] = -1;
-		if(i+4>n)
-			currents[i][baseIndex+i+3-n] = -1;
-
+		if(entry!=n)
+			currents[i][entry] = 1;
+		if(exit!=n)
+			currents[i][exit] = -1;
 
 		// read tensions from file
 		tensions[i].resize(gelectrodes.size()-1);

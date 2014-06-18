@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <set>
 #include <iostream>
+#include <boost/concept_check.hpp>
 
 //#include "gradientnormregularisation.h"
 
@@ -222,6 +223,8 @@ void fillElementsGenericElectrode() {
 	std::copy(auxAdjacency.begin(), auxAdjacency.end(), innerAdjacency.begin());
 }
 
+
+
 ///
 // Prepare the perimeter for display porposes
 //	This is a hack that presumes the outter elements
@@ -232,11 +235,28 @@ void preparePerimeter()
     // Search for elements that are fully inserted in the outter ring
     //  Since we no longer have access to the InnerNodes/OutterNodes sets,
     //	we must attempt to find it from their condition index
-    
+    //	Sadly, this has QUADRATIC complexity in the element count, which is quite bad
+        
     // Yes, there's no clean way to find what is the condition index for external
     //	nodes either...
     int index = gelectrodes.size();	// This should be the index number for the external nodes
     // FIXME: Is there's an actual risk of repeating edges here?
+    
+    auto CheckInternal = [index] (int n) {
+      if(node2coefficient[n]>index) return true;
+      // Check if there's ANY adjacent node with coefficient > index
+      //	1. The element contains the node
+      //	2. The element contains ANY node with coefficient > index
+      for(auto const &e : elements) {
+      	  if(e.n1==n ||e.n2==n ||  e.n3==n) {
+	    if(node2coefficient[e.n1]>index) return true;
+	    if(node2coefficient[e.n2]>index) return true;
+	    if(node2coefficient[e.n3]>index) return true;
+	  }
+      }
+      return false;
+    };
+    
     for(auto const &elem : elements)
     {
 	// We want eleemnts that match the following criteria:
@@ -244,18 +264,18 @@ void preparePerimeter()
 	//  or the 1st and 3rd are external and the 2nd is internal
 	//  or the 1st is internal and both 2nd and 3rd are external
       
-        if(node2coefficient[elem.n1]==index) { // 1st is external...
-	  if(node2coefficient[elem.n2]==index) { // 2nd is external...
-	     if(node2coefficient[elem.n3]!=index) { // ... and 3rd is internal, our pair is n1 and n2
+        if(!CheckInternal(elem.n1)) { // 1st is external...
+	  if(!CheckInternal(elem.n2)) { // 2nd is external...
+	     if(CheckInternal(elem.n3)) { // ... and 3rd is internal, our pair is n1 and n2
 		perimeter.push_back(std::make_pair(elem.n1,elem.n2));
 	     }
 	  } else 
-	      if(node2coefficient[elem.n3]==index) { // 2nd is internal, 3rd is external, pair is n1 and n3
+	      if(!CheckInternal(elem.n3)) { // 2nd is internal, 3rd is external, pair is n1 and n3
 		perimeter.push_back(std::make_pair(elem.n1,elem.n3));
 	      }
 	} else
-	  if(node2coefficient[elem.n2]==index) { // 1st is interal, 2nd is external, check 3rd
-	      if(node2coefficient[elem.n3]==index) { // 3rd is external, pair is n2 and n3
+	  if(!CheckInternal(elem.n2)) { // 1st is interal, 2nd is external, check 3rd
+	      if(!CheckInternal(elem.n3)) { // 3rd is external, pair is n2 and n3
 		perimeter.push_back(std::make_pair(elem.n2,elem.n3));
 	      }
 	  }

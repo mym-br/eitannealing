@@ -437,12 +437,9 @@ int main(int argc, char *argv[])
      graphics.connect(view, SIGNAL(dataChanged(QModelIndex,QModelIndex)), SLOT(solution_updated(QModelIndex,QModelIndex)));
 
      float *sol = new float[numcoefficients];
-     for(int i=0;i<numcoefficients;i++) sol[i]=0.0;
+     for(int i=0;i<numcoefficients;i++) sol[i]=1.0;
      view->setCurrentSolution(sol);
 
-     
-//          
-     //boost::thread worker(workProc);
      
      //std::thread worker(workProc);
 

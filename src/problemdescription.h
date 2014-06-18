@@ -33,6 +33,9 @@ extern std::vector<triangularElement> elements;
 extern std::vector<genericEletrode> gelectrodes;
 extern std::vector<std::pair<int, int> > innerAdjacency;
 
+// For displaying only
+extern std::vector<std::pair<int, int> > perimeter;
+
 extern std::map<int, int> node2coefficient;
 extern int numcoefficients;
 extern int groundNode;

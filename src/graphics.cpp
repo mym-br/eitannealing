@@ -169,9 +169,18 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 				    translateCoordinate(base->x, base->y),
 				    translateCoordinate(n3->x, n3->y));
 	    }*/
+	    
+	    // Draw perimeter
+	    
 	    painter.setPen(Qt::SolidLine);
 	    painter.setBrush(Qt::NoBrush);
-	    painter.drawEllipse(QRect(translateCoordinate(-0.150f, 0.150f), translateCoordinate(0.150f, -0.150f)));
+	    for(auto const &edge : perimeter) {
+	      painter.drawLine(
+		translateCoordinate(nodes[edge.first].x, nodes[edge.first].y),
+		translateCoordinate(nodes[edge.second].x, nodes[edge.second].y)
+	      );
+	      
+	    }
 	}
 	
 	    

@@ -433,15 +433,21 @@ int main(int argc, char *argv[])
      list.show();
      viewport graphics(600, 600, argc>3?argv[4]:"Reverse Problem");
      graphics.show();
+     
      graphics.connect(view, SIGNAL(dataChanged(QModelIndex,QModelIndex)), SLOT(solution_updated(QModelIndex,QModelIndex)));
+
+     float *sol = new float[numcoefficients];
+     for(int i=0;i<numcoefficients;i++) sol[i]=1.0;
+     view->setCurrentSolution(sol);
+
      
 //          
      //boost::thread worker(workProc);
      
-     std::thread worker(workProc);
+     //std::thread worker(workProc);
 
      int retval =  app.exec();
-     worker.join();
+     //worker.join();
      return 0;
  }
  

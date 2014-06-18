@@ -100,7 +100,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt = 3.18007e-6;
+	float kt = 10;
 	
 	int totalit;
 	int acceptit;
@@ -441,10 +441,10 @@ int main(int argc, char *argv[])
      view->setCurrentSolution(sol);
 
      
-     //std::thread worker(workProc);
+     std::thread worker(workProc);
 
      int retval =  app.exec();
-     //worker.join();
+     worker.join();
      return 0;
  }
  

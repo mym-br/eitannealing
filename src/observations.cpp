@@ -94,9 +94,9 @@ void initObs(char *filecurrents, char* filename)
 		entry--; exit--;	// zero-based
 		currents[i] = current;
 		if(entry!=n)
-			currents[i][entry] = 1;
+			currents[i][baseIndex+entry] = 1;
 		if(exit!=n)
-			currents[i][exit] = -1;
+			currents[i][baseIndex+exit] = -1;
 
 		// read tensions from file
 		tensions[i].resize(gelectrodes.size()-1);

@@ -100,7 +100,7 @@ void workProc()
 
 	// Simulated annealing
 	std::auto_ptr<solution> current, next;
-	float kt = 10;
+	float kt = 0.05;
 	
 	int totalit;
 	int acceptit;

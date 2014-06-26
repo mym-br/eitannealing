@@ -244,7 +244,7 @@ void solution::initSimulations()
 void solution::initErrors()
 {
 	// Calc regularisation value
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30;
+	this->regularisation = 0;//gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30;
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!

@@ -291,7 +291,7 @@ void initProblem(char *filename)
 	fillElementsGenericElectrode();
 	preparePerimeter();
 	electrodeh = 0.0004;
-	totalheight = 0.020;
+	totalheight = 0.400;
 
 	file.close();
 }

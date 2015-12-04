@@ -34,7 +34,7 @@ solutionView *view;
 #include <Eigen/QR>
 
 matrix *stiffness;
-//Eigen::VectorXd *sqDiag;
+//Eigen::VectorXd *sqDiag;a
 matrix *stiffness0;
 
 float *currentSolution;

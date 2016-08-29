@@ -422,6 +422,7 @@ int main(int argc, char *argv[])
      
      
      qRegisterMetaType<QModelIndex>("QModelIndex");
+     qRegisterMetaType<QModelIndex>("QVector<int>");
      
      view = new solutionView(numcoefficients);
      QTableView list;

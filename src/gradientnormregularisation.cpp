@@ -3,7 +3,6 @@
 #include "solver.h"
 #include <algorithm>
 #include <iostream>
-#include <boost/concept_check.hpp>
 
 std::unique_ptr<gradientNormRegularisation> gradientNormRegularisation::instance;
 

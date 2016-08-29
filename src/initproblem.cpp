@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <set>
 #include <iostream>
-#include <boost/concept_check.hpp>
 
 //#include "gradientnormregularisation.h"
 
@@ -291,7 +290,7 @@ void initProblem(char *filename)
 	fillElementsGenericElectrode();
 	preparePerimeter();
 	electrodeh = 0.0004;
-	totalheight = 0.400;
+	totalheight = 0.020;
 
 	file.close();
 }

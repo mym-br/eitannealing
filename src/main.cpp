@@ -13,6 +13,7 @@
 #include <QAction>
 #include <Eigen/Array>
 #include <thread>
+#include <memory>
 #include <ctime>
 #include "problemdescription.h"
 #include "graphics.h"
@@ -99,7 +100,7 @@ void workProc()
 
 
 	// Simulated annealing
-	std::auto_ptr<solution> current, next;
+	std::unique_ptr<solution> current, next;
 	float kt = 0.05;
 	
 	int totalit;
@@ -129,12 +130,10 @@ void workProc()
 			bool decision;
 			decision = current->compareWith(*next, kt, 1-param);
 			if(decision) {
-			//if(current->compareWithMinIt(*next, kt, 13)) {
-			//if(current->compareWithMaxE2(*next, kt, param)) {
 				iterations += current->getTotalIt();
 				solutions++;
 				sh.addShufflerFeedback(sdata, true);
-				current = next;
+				current = std::move(next);
 				acceptit++;
 			} else {
 				iterations += next->getTotalIt();

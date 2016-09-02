@@ -7,24 +7,9 @@
 
 #include "incomplete_cholesky.h"
 
-#ifdef USE_CBLAS
-extern "C" {
-#include <cblas.h>
-}
-#else
+// TODO: Now EIGEN3 has a built-in sparse incomplete Cholesky
 
-void cblas_dscal(int n, double alpha, double *x, int inc)
-{
-	int i;
-	for(i=0;i<n;i++) {
-		*x *= alpha;
-		x += inc;
-	}
-}
-#endif
-
-
-SparseIncompleteLLT::SparseIncompleteLLT(const Eigen::SparseMatrix<double, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor >& matrix):
+SparseIncompleteLLT::SparseIncompleteLLT(const matrix& matrix):
 		m_matrix(matrix), lInfNormCalc(false)
 {
 	int col=0;
@@ -39,23 +24,19 @@ SparseIncompleteLLT::SparseIncompleteLLT(const Eigen::SparseMatrix<double, Eigen
 		}
 	}*/
 	for(;col<m_matrix.cols();col++) {
-		Eigen::SparseMatrix<double, Eigen::LowerTriangular>::InnerIterator it(m_matrix, col);
-		int *outer = m_matrix._outerIndexPtr();
-		double *data = m_matrix._valuePtr();
+		matrix::InnerIterator it(m_matrix, col);
+		int *outer = m_matrix.outerIndexPtr();
+		Scalar *data = m_matrix.valuePtr();
 		// 1st element is the diagonal one
-		/*if(it.value()<=0) {
-			std::cout << ">>> " << it.value() << "  OMGWTF??????????";
-			throw std::exception();
-		}*/
 		if(it.value()<0)
-			std::cout << "uh-oh...";
-		double isqrtDiagonal = 1/Eigen::ei_sqrt(it.value());
+			throw std::exception();
+		double isqrtDiagonal = 1/std::sqrt(it.value());
 		// Multiply the whole column
-		cblas_dscal(outer[col+1]-outer[col], isqrtDiagonal, data+outer[col], 1);
+		Eigen::Map<Eigen::VectorXd>(data+outer[col], outer[col+1]-outer[col]) *= isqrtDiagonal;
 		// This is not unlike a sparse vector-vector multiplication
 		while(++it) {
-			Eigen::SparseMatrix<double, Eigen::LowerTriangular>::InnerIterator source(it);
-			Eigen::SparseMatrix<double, Eigen::LowerTriangular>::InnerIterator target(m_matrix, it.row());
+			matrix::InnerIterator source(it);
+			matrix::InnerIterator target(m_matrix, it.row());
 			while(target && source) {
 				// Sweep and subtract on coincident rows
 				//	This should be relatively quick, as both target and source have very few
@@ -76,9 +57,9 @@ SparseIncompleteLLT::SparseIncompleteLLT(const Eigen::SparseMatrix<double, Eigen
 bool SparseIncompleteLLT::solveInPlace(Eigen::VectorXd &b)  const
 {
   const int size = m_matrix.rows();
-  ei_assert(size==b.rows());
-  m_matrix.solveTriangularInPlace(b);
-  m_matrix.transpose().solveTriangularInPlace(b);
+  assert(size==b.rows());
+  m_matrix.triangularView<Eigen::Lower>().solveInPlace(b);
+  m_matrix.triangularView<Eigen::Lower>().transpose().solveInPlace(b);
 
   return true;
 }
@@ -87,8 +68,8 @@ bool SparseIncompleteLLT::solveInPlace(Eigen::VectorXd &b)  const
 bool SparseIncompleteLLT::halfSolveInPlace(Eigen::VectorXd &b)  const
 {
   const int size = m_matrix.rows();
-  ei_assert(size==b.rows());
-  m_matrix.solveTriangularInPlace(b);
+  assert(size==b.rows());
+  m_matrix.triangularView<Eigen::Lower>().solveInPlace(b);
 
   return true;
 }
@@ -97,8 +78,8 @@ bool SparseIncompleteLLT::halfSolveInPlace(Eigen::VectorXd &b)  const
 bool SparseIncompleteLLT::halfSolveInPlaceT(Eigen::VectorXd &b)  const
 {
   const int size = m_matrix.rows();
-  ei_assert(size==b.rows());
-  m_matrix.transpose().solveTriangularInPlace(b);
+  assert(size==b.rows());
+  m_matrix.triangularView<Eigen::Lower>().transpose().solveInPlace(b);
 
   return true;
 }
@@ -111,7 +92,7 @@ double SparseIncompleteLLT::getLINFinityNorm() const
 
 	Eigen::VectorXd w(Eigen::VectorXd::Ones(this->m_matrix.rows()));
 
-	this->m_matrix.solveTriangularInPlace(w);
+	this->m_matrix.triangularView<Eigen::Lower>().solveInPlace(w);
 
 	double max = 0;
 	for(int i = 0; i<w.rows();i++)

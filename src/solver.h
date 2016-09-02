@@ -8,14 +8,10 @@
 #ifndef SOLVER_H_
 #define SOLVER_H_
 
-#include <Eigen/Core>
-#include <Eigen/Sparse>
+#include "basematrix.h"
 #include "incomplete_cholesky.h"
-#include "partial_incomplete_cholesky.h"
 #include "nodecoefficients.h"
 
-// FIXME: IS Col-Major faster than Row-Major?
-typedef Eigen::SparseMatrix<double, Eigen::ColMajor|Eigen::SelfAdjoint|Eigen::LowerTriangular> matrix;
 void assembleProblemMatrix(float *cond, matrix **stiffnes);
 void assembleProblemMatrix(float *cond, matrix **stiffnes, int numNodes, nodeCoefficients **nodeCoef);
 

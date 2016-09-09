@@ -24,8 +24,7 @@ int main(int argc, char *argv[])
     
     SparseIncompleteLLT precond(m);
         
-    std::cout << precond.matrixL() << std::endl;
-  
+    
     Eigen::VectorXd w(Eigen::VectorXd::Ones(4));
     
     precond.halfSolveInPlaceT(w);

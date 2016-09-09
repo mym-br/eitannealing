@@ -20,7 +20,7 @@ class SparseIncompleteLDLT
 
     typedef matrix CholMatrixType;
     CholMatrixType m_matrix;
-    Eigen::DiagonalMatrix<Scalar> Di;
+    Eigen::Array<Scalar, Eigen::Dynamic, 1> invD;
 
     mutable bool lInfNormCalc;
     mutable double lInfNorm;
@@ -33,7 +33,6 @@ class SparseIncompleteLDLT
     inline const CholMatrixType& matrixL(void) const { return m_matrix; }
 
     bool solveInPlace(Eigen::VectorXd &b) const;
-    void multInPlace(Eigen::VectorXd &b) const;
 
     double getLINFinityNorm() const;
 

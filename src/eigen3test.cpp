@@ -3,6 +3,7 @@
 #include "basematrix.h"
 #include "solver.h"
 #include "incomplete_cholesky.h"
+#include "incomplete_LDLT.h"
 
 
 typedef Eigen::Triplet<double> T;
@@ -27,7 +28,15 @@ int main(int argc, char *argv[])
     
     Eigen::VectorXd w(Eigen::VectorXd::Ones(4));
     
-    precond.halfSolveInPlaceT(w);
+    precond.solveInPlace(w);
+    
+    std::cout << w << std::endl << std::endl;
+    
+    SparseIncompleteLDLT precond2(m);
+    
+    w = Eigen::VectorXd::Ones(4);
+    
+    precond2.solveInPlace(w);
     
     std::cout << w << std::endl;
     

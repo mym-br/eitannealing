@@ -21,11 +21,13 @@ int main(int argc, char *argv[])
     Eigen::VectorXd v(numcoefficients);
     for(int i=0; i<v.rows(); i++)
       v[i] = 0.1 + 0.5*(i%5);
-    assembleProblemMatrix(&v[0], &m1);
-    assembleProblemMatrix_old(&v[0], &m2);
-    *m1 -= *m2;
-    m1->prune(0.0001);
-    std::cout << *m1 << std::endl;
+    assembleProblemMatrix_old(&v[0], &m1);
+    
+    SparseIncompleteLLT pre(*m1);
+    
+    Eigen::VectorXd b((m1->selfadjointView<Eigen::Lower>())*Eigen::VectorXd::Ones(m1->rows()));
+    
+    CG_Solver solver(*m1, b, pre);
     
     return 0;
 }

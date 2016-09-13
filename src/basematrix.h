@@ -15,4 +15,7 @@ typedef  double Scalar;
 // Only the lower triangular coefficients are present!
 typedef Eigen::SparseMatrix<double, Eigen::ColMajor> matrix;
 
+// Dense vector
+typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> vectorx;
+
 #endif	// BASEMATRIX_H_

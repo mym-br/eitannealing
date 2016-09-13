@@ -51,6 +51,7 @@ bool SparseIncompleteLDLT::solveInPlace(Eigen::VectorXd &b)  const
   const int size = m_matrix.rows();
   assert(size==b.rows());
   m_matrix.triangularView<Eigen::Lower|Eigen::UnitDiag>().solveInPlace(b);
+  // Array in Eigen3 means coefficient-wise multiplication
   b.array() *= invD;
   m_matrix.triangularView<Eigen::Lower|Eigen::UnitDiag>().transpose().solveInPlace(b);
 
@@ -77,8 +78,8 @@ double SparseIncompleteLDLT::getLINFinityNorm() const
 	return max;
 }
 
-void SparseIncompleteLDLT::multInPlace(Eigen::VectorXd &b) const
+/*void SparseIncompleteLDLT::multInPlace(Eigen::VectorXd &b) const
 {
 	b = this->m_matrix*b;
 	b = this->m_matrix*b;
-}
+}*/

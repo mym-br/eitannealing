@@ -8,9 +8,6 @@
 
 #include "solver.h"
 #include "nodecoefficients.h"
-#include "problemdescription.h"
-
-
 
 CG_Solver::CG_Solver(matrix &A, Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
 	A(A), b(b), x(Eigen::VectorXd::Zero(A.rows())),

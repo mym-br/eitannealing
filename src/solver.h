@@ -12,9 +12,6 @@
 #include "incomplete_cholesky.h"
 #include "nodecoefficients.h"
 
-void assembleProblemMatrix(float *cond, matrix **stiffnes);
-void assembleProblemMatrix(float *cond, matrix **stiffnes, int numNodes, nodeCoefficients **nodeCoef);
-
 template<class base, size_t len> class circularbuff
 {
 	base _val[len];

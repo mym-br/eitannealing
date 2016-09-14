@@ -41,7 +41,7 @@ class CG_Solver {
 		bool refresh_at_next;
 		double rmod, rmod_1;
 		
-		const matrix &A;
+		matrix::ConstSelfAdjointViewReturnType<Eigen::Lower>::Type A;
 		const Eigen::VectorXd &b;
 		Eigen::VectorXd x;		
 		Eigen::VectorXd p;		

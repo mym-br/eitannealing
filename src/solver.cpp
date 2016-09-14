@@ -9,15 +9,17 @@
 #include "solver.h"
 #include "nodecoefficients.h"
 
-CG_Solver::CG_Solver(matrix &A, Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
-	A(A), b(b), x(Eigen::VectorXd::Zero(A.rows())),
-	// Precond!
-	precond(pre)	{
+CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
+	A(_A),
+	b(b), 
+	x(Eigen::VectorXd::Zero(_A.rows())), 
+	precond(pre)	
+{
 	this->init();
 }
 
-CG_Solver::CG_Solver(matrix &A, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &pre):
-	A(A), b(b), x(x0),
+CG_Solver::CG_Solver(matrix &A_, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &pre):
+	A(A_), b(b), x(x0),
 	// Precond!
 	precond(pre)  {
 	this->init();
@@ -239,22 +241,4 @@ void CG_Solver::do_iteration() {
 }
 
 
-/*matrix CG_Solver::buildJacobiMatrx()
-{
-	matrix result(it, it);
-	result.startFill(2*it-1);
-	int i;
-	// Fill column-wise
-	result.fill(0,0) = alpha_[0];
-	result.fill(1,0) = eta_[1];
-	for(i=1;i<it-1;i++) {
-		result.fill(i-1,i) = eta_[i];
-		result.fill(i,i) = alpha_[i];
-		result.fill(i+1,i) = eta_[i+1];
-	}
-	result.fill(it-2,it-1) = eta_[it-1];
-	result.fill(it-1,it-1) = alpha_[it-1];
-	result.endFill();
-	return result;
-}*/
 

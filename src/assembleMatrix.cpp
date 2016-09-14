@@ -60,7 +60,7 @@ void assembleProblemMatrix(double *cond, matrix **stiffnes)
 	
 	// Final coefficient vector is the Sparse x Dense product of coef2KMatrix times coefficients
 	Eigen::Map<vectorx>(m->valuePtr(), m->nonZeros()).noalias() = (*coef2KMatrix)*Eigen::Map<Eigen::VectorXd>(cond, numcoefficients);
-	
+	m->resizeNonZeros(skeleton->nonZeros());
 	*stiffnes = m;
 }
 

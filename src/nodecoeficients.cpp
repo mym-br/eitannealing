@@ -59,9 +59,6 @@ void calcElementCoefficients(int element,
 
 	double areaFactor = 2*fabs(v1.x()*v2.y()-v1.y()*v2.x());
 
-	//c11 = v1.squaredNorm()/areaFactor;
-	//c22 = v2.squaredNorm()/areaFactor;
-	//c33 = v3.squaredNorm()/areaFactor;
 	c12 = v1.dot(v2)/areaFactor;
 	c13 = v1.dot(v3)/areaFactor;
 	c23 = v2.dot(v3)/areaFactor;
@@ -72,7 +69,6 @@ void calcElementCoefficients(int element,
 
 void insertNewCoefficient(nodeCoefficients **target, int node, int index, double coefficient)
 {
-	//if(fabs(coefficient)<_COEFFICIENT_EPSLON_) return;
 	while(*target && (*target)->node < node) target = &(*target)->next;
 	while(*target && (*target)->node == node)  {// special case, possible merge
 		if((*target)->condIndex == index) { // Merge

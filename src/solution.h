@@ -11,6 +11,7 @@
 class solution;
 
 #include "solver.h"
+#include "assembleMatrix.h"
 #include "problemdescription.h"
 
 
@@ -58,7 +59,7 @@ class solution {
 	private:
 
 
-			float *sol;
+			double *sol;
 			matrix *stiffness;
 			SparseIncompleteLLT *precond;
 
@@ -86,30 +87,30 @@ class solution {
 			void initSimulations(const solution &base);
 			void initErrors();
 
-			float *getShufledSolution();
-			static float *getNewRandomSolution();
-			static float *copySolution(const float *sol);
+			double *getShufledSolution();
+			static double *getNewRandomSolution();
+			static double *copySolution(const double *sol);
 
-			float *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
+			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
-			static matrix *getNewStiffness(float *sol) {
+			static matrix *getNewStiffness(double *sol) {
 				matrix *aux;
 				assembleProblemMatrix(sol, &aux);
 				return aux;
 			}
 
 			// shuffle constructor
-			solution(float *sol, const solution &base);
+			solution(double *sol, const solution &base);
 			double regularisation;
 
 
 	public:
 
-		solution(const float *sol);
+		solution(const double *sol);
 		solution();	// New random solution
-		bool compareWith(solution &target, float kt, float prob);
-		bool compareWithMinIt(solution &target, float kt, int minit);
-		bool compareWithMaxE2(solution &target, float kt, double e2);
+		bool compareWith(solution &target, double kt, double prob);
+		bool compareWithMinIt(solution &target, double kt, int minit);
+		bool compareWithMaxE2(solution &target, double kt, double e2);
 		solution *shuffle(shuffleData *data, const shuffler &sh) const;
 		double getRegularisationValue() const {
 		  return this->regularisation;
@@ -128,7 +129,7 @@ class solution {
 			return minTotalDist;
 		}
 
-		float *getSolution() {
+		double *getSolution() {
 			return this->sol;
 		}
 

@@ -9,7 +9,6 @@
 #define SOLVER_LB_H_
 
 #include "solver.h"
-#include "sparseincompletelq.h"
 #include <memory>
 
 // FIXME: IS Col-Major faster than Row-Major?

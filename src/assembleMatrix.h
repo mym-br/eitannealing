@@ -8,6 +8,7 @@ void prepareSkeletonMatrix();
 void createCoef2KMatrix();
 void assembleProblemMatrix(double *cond, matrix **stiffnes);
 void assembleProblemMatrix_old(double *cond, matrix **stiffnes);
+void assembleProblemMatrix_old_sim(double *cond, matrix **stiffnes);
 
 
 #endif	// ASSEMBLEMATRIX_H_

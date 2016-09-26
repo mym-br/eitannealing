@@ -32,7 +32,7 @@ void solution::improve()
 	this->totalit++;
 	// Recalcule expected distance and boundaries
 	
-	aux = simulations[critical]->getX().end(gelectrodes.size()-1);
+	aux = simulations[critical]->getX().tail(gelectrodes.size()-1);
 	aux -= tensions[critical];
 					
 	distance[critical] = aux.norm();
@@ -55,7 +55,7 @@ void solution::improve()
 	critErr = err[critical];
 }
 
-bool solution::compareWith(solution &target, float kt, float prob)
+bool solution::compareWith(solution &target, double kt, double prob)
 {
 	double delta, expdelta;
 	// Ensure errors are within required margin
@@ -105,7 +105,7 @@ bool solution::compareWith(solution &target, float kt, float prob)
 }
 
 
-bool solution::compareWithMinIt(solution &target, float kt,  int minit)
+bool solution::compareWithMinIt(solution &target, double kt,  int minit)
 {
 	double delta, expdelta;
 	// Ensure errors are within required margin
@@ -120,7 +120,7 @@ bool solution::compareWithMinIt(solution &target, float kt,  int minit)
 	return false;
 }
 
-bool solution::compareWithMaxE2(solution &target, float kt,  double e2)
+bool solution::compareWithMaxE2(solution &target, double kt,  double e2)
 {
 	double delta, expdelta;
 	// Ensure errors are within required margin
@@ -136,7 +136,7 @@ bool solution::compareWithMaxE2(solution &target, float kt,  double e2)
 }
 
 
-solution::solution(const float *sigma):
+solution::solution(const double *sigma):
 				sol(solution::copySolution(sigma)),
 				stiffness(solution::getNewStiffness(sol)),
 				precond(new SparseIncompleteLLT(*stiffness)),
@@ -169,7 +169,7 @@ solution::solution():
 }
 
 // New randomly modified solution
-solution::solution(float *sigma, const solution &base):
+solution::solution(double *sigma, const solution &base):
 		sol(sigma),
 		stiffness(solution::getNewStiffness(sol)),
 		precond(new SparseIncompleteLLT(*stiffness)),
@@ -277,9 +277,9 @@ void solution::initErrors()
 }
 
 
-float *solution::copySolution(const float *sol)
+double *solution::copySolution(const double *sol)
 {
-	float *res = new float[numcoefficients];
+	double *res = new double[numcoefficients];
 
 	for(int i=0;i<numcoefficients;i++)
 		res[i] = sol[i];
@@ -287,9 +287,9 @@ float *solution::copySolution(const float *sol)
 	return res;
 }
 
-float *solution::getNewRandomSolution()
+double *solution::getNewRandomSolution()
 {
-	float *res = new float[numcoefficients];
+	double *res = new double[numcoefficients];
 	int i = 0;
 /*
 	res[i++] = 0.0795333;
@@ -331,9 +331,9 @@ float *solution::getNewRandomSolution()
 	return res;
 }
 
-float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) const
+double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) const
 {
-	float *res = solution::copySolution(sol);
+	double *res = solution::copySolution(sol);
 	// head or tails
 	if(genint(2)) { // Normal
 		int ncoef = genint(numcoefficients);	// Lower values fixed;
@@ -341,7 +341,7 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 		if(sh.shuffleConsts[ncoef]==0) {
 			res[ncoef] = mincond+genreal()*(maxcond-mincond);
 		} else {
-			float val;
+			double val;
 			do {
 				val = res[ncoef];
 				double rnd = 0;
@@ -371,10 +371,10 @@ float *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) cons
 			node1 = node2;;
 			node2 = aux;
 		}
-		float v1 = res[node1], v2 = res[node2];
-		float a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
+		double v1 = res[node1], v2 = res[node2];
+		double a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
 
-		float delta;
+		double delta;
 		do {
 			if(sh.swapshuffleconsts[ncoef]==0) {
 				delta = a*(genreal()*2 - 1);
@@ -416,7 +416,7 @@ void shuffler::addShufflerFeedback(const shuffleData &data, bool pos)
 
 solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
 {
-	float *sigma = getShuffledSolution(data, sh);
+	double *sigma = getShuffledSolution(data, sh);
 	solution *res;
 	try {
 		res = new solution(sigma, *this);

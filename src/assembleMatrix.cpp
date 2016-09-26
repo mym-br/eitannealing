@@ -94,3 +94,30 @@ void assembleProblemMatrix_old(double *cond, matrix **stiffnes)
 	*stiffnes = out;
 }
 
+// Build full symetric matrix
+void assembleProblemMatrix_old_sim(double *cond, matrix **stiffnes)
+{
+	matrix *out = new matrix(nodes.size()-1, nodes.size()-1);
+	double val;
+	std::vector<Eigen::Triplet<Scalar>> tripletList; 
+	for (int i=0; i<nodes.size()-1; ++i) {
+		nodeCoefficients *aux = nodeCoef[i];
+		while(aux) { // Col-major storage
+			int row = aux->node;
+                        if(row==groundNode) {
+                          aux = aux->next;
+                          continue;   // Skip ground node
+                        }
+                        val = 0.0;
+			while(aux && aux->node==row) {
+				val += aux->coefficient*cond[aux->condIndex];
+				aux = aux->next;
+			}
+			tripletList.push_back(Eigen::Triplet<Scalar>(row, i, val));
+		}
+	}
+
+	out->setFromTriplets(tripletList.begin(), tripletList.end());
+	out->makeCompressed();
+	*stiffnes = out;
+}

@@ -30,13 +30,29 @@ int main(int argc, char *argv[])
     for(int i=0; i<v.rows(); i++)
       v[i] = 1.0+0.0001*(i%11);
     assembleProblemMatrix(&v[0], &m1);
+    
+    
         
     gradientNormRegularisation_old::initInstance();
     std::cout << gradientNormRegularisation_old::getInstance()->getRegularisation(&v[0]) << std::endl;
     
+    startTime = gettime();
+    for(int i = 0; i < 100000; i++)
+       gradientNormRegularisation_old::getInstance()->getRegularisation(&v[0]) ;
+    endTime = gettime();
+    
+    std::cout << endTime- startTime << std::endl;
+    
     gradientNormRegularisation::initInstance();
     std::cout << gradientNormRegularisation::getInstance()->getRegularisation(&v[0]) << std::endl;
     
+    
+    startTime = gettime();
+    for(int i = 0; i < 100000; i++)
+       gradientNormRegularisation::getInstance()->getRegularisation(&v[0]) ;
+    endTime = gettime();
+    
+    std::cout << endTime- startTime << std::endl;
         
     return 0;
 }

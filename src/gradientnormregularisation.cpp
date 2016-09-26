@@ -5,6 +5,8 @@
 #include <iostream>
 #include "assembleMatrix.h"
 
+#include "util/EigenSymmQuadratic.h"
+
 std::unique_ptr<gradientNormRegularisation_old> gradientNormRegularisation_old::instance;
 
 gradientNormRegularisation_old::n2cmatrix *gradientNormRegularisation_old::buildCoefficient2NodeMatrix(genericEletrode **last)
@@ -103,7 +105,6 @@ void gradientNormRegularisation::initInstance()
 
 double gradientNormRegularisation::getRegularisation(const double *sol) const
 {
-    Eigen::VectorXd s(Eigen::VectorXd::Map(sol, numcoefficients));
-    // TODO: More efficient quadratic form!
-    return s.dot(regularizationMatrix->selfadjointView<Eigen::Lower>()*s);
+    return EigenSymmQuadraticL<Scalar>(regularizationMatrix->selfadjointView<Eigen::Lower>(),
+				       Eigen::VectorXd::Map(sol, numcoefficients));
 }

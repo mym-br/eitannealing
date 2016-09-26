@@ -62,3 +62,48 @@ double gradientNormRegularisation_old::getRegularisation(const double *sol) cons
     }
     return c.dot(d);
 }
+
+
+std::unique_ptr<gradientNormRegularisation> gradientNormRegularisation::instance;
+
+int gradientNormRegularisation::coefficientMap(int node)
+{
+    int c = node2coefficient[node];
+    return c>32?c:32;
+}
+
+
+void gradientNormRegularisation::buildMatrix()
+{
+    matrix *out = new matrix(numcoefficients, numcoefficients);
+    std::vector<Eigen::Triplet<Scalar>> tripletList; 
+    for (int i=0; i<nodes.size()-1; ++i) {
+	int ci = coefficientMap(i);
+
+	for(nodeCoefficients *aux = nodeCoef[i]; aux; aux = aux->next) {
+	    int cj = coefficientMap(aux->node);
+	    if(ci>cj) continue; // skip upper triangular
+	    tripletList.push_back(Eigen::Triplet<Scalar>(cj, ci, aux->coefficient));
+	}
+    }
+    out->setFromTriplets(tripletList.begin(), tripletList.end());
+    out->makeCompressed();
+    regularizationMatrix.reset(out);
+}
+
+gradientNormRegularisation::gradientNormRegularisation()
+{
+    this->buildMatrix();
+}
+
+void gradientNormRegularisation::initInstance()
+{
+    instance.reset(new gradientNormRegularisation());
+}
+
+double gradientNormRegularisation::getRegularisation(const double *sol) const
+{
+    Eigen::VectorXd s(Eigen::VectorXd::Map(sol, numcoefficients));
+    // TODO: More efficient quadratic form!
+    return s.dot(regularizationMatrix->selfadjointView<Eigen::Lower>()*s);
+}

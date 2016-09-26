@@ -11,11 +11,9 @@ private:
     gradientNormRegularisation();
     static std::unique_ptr<gradientNormRegularisation> instance;
     
-    
     std::unique_ptr<matrix> regularizationMatrix;
-    typedef Eigen::SparseMatrix<double, Eigen::RowMajor> n2cmatrix;
-    std::unique_ptr<n2cmatrix> adaptMatrix;
-    static n2cmatrix *buildCoefficient2NodeMatrix(genericEletrode **);
+    void buildMatrix();
+    int coefficientMap(int node);
     std::set<int> lastElectrodeNodes;    
 public:
     double getRegularisation(const double *sol) const;

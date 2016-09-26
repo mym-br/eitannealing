@@ -28,11 +28,15 @@ int main(int argc, char *argv[])
     double startTime, endTime;
     Eigen::VectorXd v(numcoefficients);
     for(int i=0; i<v.rows(); i++)
-      v[i] = 1.0+0.0001*(i%5);
-    assembleProblemMatrix_old(&v[0], &m1);
+      v[i] = 1.0+0.0001*(i%11);
+    assembleProblemMatrix(&v[0], &m1);
         
     gradientNormRegularisation_old::initInstance();
     std::cout << gradientNormRegularisation_old::getInstance()->getRegularisation(&v[0]) << std::endl;
+    
+    gradientNormRegularisation::initInstance();
+    std::cout << gradientNormRegularisation::getInstance()->getRegularisation(&v[0]) << std::endl;
+    
         
     return 0;
 }

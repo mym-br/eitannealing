@@ -3,6 +3,8 @@
  *
  *  Created on: Jun 25, 2010
  *      Author: thiago
+ * 
+ *   FIXME: This file now is a mess. Its content needs refactoring!
  */
 
 #include <QApplication>
@@ -11,19 +13,19 @@
 #include <QListView>
 #include <QThread>
 #include <QAction>
-#include <Eigen/Array>
 #include <thread>
 #include <memory>
 #include <ctime>
+#include <iostream>
 #include "problemdescription.h"
 #include "graphics.h"
 #include "solver.h"
 #include "nodecoefficients.h"
 #include "solution.h"
-#include "solution_lb.h"
+//#include "solution_lb.h"
 #include "observations.h"
 #include "random.h"
-#include "sparseincompletelq.h"
+//#include "sparseincompletelq.h"
 #include "gradientnormregularisation.h"
 
 
@@ -317,6 +319,8 @@ int main(int argc, char *argv[])
 
 	 initObs(argv[2], argv[3]);
 	 buildNodeCoefficients();
+	 prepareSkeletonMatrix();
+         createCoef2KMatrix();
 	 gradientNormRegularisation::initInstance();
 	 /*float *solution = new float[numcoefficients];
 	 for(int i=0;i<numcoefficients;i++) solution[i] = 1;
@@ -436,7 +440,7 @@ int main(int argc, char *argv[])
      
      graphics.connect(view, SIGNAL(dataChanged(QModelIndex,QModelIndex)), SLOT(solution_updated(QModelIndex,QModelIndex)));
 
-     float *sol = new float[numcoefficients];
+     double *sol = new double[numcoefficients];
      for(int i=0;i<numcoefficients;i++) sol[i]=1.0;
      view->setCurrentSolution(sol);
 

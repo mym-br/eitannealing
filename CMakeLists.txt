@@ -14,7 +14,7 @@ set(eitannealingtest_SRCS
 #  src/sparseincompletelq.cpp
   src/graphics.cpp
   src/initproblem.cpp
-#  src/main.cpp
+  src/main.cpp
   src/nodecoeficients.cpp
   src/solver.cpp
   src/incomplete_cholesky.cpp
@@ -25,7 +25,7 @@ set(eitannealingtest_SRCS
   src/observations.cpp
 #  src/solver_lb.cpp
 #  src/solution_lb.cpp
-  src/eigen3test.cpp
+#  src/eigen3test.cpp
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})

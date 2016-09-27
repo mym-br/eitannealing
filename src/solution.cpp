@@ -252,7 +252,7 @@ void solution::initErrors()
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<nobs;i++) {
 		// Compare with observation
-		aux = simulations[i]->getX().end(aux.size());
+		aux = simulations[i]->getX().tail(aux.size());
 		aux -= tensions[i];
 		
 		distance[i] = aux.norm();
@@ -442,7 +442,7 @@ void solution::ensureMinIt(unsigned int it)
 		simulations[i]->do_iteration();
 		this->totalit++;
 		// Recalcule expected distance and boundaries
-		aux = simulations[i]->getX().end(gelectrodes.size()-1);
+		aux = simulations[i]->getX().tail(gelectrodes.size()-1);
 		aux -= tensions[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
@@ -475,7 +475,7 @@ void solution::ensureMaxE2(double e2)
 		simulations[i]->do_iteration();
 		this->totalit++;
 		// Recalcule expected distance and boundaries
-		aux = simulations[i]->getX().end(gelectrodes.size()-1);
+		aux = simulations[i]->getX().tail(gelectrodes.size()-1);
 		aux -= tensions[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());

@@ -20,7 +20,7 @@ set(eitannealingtest_SRCS
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
   src/assembleMatrix.cpp
-#  src/solution.cpp
+  src/solution.cpp
 #  src/mt19937-64/mt19937-64.c
 #  src/observations.cpp
 #  src/solver_lb.cpp

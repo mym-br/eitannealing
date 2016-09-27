@@ -19,7 +19,7 @@
 class solutionView : public QAbstractListModel {
 Q_OBJECT
 	private:
-		float *sol;
+		double *sol;
 		int rows;
 		QMutex solutionMutex;
 	public:
@@ -28,7 +28,7 @@ Q_OBJECT
 		int rowCount( const QModelIndex & parent = QModelIndex() ) const;
 		QVariant  data( const QModelIndex & index, int role = Qt::DisplayRole ) const;
 		QVariant  headerData ( int section, Qt::Orientation  orientation, int role = Qt::DisplayRole ) const;
-		void setCurrentSolution(const float *newsol);	
+		void setCurrentSolution(const double *newsol);	
 };
 
 class viewport : public QWidget {
@@ -44,8 +44,8 @@ Q_OBJECT
       public slots:
 	      void solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight );
 	protected:
-	      QBrush getBrushForElement(float *solution, int n1, int n2, int n3);
-	      QColor getColorForLevel(float level);
+	      QBrush getBrushForElement(double *solution, int n1, int n2, int n3);
+	      QColor getColorForLevel(double level);
 	      // override default paint event
 	      void paintEvent ( QPaintEvent * event );
 };

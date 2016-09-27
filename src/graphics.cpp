@@ -37,8 +37,8 @@ viewport::viewport(int width, int height, const char *title) : scale(width, 70, 
 	QLinearGradient color(20,0,this->width()-20,0);
 	
 	color.setColorAt(0, getColorForLevel(mincond));	
-	for(float t=0.125f; t < 1.0f; t+= 0.125f) {
-	    float level = maxcond*t + (1-t)*mincond;
+	for(double t=0.125f; t < 1.0f; t+= 0.125f) {
+	    double level = maxcond*t + (1-t)*mincond;
 	    color.setColorAt(t, getColorForLevel(level));	
 	}
 	color.setColorAt(1, getColorForLevel(maxcond));
@@ -49,7 +49,7 @@ viewport::viewport(int width, int height, const char *title) : scale(width, 70, 
 	painter.setPen(Qt::SolidLine);
 	for(int i = 0; i <= 4; i++) {
 	  int x = (int)((scale.width()-40)*((float)i/4)+0.5f)+20;
-	  float level = (float)i/4;
+	  double level = (float)i/4;
 	  level = maxcond*level + (1-level)*mincond;
 	  painter.drawLine(x,40,x,45);
 	  painter.drawText(x-25, 45, 51, 20, Qt::AlignHCenter | Qt::AlignTop, QString::number(level));
@@ -59,20 +59,20 @@ viewport::viewport(int width, int height, const char *title) : scale(width, 70, 
 	
 }
 
-QColor viewport::getColorForLevel(float level)
+QColor viewport::getColorForLevel(double level)
 {
 	if(level > maxcond) level=maxcond;
 	if(level < mincond) level=mincond;
-	float fval = ((level-mincond)/(maxcond-mincond));
+	double fval = ((level-mincond)/(maxcond-mincond));
 	fval = std::pow(fval, 1.8f)*255;
 	int val = (int)fval;
 	return QColor(val, val, val);
 }
 
-QBrush viewport::getBrushForElement(float *solution, int n1, int n2, int n3)
+QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 {
 	// Reorder the elements so that sigma(n1) <= sigma(n2) <= sigma(n3)
-	float s1, s2, s3, f_aux;
+	double s1, s2, s3, f_aux;
 	int aux;
 	s1 = solution[node2coefficient[n1]];
 	s2 = solution[node2coefficient[n2]];
@@ -98,7 +98,7 @@ QBrush viewport::getBrushForElement(float *solution, int n1, int n2, int n3)
 	
 	// Ok, so now we must find both control points
 	// 	let's say p0 = n1		
-	float alpha = (s2-s1)/(s3-s1);	// 0 <= x <= 1
+	double alpha = (s2-s1)/(s3-s1);	// 0 <= x <= 1
 	Eigen::Vector2d a(
 		nodes[n3].x - nodes[n1].x,
 		nodes[n3].y - nodes[n1].y),
@@ -106,13 +106,13 @@ QBrush viewport::getBrushForElement(float *solution, int n1, int n2, int n3)
 		nodes[n2].x - nodes[n1].x,
 		nodes[n2].y - nodes[n1].y);
 
-	float c = b.y() - alpha*a.y();
-	float s = alpha*a.x() - b.x();
-	float cc = c*c;
-	float ss = s*s;
-	float cs = c*s;
-	float x = cc*a.x() + cs*a.y();
-	float y = ss*a.y() + cs*a.x();
+	double c = b.y() - alpha*a.y();
+	double s = alpha*a.x() - b.x();
+	double cc = c*c;
+	double ss = s*s;
+	double cs = c*s;
+	double x = cc*a.x() + cs*a.y();
+	double y = ss*a.y() + cs*a.x();
 	x /= (cc+ss);
 	y /= (cc+ss);
 
@@ -121,8 +121,8 @@ QBrush viewport::getBrushForElement(float *solution, int n1, int n2, int n3)
 		translateCoordinate(nodes[n1].x+x, nodes[n1].y+y));
 	
 	color.setColorAt(0, getColorForLevel(s1));	
-	for(float t=0.125f; t < 1.0f; t+= 0.125f) {
-	    float level = s3*t + (1-t)*s1;
+	for(double t=0.125f; t < 1.0f; t+= 0.125f) {
+	    double level = s3*t + (1-t)*s1;
 	    color.setColorAt(t, getColorForLevel(level));	
 	}
 	color.setColorAt(1, getColorForLevel(s3));
@@ -133,7 +133,7 @@ QBrush viewport::getBrushForElement(float *solution, int n1, int n2, int n3)
 void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight )
 {
       {		// Redraw on the buffer
-	    float *solution = (float *)topLeft.internalPointer() - topLeft.row();
+	    double *solution = (double *)topLeft.internalPointer() - topLeft.row();
 	    int i;
 	    QPainter painter(&this->paintbuff);
 	    painter.setRenderHint(QPainter::Antialiasing);
@@ -232,7 +232,7 @@ void TableViewCopyDataPopupMenu::actionFired()
 
 solutionView::solutionView(int rows) : rows(rows)
 {
-	this->sol = new float[rows];
+	this->sol = new double[rows];
 	std::fill(this->sol, this->sol+rows, 2.0);
 }
 
@@ -264,7 +264,7 @@ QVariant  solutionView::headerData (
      return QVariant();
  }
 
-void solutionView::setCurrentSolution(const float *newsol)
+void solutionView::setCurrentSolution(const double *newsol)
 {
 	{
 		QMutexLocker(&this->solutionMutex);

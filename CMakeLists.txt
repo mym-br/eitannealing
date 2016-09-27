@@ -12,7 +12,7 @@ include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 set(eitannealingtest_SRCS 
   src/gradientnormregularisation.cpp 
 #  src/sparseincompletelq.cpp
-#  src/graphics.cpp
+  src/graphics.cpp
   src/initproblem.cpp
 #  src/main.cpp
   src/nodecoeficients.cpp
@@ -21,8 +21,8 @@ set(eitannealingtest_SRCS
   src/incomplete_ldlt.cpp
   src/assembleMatrix.cpp
   src/solution.cpp
-#  src/mt19937-64/mt19937-64.c
-#  src/observations.cpp
+  src/mt19937-64/mt19937-64.c
+  src/observations.cpp
 #  src/solver_lb.cpp
 #  src/solution_lb.cpp
   src/eigen3test.cpp

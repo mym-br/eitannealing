@@ -69,6 +69,7 @@ void calcElementCoefficients(int element,
 
 void insertNewCoefficient(nodeCoefficients **target, int node, int index, double coefficient)
 {
+	if(index<0) return;
 	while(*target && (*target)->node < node) target = &(*target)->next;
 	while(*target && (*target)->node == node)  {// special case, possible merge
 		if((*target)->condIndex == index) { // Merge
@@ -81,13 +82,13 @@ void insertNewCoefficient(nodeCoefficients **target, int node, int index, double
 	*target = new nodeCoefficients(node, index, coefficient, *target);
 }
 
-void insertNewElementCoefficient(nodeCoefficients **target, int node, int element, double coefficient)
+void insertNewElementCoefficient(nodeCoefficients **target, int node, int element, double coefficient, std::map<int, int> &coefficientMap)
 {
 	// Coefficient is spread among the 3 nodes
 	coefficient /= 3;
-	insertNewCoefficient(target, node, node2coefficient[elements[element].n1], coefficient);
-	insertNewCoefficient(target, node, node2coefficient[elements[element].n2], coefficient);
-	insertNewCoefficient(target, node, node2coefficient[elements[element].n3], coefficient);
+	insertNewCoefficient(target, node, coefficientMap[elements[element].n1], coefficient);
+	insertNewCoefficient(target, node, coefficientMap[elements[element].n2], coefficient);
+	insertNewCoefficient(target, node, coefficientMap[elements[element].n3], coefficient);
 }
 
 void calcGenericElectrodeCoefficients(int electrode)
@@ -147,24 +148,24 @@ void buildNodeCoefficients()
 		c12 *= totalheight; c23 *= totalheight; c13 *= totalheight;
 		// Node 1
 		insertNewElementCoefficient(&nodeCoef[elements[i].n1],
-			elements[i].n1, i, c11);
+			elements[i].n1, i, c11, node2coefficient);
 		insertNewElementCoefficient(&nodeCoef[elements[i].n1],
-			elements[i].n2, i, c12);
+			elements[i].n2, i, c12, node2coefficient);
 		insertNewElementCoefficient(&nodeCoef[elements[i].n1],
-			elements[i].n3, i, c13);
+			elements[i].n3, i, c13, node2coefficient);
 		// Node 2
 		insertNewElementCoefficient(&nodeCoef[elements[i].n2],
-			elements[i].n2, i, c22);
+			elements[i].n2, i, c22, node2coefficient);
 		insertNewElementCoefficient(&nodeCoef[elements[i].n2],
-			elements[i].n1, i, c12);
+			elements[i].n1, i, c12, node2coefficient);
 		insertNewElementCoefficient(&nodeCoef[elements[i].n2],
-			elements[i].n3, i, c23);
+			elements[i].n3, i, c23, node2coefficient);
 		// Node 3
 		insertNewElementCoefficient(&nodeCoef[elements[i].n3],
-			elements[i].n3, i, c33);
+			elements[i].n3, i, c33, node2coefficient);
 		insertNewElementCoefficient(&nodeCoef[elements[i].n3],
-			elements[i].n1, i, c13);
+			elements[i].n1, i, c13, node2coefficient);
 		insertNewElementCoefficient(&nodeCoef[elements[i].n3],
-			elements[i].n2, i, c23);
+			elements[i].n2, i, c23, node2coefficient);
 	}
 }

@@ -37,6 +37,6 @@ extern nodeCoefficients **nodeCoef;
 
 void buildNodeCoefficients();
 void calcGenericElectrodeCoefficients(int electrode, const std::vector<genericEletrode> &electrodes);
-void insertNewElementCoefficient(nodeCoefficients **target, int node, int element, double coefficient, std::map<int, int> &coefficientMap);
+void insertNewElementCoefficient(nodeCoefficients **target, int node, const triangularElement &e, double coefficient, const std::map<int, int> &coefficientMap)
 
 #endif /* NODECOEFFICIENTS_H_ */

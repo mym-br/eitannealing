@@ -15,19 +15,19 @@ nodeCoefficients **nodeCoef;
 
 #define _COEFFICIENT_EPSLON_ (0.00001)
 
-elementCoefficients calcElementCoefficients(int element)
+elementCoefficients calcElementCoefficients(const element &e)
 {
 	elementCoefficients c; // Hopefully copy-elision happens here
   
 	// Vectors of each node are the opposed edge rotated by 90 degrees
 	// Notice in the end it doesn't matter if the nodes are clockwise or not!
 	Eigen::Vector2d
-		va(	nodes[elements[element].b].y - nodes[elements[element].c].y,
-		nodes[elements[element].c].x - nodes[elements[element].b].x),
-		vb(	nodes[elements[element].c].y - nodes[elements[element].a].y,
-		nodes[elements[element].a].x - nodes[elements[element].c].x),
-		vc(	nodes[elements[element].a].y - nodes[elements[element].b].y,
-		nodes[elements[element].b].x - nodes[elements[element].a].x);
+		va(nodes[e.b].y - nodes[e.c].y,
+		   nodes[e.c].x - nodes[e.b].x),
+		vb(nodes[e.c].y - nodes[e.a].y,
+		   nodes[e.a].x - nodes[e.c].x),
+		vc(nodes[e.a].y - nodes[e.b].y,
+		   nodes[e.b].x - nodes[e.a].x);
 
 	double areaFactor = 2*fabs(va.x()*vb.y()-va.y()*vb.x());
 
@@ -118,30 +118,20 @@ void buildNodeCoefficients()
 		calcGenericElectrodeCoefficients(i, gelectrodes);
 	}
 	// Now prepare the coefficients due to the elements
-	for(i = 0; i < elements.size(); i++) {
-		
-		elementCoefficients c = calcElementCoefficients(i);
+	for(const element e: elements) {		
+		elementCoefficients c = calcElementCoefficients(e);
 		c *= totalheight;
 		// Node 1
-		insertNewElementCoefficient(&nodeCoef[elements[i].a],
-			elements[i].a, elements[i], c.aa, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].a],
-			elements[i].b, elements[i], c.ab, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].a],
-			elements[i].c, elements[i], c.ac, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.a], e.a, e, c.aa, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.a], e.b, e, c.ab, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.a], e.c, e, c.ac, node2coefficient);
 		// Node 2
-		insertNewElementCoefficient(&nodeCoef[elements[i].b],
-			elements[i].b, elements[i], c.bb, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].b],
-			elements[i].a, elements[i], c.ab, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].b],
-			elements[i].c, elements[i], c.bc, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.b], e.b, e, c.bb, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.b], e.a, e, c.ab, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.b], e.c, e, c.bc, node2coefficient);
 		// Node 3
-		insertNewElementCoefficient(&nodeCoef[elements[i].c],
-			elements[i].c, elements[i], c.cc, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].c],
-			elements[i].a, elements[i], c.ac, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].c],
-			elements[i].b, elements[i], c.bc, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.c], e.c, e, c.cc, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.c], e.a, e, c.ac, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.c], e.b, e, c.bc, node2coefficient);
 	}
 }

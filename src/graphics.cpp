@@ -141,16 +141,16 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 	    painter.setPen(Qt::NoPen);
 	    for(i=0;i<elements.size();i++) {
 		    QPolygon polygon;
-		    int n = elements[i].n1;
+		    int n = elements[i].a;
 		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		    n = elements[i].n2;
+		    n = elements[i].b;
 		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		    n = elements[i].n3;
+		    n = elements[i].c;
 		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		    n = elements[i].n1;
+		    n = elements[i].a;
 		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
 		    int level = 255;//*(solution[elements[i].condIndex]-1);		
-		    painter.setBrush(getBrushForElement(solution, elements[i].n1, elements[i].n2, elements[i].n3));
+		    painter.setBrush(getBrushForElement(solution, elements[i].a, elements[i].b, elements[i].c));
 		    painter.drawConvexPolygon(polygon);
 	    }
 	    // Draw electrodes

@@ -43,7 +43,6 @@ elementCoefficients calcElementCoefficients(int element)
 
 void insertNewCoefficient(nodeCoefficients **target, int node, int index, double coefficient)
 {
-	if(index<0) return;
 	while(*target && (*target)->node < node) target = &(*target)->next;
 	while(*target && (*target)->node == node)  {// special case, possible merge
 		if((*target)->condIndex == index) { // Merge
@@ -56,13 +55,17 @@ void insertNewCoefficient(nodeCoefficients **target, int node, int index, double
 	*target = new nodeCoefficients(node, index, coefficient, *target);
 }
 
-void insertNewElementCoefficient(nodeCoefficients **target, int node, int element, double coefficient, std::map<int, int> &coefficientMap)
+void insertNewElementCoefficient(nodeCoefficients **target, int node, int element, double coefficient, const std::map<int, int> &coefficientMap)
 {
 	// Coefficient is spread among the 3 nodes
 	coefficient /= 3;
-	insertNewCoefficient(target, node, coefficientMap[elements[element].a], coefficient);
-	insertNewCoefficient(target, node, coefficientMap[elements[element].b], coefficient);
-	insertNewCoefficient(target, node, coefficientMap[elements[element].c], coefficient);
+	std::map<int, int>::const_iterator i;
+	if((i=coefficientMap.find(elements[element].a))!=coefficientMap.end())
+	  insertNewCoefficient(target, node, i->second, coefficient);
+	if((i=coefficientMap.find(elements[element].b))!=coefficientMap.end())
+	  insertNewCoefficient(target, node, i->second, coefficient);
+	if((i=coefficientMap.find(elements[element].c))!=coefficientMap.end())
+	  insertNewCoefficient(target, node, i->second, coefficient);
 }
 
 void calcGenericElectrodeCoefficients(int electrode, const std::vector<genericEletrode> &electrodes)

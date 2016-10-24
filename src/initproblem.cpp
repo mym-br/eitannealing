@@ -101,46 +101,46 @@ void fillElementsGenericElectrode() {
 
 	for(i=0;i<numElements;i++) {
 		int id;
-		int n1, n2, n3;
+		int na, nb, nc;
 		file.ignore(256, ' ');
 		file.ignore(256, ' ');
 		file >> id;	  
 		file.ignore(256, ' ');
 		file.ignore(256, ' ');
 		file.ignore(256, ' ');
-		file >> n1 >> n2 >> n3;
+		file >> na >> nb >> nc;
 		// 1 based
-		n1--;
-		n2--;
-		n3--;
+		na--;
+		nb--;
+		nc--;
 		switch(id) {
 		case 1001:	// external ring
 			//case 2001:
 			//case 3001:
-			innerNodes.erase(n1);
-			innerNodes.erase(n2);
-			innerNodes.erase(n3);
-			outerRingNodes.insert(n1);
-			outerRingNodes.insert(n2);
-			outerRingNodes.insert(n3);
-			temp.n1 = n1;
-			temp.n2 = n2;
-			temp.n3 = n3;
+			innerNodes.erase(na);
+			innerNodes.erase(nb);
+			innerNodes.erase(nc);
+			outerRingNodes.insert(na);
+			outerRingNodes.insert(nb);
+			outerRingNodes.insert(nc);
+			temp.a = na;
+			temp.b = nb;
+			temp.c = nc;
 			elements.push_back(temp);
 			break;
 
 		case 2001:
 		case 3001:	// internal elements
 		case 4001:
-			if(!outerRingNodes.count(n1))
-				innerNodes.insert(n1);
-			if(!outerRingNodes.count(n2))
-				innerNodes.insert(n2);
-			if(!outerRingNodes.count(n3))
-				innerNodes.insert(n3);
-			temp.n1 = n1;
-			temp.n2 = n2;
-			temp.n3 = n3;
+			if(!outerRingNodes.count(na))
+				innerNodes.insert(na);
+			if(!outerRingNodes.count(nb))
+				innerNodes.insert(nb);
+			if(!outerRingNodes.count(nc))
+				innerNodes.insert(nc);
+			temp.a = na;
+			temp.b = nb;
+			temp.c = nc;
 			elements.push_back(temp);
 			break;		
 
@@ -151,19 +151,19 @@ void fillElementsGenericElectrode() {
 			//	should be present in outterRingNodes)
 			int baseNode = -1;
 			int e1, e2;
-			if(outerRingNodes.count(n1)==0) {
-				baseNode = n1;
-				e1 = n2;
-				e2 = n3;
-			} else if(outerRingNodes.count(n2)==0) {
-				baseNode = n2;
-				e1 = n1;
-				e2 = n3;
+			if(outerRingNodes.count(na)==0) {
+				baseNode = na;
+				e1 = nb;
+				e2 = nc;
+			} else if(outerRingNodes.count(nb)==0) {
+				baseNode = nb;
+				e1 = na;
+				e2 = nc;
 			} 
-			else if(outerRingNodes.count(n3)==0) {
-				baseNode = n3;
-				e1 = n1;
-				e2 = n2;
+			else if(outerRingNodes.count(nc)==0) {
+				baseNode = nc;
+				e1 = na;
+				e2 = nb;
 			} 			 			 
 			addToGenericElectrode(baseNode, e1, e2);
 			break;
@@ -209,13 +209,13 @@ void fillElementsGenericElectrode() {
 	};
 	// For each element, add its node pairs in order
 	for(auto e: elements) {
-		bool n1ok = (outerRingNodes.find(e.n1)==outerRingNodes.end());
-		bool n2ok = (outerRingNodes.find(e.n2)==outerRingNodes.end());
-		bool n3ok = (outerRingNodes.find(e.n3)==outerRingNodes.end());
+		bool naok = (outerRingNodes.find(e.a)==outerRingNodes.end());
+		bool nbok = (outerRingNodes.find(e.b)==outerRingNodes.end());
+		bool ncok = (outerRingNodes.find(e.c)==outerRingNodes.end());
 
-		if(n1ok && n2ok) insertAdjNodePair(e.n1, e.n2);
-		if(n1ok && n3ok) insertAdjNodePair(e.n1, e.n3);
-		if(n2ok && n3ok) insertAdjNodePair(e.n2, e.n3);
+		if(naok && nbok) insertAdjNodePair(e.a, e.b);
+		if(nbok && ncok) insertAdjNodePair(e.a, e.b);
+		if(nbok && ncok) insertAdjNodePair(e.b, e.c);
 	}
 
 	innerAdjacency.resize(auxAdjacency.size());
@@ -247,10 +247,10 @@ void preparePerimeter()
       //	1. The element contains the node
       //	2. The element contains ANY node with coefficient > index
       for(auto const &e : elements) {
-      	  if(e.n1==n ||e.n2==n ||  e.n3==n) {
-	    if(node2coefficient[e.n1]>index) return true;
-	    if(node2coefficient[e.n2]>index) return true;
-	    if(node2coefficient[e.n3]>index) return true;
+      	  if(e.a==n ||e.b==n ||  e.c==n) {
+	    if(node2coefficient[e.a]>index) return true;
+	    if(node2coefficient[e.b]>index) return true;
+	    if(node2coefficient[e.c]>index) return true;
 	  }
       }
       return false;
@@ -263,19 +263,19 @@ void preparePerimeter()
 	//  or the 1st and 3rd are external and the 2nd is internal
 	//  or the 1st is internal and both 2nd and 3rd are external
       
-        if(!CheckInternal(elem.n1)) { // 1st is external...
-	  if(!CheckInternal(elem.n2)) { // 2nd is external...
-	     if(CheckInternal(elem.n3)) { // ... and 3rd is internal, our pair is n1 and n2
-		perimeter.push_back(std::make_pair(elem.n1,elem.n2));
+        if(!CheckInternal(elem.a)) { // 1st is external...
+	  if(!CheckInternal(elem.b)) { // 2nd is external...
+	     if(CheckInternal(elem.c)) { // ... and 3rd is internal, our pair is a and b
+		perimeter.push_back(std::make_pair(elem.a,elem.b));
 	     }
 	  } else 
-	      if(!CheckInternal(elem.n3)) { // 2nd is internal, 3rd is external, pair is n1 and n3
-		perimeter.push_back(std::make_pair(elem.n1,elem.n3));
+	      if(!CheckInternal(elem.c)) { // 2nd is internal, 3rd is external, pair is a and c
+		perimeter.push_back(std::make_pair(elem.a,elem.c));
 	      }
 	} else
-	  if(!CheckInternal(elem.n2)) { // 1st is interal, 2nd is external, check 3rd
-	      if(!CheckInternal(elem.n3)) { // 3rd is external, pair is n2 and n3
-		perimeter.push_back(std::make_pair(elem.n2,elem.n3));
+	  if(!CheckInternal(elem.b)) { // 1st is interal, 2nd is external, check 3rd
+	      if(!CheckInternal(elem.c)) { // 3rd is external, pair is b and c
+		perimeter.push_back(std::make_pair(elem.b,elem.c));
 	      }
 	  }
     }

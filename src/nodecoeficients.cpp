@@ -15,56 +15,30 @@ nodeCoefficients **nodeCoef;
 
 #define _COEFFICIENT_EPSLON_ (0.00001)
 
-// removido para usar novos eletrodos
-//void calcELectrodeCoefficients(int electrode,
-//							   double &cbb, double &c11, double &c22, double &c33,
-//							   double &cb1, double &cb2, double &cb3,
-//							   double &c12, double &c23)
-//{
-//	// FIXME: Approximate model, presumes 
-//	//	the outter edges are approximately paralel
-//	Eigen::Vector2d	// V3: n2 -> n1 v3: n2 -> n3
-//		v1(	nodes[electrodes[electrode].n1].x - nodes[electrodes[electrode].n2].x,
-//		nodes[electrodes[electrode].n1].y - nodes[electrodes[electrode].n2].y),
-//		v3(	nodes[electrodes[electrode].n3].x - nodes[electrodes[electrode].n2].x,
-//		nodes[electrodes[electrode].n3].y - nodes[electrodes[electrode].n2].y);
-//
-//	cb1 = -v1.norm()/(2*electrodeh);
-//	c12 = .25/cb1;
-//	c11 = -(cb1 + c12);
-//
-//	cb3 = -v3.norm()/(2*electrodeh);
-//	c23 = .25/cb3;
-//	c33 = -(cb3 + c23);
-//
-//	cb2 = cb3 + cb1;
-//	c22 = -(cb2 + c12 + c23);
-//
-//	cbb = -(cb1 + cb2 + cb3);  
-//}
-
-void calcElementCoefficients(int element,
-							 double &c11, double &c22, double &c33,
-							 double &c12, double &c13, double &c23)
+elementCoefficients calcElementCoefficients(int element)
 {
+	elementCoefficients c; // Hopefully copy-elision happens here
+  
 	// Vectors of each node are the opposed edge rotated by 90 degrees
 	// Notice in the end it doesn't matter if the nodes are clockwise or not!
 	Eigen::Vector2d
-		v1(	nodes[elements[element].n2].y - nodes[elements[element].n3].y,
-		nodes[elements[element].n3].x - nodes[elements[element].n2].x),
-		v2(	nodes[elements[element].n3].y - nodes[elements[element].n1].y,
-		nodes[elements[element].n1].x - nodes[elements[element].n3].x),
-		v3(	nodes[elements[element].n1].y - nodes[elements[element].n2].y,
-		nodes[elements[element].n2].x - nodes[elements[element].n1].x);
+		va(	nodes[elements[element].b].y - nodes[elements[element].c].y,
+		nodes[elements[element].c].x - nodes[elements[element].b].x),
+		vb(	nodes[elements[element].c].y - nodes[elements[element].a].y,
+		nodes[elements[element].a].x - nodes[elements[element].c].x),
+		vc(	nodes[elements[element].a].y - nodes[elements[element].b].y,
+		nodes[elements[element].b].x - nodes[elements[element].a].x);
 
-	double areaFactor = 2*fabs(v1.x()*v2.y()-v1.y()*v2.x());
+	double areaFactor = 2*fabs(va.x()*vb.y()-va.y()*vb.x());
 
-	c12 = v1.dot(v2)/areaFactor;
-	c13 = v1.dot(v3)/areaFactor;
-	c23 = v2.dot(v3)/areaFactor;
-	c11 = -c12 - c13;
-	c22 = -c12 - c23;
-	c33 = -c13 - c23;	
+	c.ab = va.dot(vb)/areaFactor;
+	c.ac = va.dot(vc)/areaFactor;
+	c.bc = vb.dot(vc)/areaFactor;
+	c.aa = -c.ab - c.ac;
+	c.bb = -c.ab - c.bc;
+	c.cc = -c.ac - c.bc;	
+
+	return c;
 }
 
 void insertNewCoefficient(nodeCoefficients **target, int node, int index, double coefficient)
@@ -86,16 +60,16 @@ void insertNewElementCoefficient(nodeCoefficients **target, int node, int elemen
 {
 	// Coefficient is spread among the 3 nodes
 	coefficient /= 3;
-	insertNewCoefficient(target, node, coefficientMap[elements[element].n1], coefficient);
-	insertNewCoefficient(target, node, coefficientMap[elements[element].n2], coefficient);
-	insertNewCoefficient(target, node, coefficientMap[elements[element].n3], coefficient);
+	insertNewCoefficient(target, node, coefficientMap[elements[element].a], coefficient);
+	insertNewCoefficient(target, node, coefficientMap[elements[element].b], coefficient);
+	insertNewCoefficient(target, node, coefficientMap[elements[element].c], coefficient);
 }
 
-void calcGenericElectrodeCoefficients(int electrode)
+void calcGenericElectrodeCoefficients(int electrode, const std::vector<genericEletrode> &electrodes)
 {
 	// FIXME: Approximate model, presumes 
 	//	the outter edges are approximately paralel
-	genericEletrode thisElectrode = gelectrodes[electrode];
+	genericEletrode thisElectrode = electrodes[electrode];
 	for (std::vector<std::pair<int, int>>::iterator it = thisElectrode.nodesPairs.begin() ; it != thisElectrode.nodesPairs.end(); ++it) {
 		// Vij: nj -> ni
 		Eigen::Vector2d	vij(nodes[it->second].x - nodes[it->first].x,
@@ -138,34 +112,33 @@ void buildNodeCoefficients()
 	for(int i = 0; i<nodes.size(); i++) nodeCoef[i] = NULL;
 	// Build electrodes
 	for(i = 0; i < gelectrodes.size(); i++) {
-		calcGenericElectrodeCoefficients(i);
+		calcGenericElectrodeCoefficients(i, gelectrodes);
 	}
 	// Now prepare the coefficients due to the elements
-	double c11, c22, c33, c12, c23, c13;
 	for(i = 0; i < elements.size(); i++) {
-		calcElementCoefficients(i, c11, c22, c33, c12, c13, c23);
-		c11 *= totalheight; c22 *= totalheight; c33 *= totalheight;
-		c12 *= totalheight; c23 *= totalheight; c13 *= totalheight;
+		
+		elementCoefficients c = calcElementCoefficients(i);
+		c *= totalheight;
 		// Node 1
-		insertNewElementCoefficient(&nodeCoef[elements[i].n1],
-			elements[i].n1, i, c11, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].n1],
-			elements[i].n2, i, c12, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].n1],
-			elements[i].n3, i, c13, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[elements[i].a],
+			elements[i].a, i, c.aa, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[elements[i].a],
+			elements[i].b, i, c.ab, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[elements[i].a],
+			elements[i].c, i, c.ac, node2coefficient);
 		// Node 2
-		insertNewElementCoefficient(&nodeCoef[elements[i].n2],
-			elements[i].n2, i, c22, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].n2],
-			elements[i].n1, i, c12, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].n2],
-			elements[i].n3, i, c23, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[elements[i].b],
+			elements[i].b, i, c.bb, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[elements[i].b],
+			elements[i].a, i, c.ab, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[elements[i].b],
+			elements[i].c, i, c.bc, node2coefficient);
 		// Node 3
-		insertNewElementCoefficient(&nodeCoef[elements[i].n3],
-			elements[i].n3, i, c33, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].n3],
-			elements[i].n1, i, c13, node2coefficient);
-		insertNewElementCoefficient(&nodeCoef[elements[i].n3],
-			elements[i].n2, i, c23, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[elements[i].c],
+			elements[i].c, i, c.cc, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[elements[i].c],
+			elements[i].a, i, c.ac, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[elements[i].c],
+			elements[i].b, i, c.bc, node2coefficient);
 	}
 }

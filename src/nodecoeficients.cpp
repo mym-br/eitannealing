@@ -15,7 +15,7 @@ nodeCoefficients **nodeCoef;
 
 #define _COEFFICIENT_EPSLON_ (0.00001)
 
-elementCoefficients calcElementCoefficients(const element &e)
+elementCoefficients calcElementCoefficients(const triangularElement &e)
 {
 	elementCoefficients c; // Hopefully copy-elision happens here
   
@@ -118,7 +118,7 @@ void buildNodeCoefficients()
 		calcGenericElectrodeCoefficients(i, gelectrodes);
 	}
 	// Now prepare the coefficients due to the elements
-	for(const element e: elements) {		
+	for(const triangularElement e: elements) {		
 		elementCoefficients c = calcElementCoefficients(e);
 		c *= totalheight;
 		// Node 1

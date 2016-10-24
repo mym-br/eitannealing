@@ -9,6 +9,7 @@
 #define NODECOEFFICIENTS_H_
 
 #include <stdlib.h>
+#include <functional>
 #include "problemdescription.h"
 
 struct nodeCoefficients {
@@ -38,5 +39,8 @@ extern nodeCoefficients **nodeCoef;
 void buildNodeCoefficients();
 void calcGenericElectrodeCoefficients(int electrode, const std::vector<genericEletrode> &electrodes);
 void insertNewElementCoefficient(nodeCoefficients **target, int node, const triangularElement &e, double coefficient, const std::map<int, int> &coefficientMap);
+void calcAndInsertGenericElectrodeCoefficients(const genericEletrode &e, const std::vector<node> &nodes, double electrodeh, double totalheight,
+							      const std::map<int, int> &coefficientMap,
+							      const std::function<void(int, int, int, double)> &insert);
 
 #endif /* NODECOEFFICIENTS_H_ */

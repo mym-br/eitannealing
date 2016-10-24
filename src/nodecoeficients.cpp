@@ -68,6 +68,48 @@ void insertNewElementCoefficient(nodeCoefficients **target, int node, const tria
 	  insertNewCoefficient(target, node, i->second, coefficient);
 }
 
+void calcAndInsertGenericElectrodeCoefficients(const genericEletrode &e, const std::vector<node> &nodes, double electrodeh, double totalheight,
+							      const std::map<int, int> &coefficientMap,
+							      const std::function<void(int, int, int, double)> &insert)
+{
+    for(auto p : e.nodesPairs ) {
+		// Vij: nj -> ni
+		Eigen::Vector2d	vij(nodes[p.second].x - nodes[p.first].x,
+							nodes[p.second].y - nodes[p.first].y);
+		// A = h / (2*l); B = l / (2*h) => A = 1 / (4*B) = 0.25/B
+		double B = vij.norm()/(2*electrodeh);
+		double A = 0.25/B;
+
+		double kiie = A+B;	// (h+l)/(2hl)
+		double kjje = kiie; // (h+l)/(2hl)
+		double kije = -A;	// -h/(2hl)
+		double kbie = -B;	// -l/(2hl)
+		double kbje = -B;	// -l/(2hl)
+		double kbbe = 2*B;	// 2*l/(2hl) = l/(hl) = l/h
+
+		// multiplicar pela altura (totalheight) e somar aos acumuladores de coeficiente
+		std::map<int, int>::const_iterator ii = coefficientMap.find(e.baseNode); 
+		if(ii!=coefficientMap.end()) {
+		  int index = ii->second;
+		  // Add to the base node...
+		  insert(e.baseNode,  e.baseNode, index, kbbe * totalheight);
+		  insert(e.baseNode,  p.first, index, kbie * totalheight);
+		  insert(e.baseNode,  p.second, index, kbje * totalheight);	
+
+		  // the i-th node...
+		  insert(p.first, p.first, index, kiie * totalheight);
+		  insert(p.first, p.second, index, kije * totalheight);	// FIXME: Necessary?
+		  insert(p.first, e.baseNode, index, kbie * totalheight);
+
+		  // ... and the j-th node
+		  insert(p.second, p.second, index, kjje * totalheight);
+		  insert(p.second, p.first, index, kije * totalheight);	// FIXME: Necessary?
+		  insert(p.second, e.baseNode, index, kbje * totalheight);
+		}
+	}
+}
+    
+
 void calcGenericElectrodeCoefficients(int electrode, const std::vector<genericEletrode> &electrodes)
 {
 	// FIXME: Approximate model, presumes 
@@ -81,12 +123,12 @@ void calcGenericElectrodeCoefficients(int electrode, const std::vector<genericEl
 		double B = vij.norm()/(2*electrodeh);
 		double A = 0.25/B;
 
-		double kiie = A+B;	// (h�+l�)/(2hl)
-		double kjje = kiie; // (h�+l�)/(2hl)
-		double kije = -A;	// -h�/(2hl)
-		double kbie = -B;	// -l�/(2hl)
-		double kbje = -B;	// -l�/(2hl)
-		double kbbe = 2*B;	// 2*l�/(2hl) = l�/(hl) = l/h
+		double kiie = A+B;	// (h+l)/(2hl)
+		double kjje = kiie; // (h+l)/(2hl)
+		double kije = -A;	// -h/(2hl)
+		double kbie = -B;	// -l/(2hl)
+		double kbje = -B;	// -l/(2hl)
+		double kbbe = 2*B;	// 2*l/(2hl) = l/(hl) = l/h
 
 		// multiplicar pela altura (totalheight) e somar aos acumuladores de coeficiente
 		int index = node2coefficient[thisElectrode.baseNode]; 
@@ -114,9 +156,12 @@ void buildNodeCoefficients()
 	nodeCoef = new nodeCoefficients *[nodes.size()];
 	for(int i = 0; i<nodes.size(); i++) nodeCoef[i] = NULL;
 	// Build electrodes
-	for(i = 0; i < gelectrodes.size(); i++) {
-		calcGenericElectrodeCoefficients(i, gelectrodes);
-	}
+	auto insertElectrodeCoefficient = [](int node_a, int node_b, int condIndex, double cab) {
+	    insertNewCoefficient(&nodeCoef[node_a], node_b, condIndex, cab);
+	};
+	for(const genericEletrode &e : gelectrodes) calcAndInsertGenericElectrodeCoefficients(
+	  e, nodes, electrodeh, totalheight, node2coefficient, insertElectrodeCoefficient);
+
 	// Now prepare the coefficients due to the elements
 	for(const triangularElement e: elements) {		
 		elementCoefficients c = calcElementCoefficients(e);

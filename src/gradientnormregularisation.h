@@ -10,7 +10,7 @@ class gradientNormRegularisation
 private:
     gradientNormRegularisation();
     static std::unique_ptr<gradientNormRegularisation> instance;
-    
+    int electrodecoefficients;
     std::unique_ptr<matrix> regularizationMatrix;
     void buildMatrix();
     int coefficientMap(int node);

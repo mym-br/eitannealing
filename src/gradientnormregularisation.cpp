@@ -70,14 +70,15 @@ std::unique_ptr<gradientNormRegularisation> gradientNormRegularisation::instance
 
 int gradientNormRegularisation::coefficientMap(int node)
 {
-    int c = node2coefficient[node];
-    return c>32?c:32;
+    int c = node2coefficient[node]-electrodecoefficients;
+    return c>0?c:0;
 }
 
 
 void gradientNormRegularisation::buildMatrix()
 {
-    matrix *out = new matrix(numcoefficients, numcoefficients);
+    
+    matrix *out = new matrix(numcoefficients-electrodecoefficients, numcoefficients-electrodecoefficients);
     std::vector<Eigen::Triplet<Scalar>> tripletList; 
     for (int i=0; i<nodes.size()-1; ++i) {
 	int ci = coefficientMap(i);
@@ -95,6 +96,7 @@ void gradientNormRegularisation::buildMatrix()
 
 gradientNormRegularisation::gradientNormRegularisation()
 {
+    electrodecoefficients = gelectrodes.size();
     this->buildMatrix();
 }
 
@@ -106,5 +108,5 @@ void gradientNormRegularisation::initInstance()
 double gradientNormRegularisation::getRegularisation(const double *sol) const
 {
     return EigenSymmQuadraticL<Scalar>(regularizationMatrix->selfadjointView<Eigen::Lower>(),
-				       Eigen::VectorXd::Map(sol, numcoefficients));
+				       Eigen::VectorXd::Map(sol+electrodecoefficients, numcoefficients-electrodecoefficients));
 }

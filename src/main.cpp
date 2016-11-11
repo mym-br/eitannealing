@@ -27,6 +27,7 @@
 #include "random.h"
 //#include "sparseincompletelq.h"
 #include "gradientnormregularisation.h"
+#include "intcoef.h"
 
 
 solutionView *view;
@@ -322,6 +323,8 @@ int main(int argc, char *argv[])
 	 prepareSkeletonMatrix();
          createCoef2KMatrix();
 	 gradientNormRegularisation::initInstance();
+	 intCoef::initInstance();
+	 
 	 /*float *solution = new float[numcoefficients];
 	 for(int i=0;i<numcoefficients;i++) solution[i] = 1;
 	 

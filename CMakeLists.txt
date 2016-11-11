@@ -26,6 +26,7 @@ set(eitannealingtest_SRCS
 #  src/solver_lb.cpp
 #  src/solution_lb.cpp
 #  src/eigen3test.cpp
+  src/intcoef.cpp
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})

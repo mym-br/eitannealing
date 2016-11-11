@@ -12,6 +12,7 @@
 #include <iostream>
 //#include <boost/numeric/interval.hpp>
 #include "gradientnormregularisation.h"
+#include "intcoef.h"
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -244,7 +245,8 @@ void solution::initSimulations()
 void solution::initErrors()
 {
 	// Calc regularisation value
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30;
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30
+				-intCoef::getInstance()->getInt(this->sol)*240;
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!

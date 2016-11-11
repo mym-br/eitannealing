@@ -11,15 +11,19 @@ class intCoef {
   protected:
     vectorx x;
     int numcoefficients;
-  public:
+    
     intCoef(
       const std::vector<node> &nodes, 	       
       const std::vector<triangularElement> &elements,
       const std::map<int, int> &node2coefficient,
-      int numcoefficients,
-      float totalheight); 
+      int numcoefficients); 
+  public:
+   
     
     double getInt(double *coefficients) const;
+    
+    static void initInstance();
+    static intCoef *getInstance();
 };
 
 #endif	// _INTCOEF_H_

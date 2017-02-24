@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
      e2test = true;
    QApplication app(argc, argv);
 
-   input = std::shared_ptr<problem>(new problem2D);
+   input = problem::createNewProblem(argv[1]);
    input->initProblem(argv[1]);
    input->initObs(argv[2], argv[3]);
    input->buildNodeCoefficients();

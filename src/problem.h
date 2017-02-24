@@ -12,6 +12,7 @@
 #include <map>
 #include <fstream>
 #include <functional>
+#include <memory>
 #include <Eigen/Core>
 #include "basematrix.h"
 class solution;
@@ -49,6 +50,7 @@ class problem {
 	std::vector<std::pair<int, int> > innerAdjacency;
 	
 public:
+	static std::shared_ptr<problem> createNewProblem(char *meshfilename);
 	virtual void initProblem(char *meshfilename) = 0;
 	void initObs(char *filecurrents, char* filename);
 	virtual void buildNodeCoefficients() = 0;

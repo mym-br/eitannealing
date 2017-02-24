@@ -14,7 +14,8 @@
 #include <QPainter>
 #include <QAbstractTableModel>
 #include <QMutex>
-
+#include <memory>
+class problem2D;
 
 class solutionView : public QAbstractListModel {
 Q_OBJECT
@@ -36,7 +37,7 @@ Q_OBJECT
 	QImage paintbuff;
 	QImage scale;
 	public:
-	    viewport(int width, int height, const char *title);
+		viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input);
 	    QImage &getBuffer() {
 		    return this->paintbuff;
 	    }
@@ -48,6 +49,7 @@ Q_OBJECT
 	      QColor getColorForLevel(double level);
 	      // override default paint event
 	      void paintEvent ( QPaintEvent * event );
+		  std::shared_ptr<problem2D> input;
 };
 
 class TableViewCopyDataPopupMenu : public QObject{

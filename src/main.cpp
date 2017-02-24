@@ -17,13 +17,15 @@
 #include <memory>
 #include <ctime>
 #include <iostream>
-#include "problemdescription.h"
+//#include "problemdescription.h"
 #include "graphics.h"
 #include "solver.h"
-#include "nodecoefficients.h"
+//#include "nodecoefficients.h"
 #include "solution.h"
+#include "problem.h"
+#include "twodim/problem2D.h"
 //#include "solution_lb.h"
-#include "observations.h"
+//#include "observations.h"
 #include "random.h"
 //#include "sparseincompletelq.h"
 #include "gradientnormregularisation.h"
@@ -42,6 +44,7 @@ float *currentSolution;
 float param;
 
 bool e2test = false;
+std::shared_ptr<problem> input;
 
 void workProc() 
 {
@@ -103,13 +106,13 @@ void workProc()
 
 	// Simulated annealing
 	std::unique_ptr<solution> current, next;
-	float kt = 0.05;
+	float kt = 0.05f;
 	
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
-	shuffler sh;
-	current.reset(new solution);
+	shuffler sh(input);
+	current.reset(new solution(input));
 	
 	std::cout.flush();
 	
@@ -157,7 +160,7 @@ void workProc()
 		double sige = sqrt(sqe/solutions - eav*eav);
 		//solution probe(current->getSolution());
 		//probe.saturate();
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations)/(nobs*solutions) << std::endl;
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations)/(input->getNObs()*solutions) << std::endl;
 		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
@@ -174,7 +177,7 @@ void workProc()
                 
                 
                 
-		kt *= 0.9;
+		kt *= 0.9f;
 		double variation = fabs(prevE-current->getDEstimate())/prevE;
 		//std::cout << "totalit:" << iterations << std::endl;
 		//std::cout << "variation: " << variation << std::endl;
@@ -301,6 +304,7 @@ double get_time()
     struct timespec t;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t);
     return ((double)t.tv_sec + (double)t.tv_nsec*1e-9)*1000;
+	return 0.0;
 }
 
 int main(int argc, char *argv[])
@@ -315,13 +319,20 @@ int main(int argc, char *argv[])
    if(argc > 5)
      e2test = true;
    QApplication app(argc, argv);
-     initProblem(argv[1]);
 
-	 initObs(argv[2], argv[3]);
-	 buildNodeCoefficients();
-	 prepareSkeletonMatrix();
-         createCoef2KMatrix();
-	 gradientNormRegularisation::initInstance();
+   input = std::shared_ptr<problem>(new problem2D);
+   input->initProblem(argv[1]);
+   input->initObs(argv[2], argv[3]);
+   input->buildNodeCoefficients();
+   input->prepareSkeletonMatrix();
+   input->createCoef2KMatrix();
+  //   initProblem(argv[1]);
+
+	 //initObs(argv[2], argv[3]);
+	 //buildNodeCoefficients();
+	 //prepareSkeletonMatrix();
+  //       createCoef2KMatrix();
+		 gradientNormRegularisation::initInstance(input);
 	 /*float *solution = new float[numcoefficients];
 	 for(int i=0;i<numcoefficients;i++) solution[i] = 1;
 	 
@@ -427,7 +438,7 @@ int main(int argc, char *argv[])
      qRegisterMetaType<QModelIndex>("QModelIndex");
      qRegisterMetaType<QModelIndex>("QVector<int>");
      
-     view = new solutionView(numcoefficients);
+     view = new solutionView(input->getNumCoefficients());
      QTableView list;
      list.setModel(view);
      QAction *copyDataAction = new QAction("Copy", &list);
@@ -435,13 +446,13 @@ int main(int argc, char *argv[])
      list.addAction(copyDataAction);
      list.setContextMenuPolicy(Qt::ActionsContextMenu);
      list.show();
-     viewport graphics(600, 600, argc>3?argv[4]:"Reverse Problem");
+	 viewport graphics(600, 600, argc>3 ? argv[4] : "Reverse Problem", std::dynamic_pointer_cast<problem2D>(input));
      graphics.show();
      
      graphics.connect(view, SIGNAL(dataChanged(QModelIndex,QModelIndex)), SLOT(solution_updated(QModelIndex,QModelIndex)));
 
-     double *sol = new double[numcoefficients];
-     for(int i=0;i<numcoefficients;i++) sol[i]=1.0;
+	 double *sol = new double[input->getNumCoefficients()];
+	 for (int i = 0; i<input->getNumCoefficients(); i++) sol[i] = 1.0;
      view->setCurrentSolution(sol);
 
      

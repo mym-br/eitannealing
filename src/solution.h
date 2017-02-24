@@ -11,9 +11,10 @@
 class solution;
 
 #include "solver.h"
-#include "assembleMatrix.h"
-#include "problemdescription.h"
-
+//#include "assembleMatrix.h"
+//#include "problemdescription.h"
+#include "problem.h"
+#include <memory>
 
 /*
  * std::autoptr<solution> current, *next;
@@ -40,12 +41,12 @@ struct shuffleData {
 struct shuffler {
 	int * shuffleConsts;
 	int * swapshuffleconsts;
-	shuffler() {
-		shuffleConsts = new int[numcoefficients];
-		swapshuffleconsts = new int[innerAdjacency.size()];
+	shuffler(std::shared_ptr<problem> input) {
+		shuffleConsts = new int[input->getNumCoefficients()];
+		swapshuffleconsts = new int[input->getInnerAdjacencyCount()];
 
-		for(int i=0;i<numcoefficients;i++) shuffleConsts[i] = 0;
-		for(int i=0;i<innerAdjacency.size();i++) swapshuffleconsts[i] = 0;
+		for (int i = 0; i<input->getNumCoefficients(); i++) shuffleConsts[i] = 0;
+		for (int i = 0; i<input->getInnerAdjacencyCount(); i++) swapshuffleconsts[i] = 0;
 	}
 	~shuffler() {
 		delete[] shuffleConsts;
@@ -88,26 +89,26 @@ class solution {
 			void initErrors();
 
 			double *getShufledSolution();
-			static double *getNewRandomSolution();
-			static double *copySolution(const double *sol);
+			static double *getNewRandomSolution(std::shared_ptr<problem> input);
+			static double *copySolution(const double *sol, std::shared_ptr<problem> input);
 
 			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
-			static matrix *getNewStiffness(double *sol) {
+			static matrix *getNewStiffness(double *sol, std::shared_ptr<problem> input) {
 				matrix *aux;
-				assembleProblemMatrix(sol, &aux);
+				input->assembleProblemMatrix(sol, &aux);
 				return aux;
 			}
 
 			// shuffle constructor
-			solution(double *sol, const solution &base);
+			solution(double *sol, const solution &base, std::shared_ptr<problem> _input);
 			double regularisation;
-
+			std::shared_ptr<problem> input;
 
 	public:
 
-		solution(const double *sol);
-		solution();	// New random solution
+		solution(const double *sol, std::shared_ptr<problem> input);
+		solution(std::shared_ptr<problem> _input);	// New random solution
 		bool compareWith(solution &target, double kt, double prob);
 		bool compareWithMinIt(solution &target, double kt, int minit);
 		bool compareWithMaxE2(solution &target, double kt, double e2);

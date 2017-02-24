@@ -7,8 +7,8 @@
 
 #include "solution.h"
 #include "random.h"
-#include "observations.h"
-#include "problemdescription.h"
+//#include "observations.h"
+//#include "problemdescription.h"
 #include <iostream>
 //#include <boost/numeric/interval.hpp>
 #include "gradientnormregularisation.h"
@@ -25,15 +25,15 @@ void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(gelectrodes.size()-1);
+	static Eigen::VectorXd aux(input->getGenericElectrodesCount()-1);
 
 	// Do another iteration on the critical solver
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
 	
-	aux = simulations[critical]->getX().tail(gelectrodes.size()-1);
-	aux -= tensions[critical];
+	aux = simulations[critical]->getX().tail(input->getGenericElectrodesCount() - 1);
+	aux -= input->getTensions()[critical];
 					
 	distance[critical] = aux.norm();
 	err[critical] = sqrt(simulations[critical]->getErrorl2Estimate());
@@ -46,7 +46,7 @@ void solution::improve()
 	// reevaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(int i = 1; i<nobs;i++) {
+	for(int i = 1; i<input->getNObs();i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -136,16 +136,17 @@ bool solution::compareWithMaxE2(solution &target, double kt,  double e2)
 }
 
 
-solution::solution(const double *sigma):
-				sol(solution::copySolution(sigma)),
-				stiffness(solution::getNewStiffness(sol)),
+solution::solution(const double *sigma, std::shared_ptr<problem> _input) :
+				sol(solution::copySolution(sigma, _input)),
+				stiffness(solution::getNewStiffness(sol, _input)),
 				precond(new SparseIncompleteLLT(*stiffness)),
-				simulations(new CG_Solver *[nobs]),
-				distance(nobs),
-				maxdist(nobs),
-				mindist(nobs),
-				err(nobs),
-				err_x_dist(nobs)
+				simulations(new CG_Solver *[_input->getNObs()]),
+				distance(_input->getNObs()),
+				maxdist(_input->getNObs()),
+				mindist(_input->getNObs()),
+				err(_input->getNObs()),
+				err_x_dist(_input->getNObs()),
+				input(_input)
 {
 	this->initSimulations();
 	this->initErrors();
@@ -153,32 +154,34 @@ solution::solution(const double *sigma):
 
 
 // New random solution
-solution::solution():
-		sol(solution::getNewRandomSolution()),
-		stiffness(solution::getNewStiffness(sol)),
+solution::solution(std::shared_ptr<problem> _input) :
+		sol(solution::getNewRandomSolution(_input)),
+		stiffness(solution::getNewStiffness(sol,  _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
-		simulations(new CG_Solver *[nobs]),
-		distance(nobs),
-		maxdist(nobs),
-		mindist(nobs),
-		err(nobs),
-		err_x_dist(nobs)
+		simulations(new CG_Solver *[_input->getNObs()]),
+		distance(_input->getNObs()),
+		maxdist(_input->getNObs()),
+		mindist(_input->getNObs()),
+		err(_input->getNObs()),
+		err_x_dist(_input->getNObs()),
+		input(_input)
 {
 	this->initSimulations();
 	this->initErrors();
 }
 
 // New randomly modified solution
-solution::solution(double *sigma, const solution &base):
+solution::solution(double *sigma, const solution &base, std::shared_ptr<problem> _input) :
 		sol(sigma),
-		stiffness(solution::getNewStiffness(sol)),
+		stiffness(solution::getNewStiffness(sol, _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
-		simulations(new CG_Solver *[nobs]),
-		distance(nobs),
-		maxdist(nobs),
-		mindist(nobs),
-		err(nobs),
-		err_x_dist(nobs)
+		simulations(new CG_Solver *[_input->getNObs()]),
+		distance(_input->getNObs()),
+		maxdist(_input->getNObs()),
+		mindist(_input->getNObs()),
+		err(_input->getNObs()),
+		err_x_dist(_input->getNObs()),
+		input(_input)
 {
 	this->initSimulations(base);
 	this->initErrors();
@@ -189,10 +192,10 @@ void solution::initSimulations(const solution &base)
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
-	for(i=0;i<nobs;i++)
+	for(i=0;i<input->getNObs();i++)
 	{
 		// Reuse previous solutions as initial values
-		simulations[i] = new CG_Solver(*stiffness, currents[i], base.simulations[i]->getX(), *precond);
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrents()[i], base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -218,9 +221,9 @@ void solution::initSimulations()
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
-	for(i=0;i<nobs;i++)
+	for(i=0;i<input->getNObs();i++)
 	{
-		simulations[i] = new CG_Solver(*stiffness, currents[i], *precond);
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrents()[i], *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -248,12 +251,12 @@ void solution::initErrors()
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(gelectrodes.size()-1);
+	static Eigen::VectorXd aux(input->getGenericElectrodesCount()-1);
 	// Retrieve distance estimates, errors and boundaries
-	for(i=0;i<nobs;i++) {
+	for(i=0;i<input->getNObs();i++) {
 		// Compare with observation
 		aux = simulations[i]->getX().tail(aux.size());
-		aux -= tensions[i];
+		aux -= input->getTensions()[i];
 		
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
@@ -267,7 +270,7 @@ void solution::initErrors()
 	// evaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(i = 1; i<nobs;i++) {
+	for(i = 1; i<input->getNObs();i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -277,19 +280,19 @@ void solution::initErrors()
 }
 
 
-double *solution::copySolution(const double *sol)
+double *solution::copySolution(const double *sol, std::shared_ptr<problem> input)
 {
-	double *res = new double[numcoefficients];
+	double *res = new double[input->getNumCoefficients()];
 
-	for(int i=0;i<numcoefficients;i++)
+	for (int i = 0; i<input->getNumCoefficients(); i++)
 		res[i] = sol[i];
 
 	return res;
 }
 
-double *solution::getNewRandomSolution()
+double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
 {
-	double *res = new double[numcoefficients];
+	double *res = new double[input->getNumCoefficients()];
 	int i = 0;
 /*
 	res[i++] = 0.0795333;
@@ -325,7 +328,7 @@ double *solution::getNewRandomSolution()
 	res[i++] = 0.122205;
 	res[i++] = 0.119641;
 	res[i++] = 0.35731;*/
-	for(i=0;i<numcoefficients;i++)
+	for (i = 0; i<input->getNumCoefficients(); i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
 	return res;
@@ -333,10 +336,10 @@ double *solution::getNewRandomSolution()
 
 double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) const
 {
-	double *res = solution::copySolution(sol);
+	double *res = solution::copySolution(sol, input);
 	// head or tails
 	if(genint(2)) { // Normal
-		int ncoef = genint(numcoefficients);	// Lower values fixed;
+		int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {
 			res[ncoef] = mincond+genreal()*(maxcond-mincond);
@@ -359,11 +362,11 @@ double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) con
 			data->ncoef = ncoef;
 		}
 	} else { // swap
-		int ncoef = genint(innerAdjacency.size());
+		int ncoef = genint(input->getInnerAdjacencyCount());
 		int node1, node2;
 
-		node1 = node2coefficient[innerAdjacency[ncoef].first];
-		node2 = node2coefficient[innerAdjacency[ncoef].second];
+		node1 = input->node2coefficient[input->innerAdjacency[ncoef].first];
+		node2 = input->node2coefficient[input->innerAdjacency[ncoef].second];
 		
 		// Order nodes
 		if(res[node1]>res[node2]) {
@@ -419,7 +422,7 @@ solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
 	double *sigma = getShuffledSolution(data, sh);
 	solution *res;
 	try {
-		res = new solution(sigma, *this);
+		res = new solution(sigma, *this, input);
 	} catch(...) {
 		for(int i=0;i<65;i++)
 			std::cout << i << ":" << sigma[i] << std::endl;
@@ -430,20 +433,20 @@ solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
 
 void solution::saturate()
 {
-      ensureMinIt(nodes.size()+30);
+      ensureMinIt(input->getNodesCount()+30);
 }
 
 void solution::ensureMinIt(unsigned int it)
 {     
-      static Eigen::VectorXd aux(gelectrodes.size()-1);
-      for(int i = 0; i<nobs;i++) {
+	static Eigen::VectorXd aux(input->getGenericElectrodesCount() - 1);
+      for(int i = 0; i<input->getNObs();i++) {
 	    CG_Solver *sim = this->simulations[i];
 	    while(sim->getIteration()<it) {
 		simulations[i]->do_iteration();
 		this->totalit++;
 		// Recalcule expected distance and boundaries
-		aux = simulations[i]->getX().tail(gelectrodes.size()-1);
-		aux -= tensions[i];
+		aux = simulations[i]->getX().tail(input->getGenericElectrodesCount() - 1);
+		aux -= input->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
@@ -455,7 +458,7 @@ void solution::ensureMinIt(unsigned int it)
 		// reevaluate critical
 		double max = err_x_dist[0];
 		critical = 0;
-		for(int j = 1; j<nobs;j++) {
+		for(int j = 1; j<input->getNObs();j++) {
 		  if(max < err_x_dist[j]) {
 			max = err_x_dist[j];
 			critical = j;
@@ -468,15 +471,15 @@ void solution::ensureMinIt(unsigned int it)
 
 void solution::ensureMaxE2(double e2)
 {     
-      static Eigen::VectorXd aux(gelectrodes.size()-1);
-      for(int i = 0; i<nobs;i++) {
+	static Eigen::VectorXd aux(input->getGenericElectrodesCount() - 1);
+      for(int i = 0; i<input->getNObs();i++) {
 	    CG_Solver *sim = this->simulations[i];
 	    while(sim->getLastE2()>e2) {
 		simulations[i]->do_iteration();
 		this->totalit++;
 		// Recalcule expected distance and boundaries
-		aux = simulations[i]->getX().tail(gelectrodes.size()-1);
-		aux -= tensions[i];
+		aux = simulations[i]->getX().tail(input->getGenericElectrodesCount() - 1);
+		aux -= input->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
@@ -488,7 +491,7 @@ void solution::ensureMaxE2(double e2)
 		// reevaluate critical
 		double max = err_x_dist[0];
 		critical = 0;
-		for(int j = 1; j<nobs;j++) {
+		for(int j = 1; j<input->getNObs();j++) {
 		  if(max < err_x_dist[j]) {
 			max = err_x_dist[j];
 			critical = j;
@@ -504,7 +507,7 @@ solution::~solution()
 	delete[] sol;
 	delete stiffness;
 	delete precond;
-	for(int i=0;i<nobs;i++) {
+	for(int i=0;i<input->getNObs();i++) {
 		delete simulations[i];
 	}
 	delete[] simulations;

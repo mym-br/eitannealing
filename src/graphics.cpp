@@ -6,7 +6,8 @@
  */
 
 #include "graphics.h"
-#include "problemdescription.h"
+#include "twodim/problem2D.h"
+//#include "problemdescription.h"
 #include <QColor>
 #include <QPolygon>
 #include <QPainter>
@@ -26,7 +27,7 @@ QPoint translateCoordinate(float x, float y)
 	return QPoint((int)(1800*x+0.5)+300, 300 - (int)(1800*y+.5));
 }
 
-viewport::viewport(int width, int height, const char *title) : scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32)
+viewport::viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input) : scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32), input(_input)
 {
 	this->setWindowTitle(title);
 	this->setFixedSize(width, height+scale.height());
@@ -74,9 +75,9 @@ QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 	// Reorder the elements so that sigma(n1) <= sigma(n2) <= sigma(n3)
 	double s1, s2, s3, f_aux;
 	int aux;
-	s1 = solution[node2coefficient[n1]];
-	s2 = solution[node2coefficient[n2]];
-	s3 = solution[node2coefficient[n3]];
+	s1 = solution[input->node2coefficient[n1]];
+	s2 = solution[input->node2coefficient[n2]];
+	s3 = solution[input->node2coefficient[n3]];
 	// Quick hardcoded sort
 	
 	if(s1 > s2) {
@@ -100,11 +101,11 @@ QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 	// 	let's say p0 = n1		
 	double alpha = (s2-s1)/(s3-s1);	// 0 <= x <= 1
 	Eigen::Vector2d a(
-		nodes[n3].x - nodes[n1].x,
-		nodes[n3].y - nodes[n1].y),
+		input->nodes[n3].x - input->nodes[n1].x,
+		input->nodes[n3].y - input->nodes[n1].y),
 					b(
-		nodes[n2].x - nodes[n1].x,
-		nodes[n2].y - nodes[n1].y);
+		input->nodes[n2].x - input->nodes[n1].x,
+		input->nodes[n2].y - input->nodes[n1].y);
 
 	double c = b.y() - alpha*a.y();
 	double s = alpha*a.x() - b.x();
@@ -117,8 +118,8 @@ QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 	y /= (cc+ss);
 
 	QLinearGradient color(
-		translateCoordinate(nodes[n1].x, nodes[n1].y),
-		translateCoordinate(nodes[n1].x+x, nodes[n1].y+y));
+		translateCoordinate(input->nodes[n1].x, input->nodes[n1].y),
+		translateCoordinate(input->nodes[n1].x + x, input->nodes[n1].y + y));
 	
 	color.setColorAt(0, getColorForLevel(s1));	
 	for(double t=0.125f; t < 1.0f; t+= 0.125f) {
@@ -139,18 +140,18 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 	    painter.setRenderHint(QPainter::Antialiasing);
 	    painter.eraseRect(this->geometry());
 	    painter.setPen(Qt::NoPen);
-	    for(i=0;i<elements.size();i++) {
+		for (i = 0; i<input->elements.size(); i++) {
 		    QPolygon polygon;
-		    int n = elements[i].a;
-		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		    n = elements[i].b;
-		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		    n = elements[i].c;
-		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		    n = elements[i].a;
-		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
+			int n = input->elements[i].a;
+			polygon.push_back(translateCoordinate(input->nodes[n].x, input->nodes[n].y));
+			n = input->elements[i].b;
+			polygon.push_back(translateCoordinate(input->nodes[n].x, input->nodes[n].y));
+			n = input->elements[i].c;
+			polygon.push_back(translateCoordinate(input->nodes[n].x, input->nodes[n].y));
+			n = input->elements[i].a;
+			polygon.push_back(translateCoordinate(input->nodes[n].x, input->nodes[n].y));
 		    int level = 255;//*(solution[elements[i].condIndex]-1);		
-		    painter.setBrush(getBrushForElement(solution, elements[i].a, elements[i].b, elements[i].c));
+			painter.setBrush(getBrushForElement(solution, input->elements[i].a, input->elements[i].b, input->elements[i].c));
 		    painter.drawConvexPolygon(polygon);
 	    }
 	    // Draw electrodes
@@ -174,10 +175,10 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 	    
 	    painter.setPen(Qt::SolidLine);
 	    painter.setBrush(Qt::NoBrush);
-	    for(auto const &edge : perimeter) {
+		for (auto const &edge : input->perimeter) {
 	      painter.drawLine(
-		translateCoordinate(nodes[edge.first].x, nodes[edge.first].y),
-		translateCoordinate(nodes[edge.second].x, nodes[edge.second].y)
+			  translateCoordinate(input->nodes[edge.first].x, input->nodes[edge.first].y),
+			  translateCoordinate(input->nodes[edge.second].x, input->nodes[edge.second].y)
 	      );
 	      
 	    }

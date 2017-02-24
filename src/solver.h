@@ -10,7 +10,7 @@
 
 #include "basematrix.h"
 #include "incomplete_cholesky.h"
-#include "nodecoefficients.h"
+//#include "nodecoefficients.h"
 
 template<class base, size_t len> class circularbuff
 {

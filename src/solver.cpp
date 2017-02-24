@@ -7,7 +7,7 @@
 
 
 #include "solver.h"
-#include "nodecoefficients.h"
+//#include "nodecoefficients.h"
 
 CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
 	A(_A),

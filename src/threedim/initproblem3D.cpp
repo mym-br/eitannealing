@@ -85,6 +85,7 @@ void problem3D::fillElementsGenericElectrode() {
 	std::set<int> baseElectrodeNodes;
 	std::string aux;
 	problem3D::gmeshElement currElement;
+	std::vector<problem3D::gmeshElement> gmeshGeElectrodes;
 
 	do {
 		std::getline(file, aux);
@@ -115,13 +116,18 @@ void problem3D::fillElementsGenericElectrode() {
 			elements.push_back(tetrahedralElement(currElement.node_number_list[0], currElement.node_number_list[1], currElement.node_number_list[2], currElement.node_number_list[3]));
 		}
 		if (firstTag > 3000 && firstTag < 4000) {
-			addToGenericElectrode(triangularElement(currElement.node_number_list[0], currElement.node_number_list[1], currElement.node_number_list[2]), firstTag, baseElectrodeNodes);
+			// Add to a list to finish processing afterwards
+			gmeshGeElectrodes.push_back(currElement);
 		}
 		if (firstTag == 9999) {
 			// Electrode base node
 			baseElectrodeNodes.insert(currElement.node_number_list[0]);
 		}
 	}
+
+	// Process electrodes
+	for (auto ge : gmeshGeElectrodes)
+		addToGenericElectrode(triangularElement(ge.node_number_list[0], ge.node_number_list[1], ge.node_number_list[2]), *ge.tags.begin(), baseElectrodeNodes);
 
 	// Prepare node <-> condindex map
 	int condIndex = 0;

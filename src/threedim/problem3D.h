@@ -68,8 +68,8 @@ private:
 	void addToGenericElectrode(triangularElement base, int eletrodeTag, std::set<int> &baseNodes);
 	void preparePerimeter();
 	void insertNewCoefficient(nodeCoefficients **target, int node, int index, double coefficient);
-	elementCoefficients calcElementCoefficients(const triangularElement &e);
-	void insertNewElementCoefficient(nodeCoefficients **target, int node, const triangularElement &e, double coefficient, const std::map<int, int> &coefficientMap);
+	elementCoefficients calcElementCoefficients(const tetrahedralElement &e);
+	void insertNewElementCoefficient(nodeCoefficients **target, int node, const tetrahedralElement &e, double coefficient, const std::map<int, int> &coefficientMap);
 	void calcAndInsertGenericElectrodeCoefficients(const genericEletrode &e, const std::vector<node> &nodes, double electrodeh, double totalheight,
 		const std::map<int, int> &coefficientMap,
 		const std::function<void(int, int, int, double)> &insert);

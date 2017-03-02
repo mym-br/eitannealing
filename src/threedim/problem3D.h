@@ -20,6 +20,8 @@ class problem3D : public problem {
 	friend class viewport;
 
 	struct node {
+		node() {}
+		node(const node &n) : x(n.x), y(n.y), z(n.z) {}
 		double x, y, z;
 	};
 
@@ -37,8 +39,7 @@ class problem3D : public problem {
 	};
 
 	struct genericEletrode {
-		genericEletrode() { baseNode = -1; }
-		int baseNode;
+		int baseNode = -1;
 		std::vector<triangularElement> nodesTriangles;
 	};
 

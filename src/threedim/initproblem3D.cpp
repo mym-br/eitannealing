@@ -66,9 +66,14 @@ void problem3D::addToGenericElectrode(triangularElement base, int eletrodeTag, s
 		gelectrodes[eletrodeTag] = genericEletrode();
 	}
 	// Check if any triangle node is in the base node list
-	if (baseNodes.find(base.a) != baseNodes.end()) gelectrodes[eletrodeTag].baseNode = base.a;
-	if (baseNodes.find(base.b) != baseNodes.end()) gelectrodes[eletrodeTag].baseNode = base.b;
-	if (baseNodes.find(base.c) != baseNodes.end()) gelectrodes[eletrodeTag].baseNode = base.c;
+	std::set<int>::iterator it;
+	if (gelectrodes[eletrodeTag].baseNode == -1 && (
+		(it = baseNodes.find(base.a)) != baseNodes.end() || (it = baseNodes.find(base.b)) != baseNodes.end() || (it = baseNodes.find(base.c)) != baseNodes.end()) ) {
+		problem3D::node n(nodes[*it]);
+		nodes.push_back(n);
+		gelectrodes[eletrodeTag].baseNode = (int)nodes.size() - 1;
+		baseNodes.erase(it); baseNodes.insert((int)nodes.size() - 1);
+	}
 	// Add base triangle part to electrode
 	gelectrodes[eletrodeTag].nodesTriangles.push_back(base);
 	// Search for base node!
@@ -118,55 +123,59 @@ void problem3D::fillElementsGenericElectrode() {
 		}
 	}
 
-	//// Prepare node <-> condindex map
-	//int condIndex = 0;
-	//// Electrode coefficients
-	//for (auto e : gelectrodes) {
-	//	node2coefficient[e.baseNode] = condIndex++;
-	//}
+	// Prepare node <-> condindex map
+	int condIndex = 0;
+	// Electrode coefficients
+	for (auto e : gelectrodes) {
+		node2coefficient[e.second.baseNode] = condIndex++;
+	}
 
-	//// Outter ring coefficient
-	//for (auto e : outerRingNodes) {
-	//	node2coefficient[e] = condIndex;
-	//}
+	// Outter ring coefficient
+	for (auto e : outerRingNodes) {
+		node2coefficient[e] = condIndex;
+	}
 
-	//condIndex++;
+	condIndex++;
 
-	//// Inner coefficients
-	//for (auto i : innerNodes) {
-	//	node2coefficient[i] = condIndex++;
-	//}
+	// Inner coefficients
+	for (auto i : innerNodes) {
+		node2coefficient[i] = condIndex++;
+	}
 
-	//numcoefficients = condIndex;
-	//groundNode = gelectrodes.back().baseNode;
+	numcoefficients = condIndex;
+	groundNode = (*gelectrodes.begin()).second.baseNode;
 
-	//// Prepare inner nodes adjacency map
-	////	Adjacency is established between nodes that are NOT in the outter ring
-	////	set AND share at least one element
-	//typedef std::set<std::pair<int, int> > adjacencySet;
-	//adjacencySet auxAdjacency;
-	//// Functor that adds an ordered pair to innerAdjacency
-	////  Notice the pair is ordered first, so the pair (2,1) is translated
-	////	to (1,2)
-	//auto insertAdjNodePair = [&auxAdjacency](int n1, int n2) {
-	//	if (n1<n2) {
-	//		auxAdjacency.insert(std::pair<int, int>(n1, n2));
-	//	}
-	//	else {
-	//		auxAdjacency.insert(std::pair<int, int>(n2, n1));
-	//	}
-	//};
-	//// For each element, add its node pairs in order
-	//for (auto e : elements) {
-	//	bool naok = (outerRingNodes.find(e.a) == outerRingNodes.end());
-	//	bool nbok = (outerRingNodes.find(e.b) == outerRingNodes.end());
-	//	bool ncok = (outerRingNodes.find(e.c) == outerRingNodes.end());
+	// Prepare inner nodes adjacency map
+	//	Adjacency is established between nodes that are NOT in the outter ring
+	//	set AND share at least one element
+	typedef std::set<std::pair<int, int> > adjacencySet;
+	adjacencySet auxAdjacency;
+	// Functor that adds an ordered pair to innerAdjacency
+	//  Notice the pair is ordered first, so the pair (2,1) is translated
+	//	to (1,2)
+	auto insertAdjNodePair = [&auxAdjacency](int n1, int n2) {
+		if (n1<n2) {
+			auxAdjacency.insert(std::pair<int, int>(n1, n2));
+		}
+		else {
+			auxAdjacency.insert(std::pair<int, int>(n2, n1));
+		}
+	};
+	// For each element, add its node pairs in order
+	for (auto e : elements) {
+		bool naok = (outerRingNodes.find(e.a) == outerRingNodes.end());
+		bool nbok = (outerRingNodes.find(e.b) == outerRingNodes.end());
+		bool ncok = (outerRingNodes.find(e.c) == outerRingNodes.end());
+		bool ndok = (outerRingNodes.find(e.d) == outerRingNodes.end());
 
-	//	if (naok && nbok) insertAdjNodePair(e.a, e.b);
-	//	if (nbok && ncok) insertAdjNodePair(e.a, e.b);
-	//	if (nbok && ncok) insertAdjNodePair(e.b, e.c);
-	//}
+		if (naok && nbok) insertAdjNodePair(e.a, e.b);
+		if (naok && ncok) insertAdjNodePair(e.a, e.c);
+		if (naok && ndok) insertAdjNodePair(e.a, e.d);
+		if (nbok && ncok) insertAdjNodePair(e.b, e.c);
+		if (nbok && ndok) insertAdjNodePair(e.b, e.d);
+		if (ncok && ndok) insertAdjNodePair(e.c, e.d);
+	}
 
-	//innerAdjacency.resize(auxAdjacency.size());
-	//std::copy(auxAdjacency.begin(), auxAdjacency.end(), innerAdjacency.begin());
+	innerAdjacency.resize(auxAdjacency.size());
+	std::copy(auxAdjacency.begin(), auxAdjacency.end(), innerAdjacency.begin());
 }

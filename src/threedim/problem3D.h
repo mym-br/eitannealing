@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include <fstream>
 #include "../problem.h"
 class solution;
@@ -23,17 +24,22 @@ class problem3D : public problem {
 	};
 
 	struct tetrahedralElement {
+		tetrahedralElement() {}
+		tetrahedralElement(int _a, int _b, int _c, int _d) : a(_a), b(_b), c(_c), d(_d) {}
 		int a, b, c, d;
 		int condIndex;
 	};
 
 	struct triangularElement {
+		triangularElement() {}
+		triangularElement(int _a, int _b, int _c) : a(_a), b(_b), c(_c) {}
 		int a, b, c;
 	};
 
 	struct genericEletrode {
+		genericEletrode() { baseNode = -1; }
 		int baseNode;
-		std::vector<triangularElement > nodesTriangles;
+		std::vector<triangularElement> nodesTriangles;
 	};
 
 	struct elementCoefficients {
@@ -46,10 +52,19 @@ class problem3D : public problem {
 		}
 	};
 
+	struct gmeshElement {
+		int elm_number;
+		int elm_type;
+		int number_of_tags;
+		std::vector<int> tags;
+		std::vector<int> node_number_list;
+	};
+
 private:
 	void fillNodes();
+	gmeshElement getNextElement();
 	void fillElementsGenericElectrode();
-	void addToGenericElectrode(int n1, int n2, int n3);
+	void addToGenericElectrode(triangularElement base, int eletrodeTag, std::set<int> &baseNodes);
 	void preparePerimeter();
 	void insertNewCoefficient(nodeCoefficients **target, int node, int index, double coefficient);
 	elementCoefficients calcElementCoefficients(const triangularElement &e);
@@ -61,8 +76,8 @@ private:
 	float totalheight;
 	std::ifstream file;
 	std::vector<node> nodes;
-	std::vector<triangularElement> elements;
-	std::vector<genericEletrode> gelectrodes;
+	std::vector<tetrahedralElement> elements;
+	std::map<int, genericEletrode> gelectrodes;
 	std::vector<std::pair<int, int> > perimeter;
 	matrix *skeleton;
 	matrix *coef2KMatrix;

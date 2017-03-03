@@ -7,12 +7,12 @@ void problem3D::buildNodeCoefficients()
 	// Init coefficients;
 	nodeCoef = new nodeCoefficients *[nodes.size()];
 	for (int i = 0; i<nodes.size(); i++) nodeCoef[i] = NULL;
-	//// Build electrodes
-	//auto insertElectrodeCoefficient = [this](int node_a, int node_b, int condIndex, double cab) {
-	//	insertNewCoefficient(&nodeCoef[node_a], node_b, condIndex, cab);
-	//};
-	//for (const genericEletrode &e : gelectrodes) calcAndInsertGenericElectrodeCoefficients(
-	//	e, nodes, electrodeh, totalheight, node2coefficient, insertElectrodeCoefficient);
+	// Build electrodes
+	auto insertElectrodeCoefficient = [this](int node_a, int node_b, int condIndex, double cab) {
+		insertNewCoefficient(&nodeCoef[node_a], node_b, condIndex, cab);
+	};
+	for (const std::pair<int,genericEletrode> &e : gelectrodes) calcAndInsertGenericElectrodeCoefficients(
+		e.second, nodes, electrodeh, totalheight, node2coefficient, insertElectrodeCoefficient);
 
 		// Now prepare the coefficients due to the elements
 	for (const tetrahedralElement e : elements) {
@@ -48,8 +48,8 @@ problem3D::elementCoefficients problem3D::calcElementCoefficients(const tetrahed
 		vil(nodes[e.d].x - nodes[e.a].x, nodes[e.d].y - nodes[e.a].y, nodes[e.d].z - nodes[e.a].z),
 		vij(nodes[e.b].x - nodes[e.a].x, nodes[e.b].y - nodes[e.a].y, nodes[e.b].z - nodes[e.a].z);
 
-	// Vectors of each node are the opposed edge rotated to coincide with normal of opposed face
-	// Check if order of vertexes impacts the result, it appears not
+	// Vectors of each node are the opposed edge rotated to coincide with normal of opposed face,
+	// order of vertexes does not impact the result
 	Eigen::Vector3d va(vjl.cross(vjk)), vb(vik.cross(vil)), vc(vil.cross(vij)), vd(vij.cross(vik));
 
 	double areaFactor = 6 * fabs((vij.cross(vik)).dot(vil));
@@ -64,10 +64,10 @@ problem3D::elementCoefficients problem3D::calcElementCoefficients(const tetrahed
 	c.cc = -c.ac - c.bc - c.cd;
 	c.dd = -c.ad - c.bd - c.cd;
 
-	std::cout << c.aa << " " << c.ab << " " << c.ac << " " << c.ad << std::endl;
-	std::cout << c.ab << " " << c.bb << " " << c.bc << " " << c.bd << std::endl;
-	std::cout << c.ac << " " << c.bc << " " << c.cc << " " << c.cd << std::endl;
-	std::cout << c.ad << " " << c.bd << " " << c.cd << " " << c.dd << std::endl;
+	//std::cout << c.aa << " " << c.ab << " " << c.ac << " " << c.ad << std::endl;
+	//std::cout << c.ab << " " << c.bb << " " << c.bc << " " << c.bd << std::endl;
+	//std::cout << c.ac << " " << c.bc << " " << c.cc << " " << c.cd << std::endl;
+	//std::cout << c.ad << " " << c.bd << " " << c.cd << " " << c.dd << std::endl;
 
 	return c;
 }
@@ -99,4 +99,81 @@ void problem3D::insertNewCoefficient(nodeCoefficients **target, int node, int in
 	}
 	// Insert node
 	*target = new nodeCoefficients(node, index, coefficient, *target);
+}
+
+void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode &e, const std::vector<node> &nodes, double electrodeh, double totalheight,
+	const std::map<int, int> &coefficientMap,
+	const std::function<void(int, int, int, double)> &insert)
+{
+	for (auto p : e.nodesTriangles) {
+		// Get triangle base parameters
+		double hz = electrodeh;
+		node vi(nodes[p.a]), vj(nodes[p.b]), vk(nodes[p.c]);
+		Eigen::Vector3d	vji(vj.x - vi.x, vj.y - vi.y, vj.z - vi.z), vkj(vk.x - vj.x, vk.y - vj.y, vk.z - vj.z), vki(vk.x - vi.x, vk.y - vi.y, vk.z - vi.z);
+		double lk(vji.norm()), li(vkj.norm()), lj(vki.norm());
+		double S = (li + lj + lk) / 2;
+		double xji = lk;
+		double hy = (2 * sqrt(S*(S - li)*(S - lj)*(S - lk))) / lk;
+		double xki = sqrt(lj*lj - hy*hy);
+		double xkj = sqrt(li*li - hy*hy);
+		xki = xkj > xji ? -xki : xki;
+		xkj = xki > xji ? xkj : -xkj;
+		double areaFactor = 6 * hy*hz*xji;
+		
+		//std::cout << "vi = (" << vi.x << ", " << vi.y << ", " << vi.z << ")." << std::endl;
+		//std::cout << "vj = (" << vj.x << ", " << vj.y << ", " << vj.z << ")." << std::endl;
+		//std::cout << "vk = (" << vk.x << ", " << vk.y << ", " << vk.z << ")." << std::endl;
+		//std::cout << "areaFactor = " << areaFactor << std::endl;
+
+		double A, B, C, D, E, F;
+		A = hy*hz;
+		B = hz*xkj;
+		C = hy*xji;
+		D = hz*xki;
+		E = hz*xji;
+		F = hy*xji;
+
+		//std::cout << "A = " << A << std::endl << "B = " << B << std::endl << "C = " << C << std::endl << "D = " << D << std::endl << "E = " << E << std::endl << "F = " << F << std::endl;
+
+		double kbbe = (B*B + 3 * C*C - 2 * B*B*(D - E) + (D - E)*(D - E)) / areaFactor;
+		double kbie = -(C*C) / areaFactor;
+		double kbje = kbie;
+		double kiie = (A*A + B*B + C*C) / areaFactor;
+		double kije = -(A*A + B*D) / areaFactor;
+		double kike = kije;
+		double kjje = (A*A + C*C + D*D + E*E) / areaFactor;
+		double kjke = -(E*(D + E)) / areaFactor;
+		double kkke = (C*C + 2*E*E) / areaFactor;
+
+		//std::cout << "kbbe = " << kbbe << std::endl << "kbie = " << kbie << std::endl << "kbje = " << kbje << std::endl << "kiie = " << kiie << std::endl << "kije = " << kije << std::endl << "kike = " << kike << std::endl << "kjje = " << kjje << std::endl << "kjke = " << kjke << std::endl << "kkke = " << kkke << std::endl;
+
+		// somar aos acumuladores de coeficiente
+		std::map<int, int>::const_iterator ii = coefficientMap.find(e.baseNode);
+		if (ii != coefficientMap.end()) {
+			int index = ii->second;
+			// Add to the base node...
+			insert(e.baseNode, e.baseNode, index, kbbe);
+			insert(e.baseNode, p.a, index, kbie);
+			insert(e.baseNode, p.b, index, kbje);
+			// insert(e.baseNode, p.b, index, kbke); = 0
+
+			// the i-th node...
+			insert(p.a, e.baseNode, index, kbie);
+			insert(p.a, p.a, index, kiie);
+			insert(p.a, p.b, index, kije);
+			insert(p.a, p.c, index, kike);
+
+			// the j-th node...
+			insert(p.b, e.baseNode, index, kbje);
+			insert(p.b, p.a, index, kije);
+			insert(p.b, p.b, index, kjje);
+			insert(p.b, p.c, index, kjke);
+
+			// ... and the k-th node
+			//insert(p.c, e.baseNode, index, kbke); = 0
+			insert(p.c, p.a, index, kike);
+			insert(p.c, p.b, index, kjke);
+			insert(p.c, p.c, index, kkke);
+		}
+	}
 }

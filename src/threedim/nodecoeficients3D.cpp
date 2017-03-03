@@ -33,6 +33,11 @@ void problem3D::buildNodeCoefficients()
 		insertNewElementCoefficient(&nodeCoef[e.c], e.a, e, c.ac, node2coefficient);
 		insertNewElementCoefficient(&nodeCoef[e.c], e.b, e, c.bc, node2coefficient);
 		insertNewElementCoefficient(&nodeCoef[e.c], e.d, e, c.cd, node2coefficient);
+		// Node 4
+		insertNewElementCoefficient(&nodeCoef[e.d], e.d, e, c.dd, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.d], e.a, e, c.ad, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.d], e.b, e, c.bd, node2coefficient);
+		insertNewElementCoefficient(&nodeCoef[e.d], e.c, e, c.cd, node2coefficient);
 	}
 }
 

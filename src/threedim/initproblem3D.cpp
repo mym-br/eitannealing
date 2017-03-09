@@ -54,7 +54,7 @@ problem3D::gmeshElement problem3D::getNextElement() {
 	}
 	for (int i = 0; i < nodeCount; i++) {
 		file >> temp;
-		element.node_number_list.push_back(temp);
+		element.node_number_list.push_back(--temp);
 	}
 	return element;
 }
@@ -149,7 +149,7 @@ void problem3D::fillElementsGenericElectrode() {
 	}
 
 	numcoefficients = condIndex;
-	groundNode = (*gelectrodes.begin()).second.baseNode;
+	groundNode = (*(--gelectrodes.end())).second.baseNode;
 
 	// Prepare inner nodes adjacency map
 	//	Adjacency is established between nodes that are NOT in the outter ring

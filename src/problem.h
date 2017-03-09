@@ -48,6 +48,8 @@ class problem {
 	Eigen::VectorXd *currents;
 	nodeCoefficients **nodeCoef;
 	std::vector<std::pair<int, int> > innerAdjacency;
+	matrix *skeleton;
+	matrix *coef2KMatrix;
 	
 public:
 	static std::shared_ptr<problem> createNewProblem(char *meshfilename);
@@ -58,15 +60,15 @@ public:
 	virtual int getNodesCount() = 0;
 	virtual int getInnerAdjacencyCount() = 0;
 	int getNumCoefficients() { return numcoefficients; }
-	virtual void prepareSkeletonMatrix() = 0;
-	virtual void createCoef2KMatrix() = 0;
-	virtual void assembleProblemMatrix(double *cond, matrix **stiffnes) = 0;
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
 	problem() {};
 	virtual ~problem(){};
 	int getNObs() { return nobs; }
 	Eigen::VectorXd *getTensions() { return tensions; }
 	Eigen::VectorXd *getCurrents() { return currents; }
+	void prepareSkeletonMatrix();
+	void createCoef2KMatrix();
+	void assembleProblemMatrix(double *cond, matrix **stiffnes);
 };
 
 const double mincond = 0.005;

@@ -70,25 +70,19 @@ private:
 	void insertNewCoefficient(nodeCoefficients **target, int node, int index, double coefficient);
 	elementCoefficients calcElementCoefficients(const tetrahedralElement &e);
 	void insertNewElementCoefficient(nodeCoefficients **target, int node, const tetrahedralElement &e, double coefficient, const std::map<int, int> &coefficientMap);
-	void calcAndInsertGenericElectrodeCoefficients(const genericEletrode &e, const std::vector<node> &nodes, double electrodeh, double totalheight,
+	void calcAndInsertGenericElectrodeCoefficients(const genericEletrode &e, const std::vector<node> &nodes, double electrodeh,
 		const std::map<int, int> &coefficientMap,
 		const std::function<void(int, int, int, double)> &insert);
 
-	float totalheight;
 	std::ifstream file;
 	std::vector<node> nodes;
 	std::vector<tetrahedralElement> elements;
 	std::map<int, genericEletrode> gelectrodes;
 	std::vector<std::pair<int, int> > perimeter;
-	matrix *skeleton;
-	matrix *coef2KMatrix;
 
 public:
 	void initProblem(char *meshfilename);
 	void buildNodeCoefficients();
-	void prepareSkeletonMatrix();
-	void createCoef2KMatrix();
-	void assembleProblemMatrix(double *cond, matrix **stiffnes);
 	int getGenericElectrodesCount() { return (int)gelectrodes.size(); }
 	int getNodesCount() { return (int)nodes.size(); }
 	int getInnerAdjacencyCount() { return (int)innerAdjacency.size(); }

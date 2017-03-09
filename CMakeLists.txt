@@ -10,25 +10,21 @@ set(CMAKE_AUTOMOC ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 
 set(eitannealingtest_SRCS 
+  src/assembleMatrix.cpp
   src/gradientnormregularisation.cpp 
-#  src/sparseincompletelq.cpp
   src/graphics.cpp
-#  src/initproblem.cpp
-  src/twodim/initproblem2D.cpp
-  src/main.cpp
-#  src/nodecoeficients.cpp
-  src/twodim/nodecoeficients2D.cpp
-  src/solver.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-#  src/assembleMatrix.cpp
-  src/twodim/assembleMatrix2D.cpp
-  src/solution.cpp
-  src/mt19937-64/mt19937-64.c
+  src/main.cpp
   src/observations.cpp
-#  src/solver_lb.cpp
-#  src/solution_lb.cpp
-#  src/eigen3test.cpp
+  src/problem.cpp
+  src/solution.cpp
+  src/solver.cpp
+  src/mt19937-64/mt19937-64.c
+  src/threedim/initproblem3D.cpp
+  src/threedim/nodecoeficients3D.cpp
+  src/twodim/initproblem2D.cpp
+  src/twodim/nodecoeficients2D.cpp
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})

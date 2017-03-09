@@ -59,15 +59,10 @@ private:
 	std::vector<triangularElement> elements;
 	std::vector<genericEletrode> gelectrodes;
 	std::vector<std::pair<int, int> > perimeter;
-	matrix *skeleton;
-	matrix *coef2KMatrix;
 
 public:
 	void initProblem(char *meshfilename);
 	void buildNodeCoefficients();
-	void prepareSkeletonMatrix();
-	void createCoef2KMatrix();
-	void assembleProblemMatrix(double *cond, matrix **stiffnes);
 	int getGenericElectrodesCount() { return (int)gelectrodes.size(); }
 	int getNodesCount() { return (int)nodes.size(); }
 	int getInnerAdjacencyCount() { return (int)innerAdjacency.size(); }

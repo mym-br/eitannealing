@@ -1,6 +1,7 @@
 #include "problem3D.h"
 #include <Eigen/Dense>
 #include <iostream>
+#include <cmath> 
 
 void problem3D::buildNodeCoefficients()
 {
@@ -12,12 +13,12 @@ void problem3D::buildNodeCoefficients()
 		insertNewCoefficient(&nodeCoef[node_a], node_b, condIndex, cab);
 	};
 	for (const std::pair<int,genericEletrode> &e : gelectrodes) calcAndInsertGenericElectrodeCoefficients(
-		e.second, nodes, electrodeh, totalheight, node2coefficient, insertElectrodeCoefficient);
+		e.second, nodes, electrodeh, node2coefficient, insertElectrodeCoefficient);
 
 		// Now prepare the coefficients due to the elements
 	for (const tetrahedralElement e : elements) {
 		elementCoefficients c = calcElementCoefficients(e);
-		c *= totalheight;
+
 		// Node 1
 		insertNewElementCoefficient(&nodeCoef[e.a], e.a, e, c.aa, node2coefficient);
 		insertNewElementCoefficient(&nodeCoef[e.a], e.b, e, c.ab, node2coefficient);
@@ -69,11 +70,6 @@ problem3D::elementCoefficients problem3D::calcElementCoefficients(const tetrahed
 	c.cc = -c.ac - c.bc - c.cd;
 	c.dd = -c.ad - c.bd - c.cd;
 
-	//std::cout << c.aa << " " << c.ab << " " << c.ac << " " << c.ad << std::endl;
-	//std::cout << c.ab << " " << c.bb << " " << c.bc << " " << c.bd << std::endl;
-	//std::cout << c.ac << " " << c.bc << " " << c.cc << " " << c.cd << std::endl;
-	//std::cout << c.ad << " " << c.bd << " " << c.cd << " " << c.dd << std::endl;
-
 	return c;
 }
 
@@ -106,7 +102,7 @@ void problem3D::insertNewCoefficient(nodeCoefficients **target, int node, int in
 	*target = new nodeCoefficients(node, index, coefficient, *target);
 }
 
-void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode &e, const std::vector<node> &nodes, double electrodeh, double totalheight,
+void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode &e, const std::vector<node> &nodes, double electrodeh,
 	const std::map<int, int> &coefficientMap,
 	const std::function<void(int, int, int, double)> &insert)
 {
@@ -114,21 +110,15 @@ void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode 
 		// Get triangle base parameters
 		double hz = electrodeh;
 		node vi(nodes[p.a]), vj(nodes[p.b]), vk(nodes[p.c]);
-		Eigen::Vector3d	vji(vj.x - vi.x, vj.y - vi.y, vj.z - vi.z), vkj(vk.x - vj.x, vk.y - vj.y, vk.z - vj.z), vki(vk.x - vi.x, vk.y - vi.y, vk.z - vi.z);
-		double lk(vji.norm()), li(vkj.norm()), lj(vki.norm());
-		double S = (li + lj + lk) / 2;
-		double xji = lk;
-		double hy = (2 * sqrt(S*(S - li)*(S - lj)*(S - lk))) / lk;
-		double xki = sqrt(lj*lj - hy*hy);
-		double xkj = sqrt(li*li - hy*hy);
-		xki = xkj > xji ? -xki : xki;
-		xkj = xki > xji ? xkj : -xkj;
+
+		Eigen::Vector3d	vik(vk.x - vi.x, vk.y - vi.y, vk.z - vi.z), vij(vj.x - vi.x, vj.y - vi.y, vj.z - vi.z), vjk(vk.x - vj.x, vk.y - vj.y, vk.z - vj.z);
+		Eigen::Vector3d projLjLk = (vik.dot(vij) / vij.dot(vij)) * vij;
+		Eigen::Vector3d projLiLk = (vjk.dot(vij) / vij.dot(vij)) * vij;
+		double xji = vij.norm();
+		double hy = (vik - projLjLk).norm();
+		double xki = std::copysign(projLjLk.norm(), projLjLk.dot(vij));
+		double xkj = std::copysign(projLiLk.norm(), projLiLk.dot(vij));
 		double areaFactor = 6 * hy*hz*xji;
-		
-		//std::cout << "vi = (" << vi.x << ", " << vi.y << ", " << vi.z << ")." << std::endl;
-		//std::cout << "vj = (" << vj.x << ", " << vj.y << ", " << vj.z << ")." << std::endl;
-		//std::cout << "vk = (" << vk.x << ", " << vk.y << ", " << vk.z << ")." << std::endl;
-		//std::cout << "areaFactor = " << areaFactor << std::endl;
 
 		double A, B, C, D, E, F;
 		A = hy*hz;
@@ -137,8 +127,6 @@ void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode 
 		D = hz*xki;
 		E = hz*xji;
 		F = hy*xji;
-
-		//std::cout << "A = " << A << std::endl << "B = " << B << std::endl << "C = " << C << std::endl << "D = " << D << std::endl << "E = " << E << std::endl << "F = " << F << std::endl;
 
 		double kbbe = (B*B + 3 * C*C - 2 * B*B*(D - E) + (D - E)*(D - E)) / areaFactor;
 		double kbie = -(C*C) / areaFactor;
@@ -150,8 +138,6 @@ void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode 
 		double kjke = -(E*(D + E)) / areaFactor;
 		double kkke = (C*C + 2*E*E) / areaFactor;
 
-		//std::cout << "kbbe = " << kbbe << std::endl << "kbie = " << kbie << std::endl << "kbje = " << kbje << std::endl << "kiie = " << kiie << std::endl << "kije = " << kije << std::endl << "kike = " << kike << std::endl << "kjje = " << kjje << std::endl << "kjke = " << kjke << std::endl << "kkke = " << kkke << std::endl;
-
 		// somar aos acumuladores de coeficiente
 		std::map<int, int>::const_iterator ii = coefficientMap.find(e.baseNode);
 		if (ii != coefficientMap.end()) {
@@ -160,7 +146,7 @@ void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode 
 			insert(e.baseNode, e.baseNode, index, kbbe);
 			insert(e.baseNode, p.a, index, kbie);
 			insert(e.baseNode, p.b, index, kbje);
-			// insert(e.baseNode, p.b, index, kbke); = 0
+			// insert(e.baseNode, p.c, index, kbke); = 0
 
 			// the i-th node...
 			insert(p.a, e.baseNode, index, kbie);

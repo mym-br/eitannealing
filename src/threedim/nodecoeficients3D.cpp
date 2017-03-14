@@ -128,12 +128,13 @@ void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode 
 		E = hz*xji;
 		F = hy*xji;
 
-		double kbbe = (B*B + 3 * C*C - 2 * B*B*(D - E) + (D - E)*(D - E)) / areaFactor;
+		double kbbe = (B*B + 3 * C * C - 2 * B * (D - E) + (D - E) * (D - E)) / areaFactor;
 		double kbie = -(C*C) / areaFactor;
 		double kbje = kbie;
+		double kbke = kbie;
 		double kiie = (A*A + B*B + C*C) / areaFactor;
 		double kije = -(A*A + B*D) / areaFactor;
-		double kike = kije;
+		double kike = (B*E) / areaFactor;
 		double kjje = (A*A + C*C + D*D + E*E) / areaFactor;
 		double kjke = -(E*(D + E)) / areaFactor;
 		double kkke = (C*C + 2*E*E) / areaFactor;
@@ -146,7 +147,7 @@ void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode 
 			insert(e.baseNode, e.baseNode, index, kbbe);
 			insert(e.baseNode, p.a, index, kbie);
 			insert(e.baseNode, p.b, index, kbje);
-			// insert(e.baseNode, p.c, index, kbke); = 0
+			insert(e.baseNode, p.c, index, kbke);
 
 			// the i-th node...
 			insert(p.a, e.baseNode, index, kbie);
@@ -161,7 +162,7 @@ void problem3D::calcAndInsertGenericElectrodeCoefficients(const genericEletrode 
 			insert(p.b, p.c, index, kjke);
 
 			// ... and the k-th node
-			//insert(p.c, e.baseNode, index, kbke); = 0
+			insert(p.c, e.baseNode, index, kbke);
 			insert(p.c, p.a, index, kike);
 			insert(p.c, p.b, index, kjke);
 			insert(p.c, p.c, index, kkke);

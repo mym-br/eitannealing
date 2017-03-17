@@ -29,7 +29,7 @@
 #include "random.h"
 //#include "sparseincompletelq.h"
 #include "gradientnormregularisation.h"
-
+#include "gmsh\gmshgraphics.h"
 
 solutionView *view;
 
@@ -43,7 +43,6 @@ float *currentSolution;
 
 float param;
 
-bool e2test = false;
 std::shared_ptr<problem> input;
 
 void workProc() 
@@ -297,170 +296,90 @@ void workProc()
 
 void setSol(float *sol);
 
+#ifdef WIN32
+#include <windows.h>
+#else
 #include <time.h>
+#endif
 
 double get_time()
 {
+#ifdef WIN32
+	SYSTEMTIME time;
+	GetSystemTime(&time);
+	return (double) (time.wSecond * 1000) + time.wMilliseconds;
+#else
     struct timespec t;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t);
     return ((double)t.tv_sec + (double)t.tv_nsec*1e-9)*1000;
-	return 0.0;
+#endif
 }
 
 int main(int argc, char *argv[])
- {
-  //  struct timespec time;
-  //  clock_gettime(CLOCK_REALTIME, &time);
-  // init_genrand64(time.tv_nsec);
-   if(argc > 4)
-     param = atof(argv[4]);
-   else
-     param = 0.875f;
-   if(argc > 5)
-     e2test = true;
-   QApplication app(argc, argv);
+{
+	//  struct timespec time;
+	//  clock_gettime(CLOCK_REALTIME, &time);
+	// init_genrand64(time.tv_nsec);
+	if (argc > 4)
+		param = atof(argv[4]);
+	else
+		param = 0.875f;
 
-   input = problem::createNewProblem(argv[1]);
-   input->initProblem(argv[1]);
-   input->initObs(argv[2], argv[3]);
-   input->buildNodeCoefficients();
-   input->prepareSkeletonMatrix();
-   input->createCoef2KMatrix();
-  //   initProblem(argv[1]);
+	std::string gname, gaddress;
+	for (int i = 0; i < argc; i++){
+		if (std::string(argv[i]) == "-onelab" && i + 2 < argc){
+			gname = std::string(argv[i + 1]);
+			gaddress = std::string(argv[i + 2]);
+		}
+	}
+	if (gname.empty() || gaddress.empty()) {
+		gname = "eitannealingtest";
+		gaddress = "127.0.0.1:44202";
+	}
 
-	 //initObs(argv[2], argv[3]);
-	 //buildNodeCoefficients();
-	 //prepareSkeletonMatrix();
-  //       createCoef2KMatrix();
-		 gradientNormRegularisation::initInstance(input);
-	 /*float *solution = new float[numcoefficients];
-	 for(int i=0;i<numcoefficients;i++) solution[i] = 1;
-	 
-	 solution[100] = 2;
-	 
-	 std::cout << "Regularization:" << gradientNormRegularisation::getInstance()->getRegularisation(solution);
-	 std::cout << std::endl;
+	QApplication app(argc, argv);
 
-/*
-	 //solution[32] = 1.5;
-	 //solution[node2coefficient[288]] = 1.5;
-	 //solution[node2coefficient[358]] = 1.0;
-	 //solution[node2coefficient[346]] = 1.0;	 
-	 
-     
-	 
-     assembleProblemMatrix(solution, &stiffness0);
-	 
-	 
-	 double start = get_time();
-	 for(int i=0;i<1000;i++)
-	   new SparseIncompleteLQ(*stiffness0,15,6);
-	  //new SparseIncompleteLLT(*stiffness0);
-	 std::cout << "Time:" << (get_time()-start)/1000 << std::endl;
-	 exit(0);
-	   
-	 
-	 /*
-	 
+	bool is2dProblem;
+	input = problem::createNewProblem(argv[1], is2dProblem);
+	input->initProblem(argv[1]);
+	input->initObs(argv[2], argv[3]);
+	input->buildNodeCoefficients();
+	input->prepareSkeletonMatrix();
+	input->createCoef2KMatrix();
 
-	// CG_Solver solver(*stiffness0, currents[29], precond);
+	gradientNormRegularisation::initInstance(input);
 
-	 for(int i=0;i<900;i++)
-		 solver.do_iteration();
+	qRegisterMetaType<QModelIndex>("QModelIndex");
+	qRegisterMetaType<QModelIndex>("QVector<int>");
 
-	 std::cout << "currents:\n";
-	 std::cout << currents[29].end(31) << std::endl;
-	 
-	 std::cout << "tensions:\n";
-	 std::cout << solver.getX().end(31) << std::endl;*/
-     
+	view = new solutionView(input->getNumCoefficients());
+	QTableView list;
+	list.setModel(view);
+	QAction *copyDataAction = new QAction("Copy", &list);
+	TableViewCopyDataPopupMenu::getInstance()->connect(copyDataAction, SIGNAL(triggered()), SLOT(actionFired()));
+	list.addAction(copyDataAction);
+	list.setContextMenuPolicy(Qt::ActionsContextMenu);
+	list.show();
 
-     //int i;
-     //float *coefficients = new float[65];
-     //// Chessboard
-     //for(i=0;i<65;i++) coefficients[i] = 1.0;
-     //coefficients[28] = 1;
-     //coefficients[29] = 1;
-     //coefficients[36] = 1;
-     //coefficients[37] = 1;
-     //     assembleProblemMatrix(coefficients, &stiffness);
-    // coefficients[1] = 2;
-     //stiffness0 = assembleProblemMatrix(coefficients);
+	viewport graphics(600, 600, argc > 3 ? argv[4] : "Reverse Problem", std::dynamic_pointer_cast<problem2D>(input));
+	gmshviewport graphics_gmsh(gname.c_str(), gaddress.c_str(), input);
+	if (!gname.empty() && !gaddress.empty()) {
+		graphics_gmsh.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
+	}
+	if (is2dProblem) {
+		graphics.show();
+		graphics.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
+	}
 
-     //QTableView matrixView;
-     
-     //float sol[65];
-     //for(int i=0;i<65;i++) sol[i] = 1.0;
-     //matrix *stiffness = obs::buildObsProblemMatrix(sol);
-     //matrixView.setModel(new matrixViewModel(*stiffness));
-     //matrixView.setWindowTitle("Stiffness");
-     //matrixView.show();
-     
-     //QTableView matrixView;
-     //matrixView.setModel(new matrixViewModel(*stiffness0));
-     //matrixView.setWindowTitle("Stiffness");
-     //matrixView.show();
+   double *sol = new double[input->getNumCoefficients()];
+   for (int i = 0; i<input->getNumCoefficients(); i++) sol[i] = 1.0;
+   view->setCurrentSolution(sol);
 
-     /*
-     float *sol = new float[numcoefficients];
-     for(int i=0;i<numcoefficients;i++) sol[i]=1.0;
-     matrix *Aii, *Acc;
-     matrix2 *Aic;
-     assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
-     SparseIncompleteLLT precond(*Aii);
-     LB_Solver_EG_Estimate solver(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, 75, 0.00001);
-     std::cout << solver.getLeastEvEst() << std::endl;
-     std::cout << "\nGauss: " << solver.getMaxErrorl2Estimate() << " Radau: " << solver.getMinErrorl2Estimate() << std::endl;
-     
-     
-     LB_Solver solver2(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, solver.getLeastEvEst());
-     //Eigen::VectorXd jtop = -Aic->transpose()*tensions[0].end(32);
-     //Eigen::VectorXd jbot = currents[0].end(32) - *Acc*tensions[0].end(32);
-     for(int i=0;i<45;i++) {
-       solver2.do_iteration();
-       //Eigen::VectorXd x(solver2.getX());
-       //double val = 0;
-       //val += (jtop-(*Aii)*x).squaredNorm();
-       //val += (jbot-(*Aic)*x).squaredNorm();
-       //std::cout << solver2.getIteration() << ":" << solver2.getX().norm() << std::endl;
-       //std::cout << solver2.getIteration() << ":" << sqrt(val) << std::endl;
-       //std::cout << i << ":" << solver2.getMinErrorl2Estimate() << "-" << solver2.getMaxErrorl2Estimate() << std::endl;
-     }
-     
-     LB_Solver solver3(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, solver.getLeastEvEst(), solver2.getX());
-     for(int i=0;i<45;i++) {
-       solver3.do_iteration();
-       std::cout << i << ":" << solver3.getMinErrorl2Estimate() << "-" << solver3.getMaxErrorl2Estimate() << std::endl;
-     }*/
-     
-     
-     
-     qRegisterMetaType<QModelIndex>("QModelIndex");
-     qRegisterMetaType<QModelIndex>("QVector<int>");
-     
-     view = new solutionView(input->getNumCoefficients());
-     QTableView list;
-     list.setModel(view);
-     QAction *copyDataAction = new QAction("Copy", &list);
-     TableViewCopyDataPopupMenu::getInstance()->connect(copyDataAction, SIGNAL(triggered()), SLOT(actionFired()));
-     list.addAction(copyDataAction);
-     list.setContextMenuPolicy(Qt::ActionsContextMenu);
-     list.show();
-	 viewport graphics(600, 600, argc>3 ? argv[4] : "Reverse Problem", std::dynamic_pointer_cast<problem2D>(input));
-     graphics.show();
-     
-     graphics.connect(view, SIGNAL(dataChanged(QModelIndex,QModelIndex)), SLOT(solution_updated(QModelIndex,QModelIndex)));
-
-	 double *sol = new double[input->getNumCoefficients()];
-	 for (int i = 0; i<input->getNumCoefficients(); i++) sol[i] = 1.0;
-     view->setCurrentSolution(sol);
-
-     
-     std::thread worker(workProc);
-
-     int retval =  app.exec();
-     worker.join();
-     return 0;
+   std::thread worker(workProc);
+   
+   int retval =  app.exec();
+   worker.join();
+   return 0;
  }
  
 

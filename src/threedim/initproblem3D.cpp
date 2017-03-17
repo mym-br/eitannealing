@@ -1,7 +1,7 @@
 #include "problem3D.h"
 #include <set>
 
-void problem3D::initProblem(char *meshfilename) {
+void problem3D::initProblem(const char *meshfilename) {
 	file.open(meshfilename);
 
 	fillNodes();

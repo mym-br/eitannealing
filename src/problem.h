@@ -50,18 +50,20 @@ class problem {
 	std::vector<std::pair<int, int> > innerAdjacency;
 	matrix *skeleton;
 	matrix *coef2KMatrix;
+	const char *filename;
 	
 public:
-	static std::shared_ptr<problem> createNewProblem(char *meshfilename);
-	virtual void initProblem(char *meshfilename) = 0;
-	void initObs(char *filecurrents, char* filename);
+	static std::shared_ptr<problem> createNewProblem(const char *meshfilename, bool &is2D);
+	virtual void initProblem(const char *meshfilename) = 0;
+	void initObs(const char *filecurrents, const char* filename);
 	virtual void buildNodeCoefficients() = 0;
 	virtual int getGenericElectrodesCount() = 0;
 	virtual int getNodesCount() = 0;
 	virtual int getInnerAdjacencyCount() = 0;
 	int getNumCoefficients() { return numcoefficients; }
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
-	problem() {};
+	int getNode2Coefficient(int id) { return node2coefficient[id]; }
+	problem(const char *meshfilename) : filename(meshfilename) {};
 	virtual ~problem(){};
 	int getNObs() { return nobs; }
 	Eigen::VectorXd *getTensions() { return tensions; }
@@ -69,6 +71,7 @@ public:
 	void prepareSkeletonMatrix();
 	void createCoef2KMatrix();
 	void assembleProblemMatrix(double *cond, matrix **stiffnes);
+	const char* getMeshFilename() { return filename; }
 };
 
 const double mincond = 0.005;

@@ -81,11 +81,12 @@ private:
 	std::vector<std::pair<int, int> > perimeter;
 
 public:
-	void initProblem(char *meshfilename);
+	void initProblem(const char *meshfilename);
 	void buildNodeCoefficients();
 	int getGenericElectrodesCount() { return (int)gelectrodes.size(); }
 	int getNodesCount() { return (int)nodes.size(); }
 	int getInnerAdjacencyCount() { return (int)innerAdjacency.size(); }
+	problem3D(const char *meshfilename) : problem(meshfilename) {};
 	~problem3D(){};
 };
 

@@ -25,12 +25,16 @@ set(eitannealingtest_SRCS
   src/threedim/nodecoeficients3D.cpp
   src/twodim/initproblem2D.cpp
   src/twodim/nodecoeficients2D.cpp
+  src/gmsh/gmshgraphics.cpp
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})
 set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+if(WIN32)
+    set(ADDITIONAL_LIBRARIES wsock32)
+endif()
 set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
 add_executable(eitannealingtest ${eitannealingtest_SRCS})
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 11)
-target_link_libraries(eitannealingtest ${libs})
+target_link_libraries(eitannealingtest ${libs} ${ADDITIONAL_LIBRARIES})

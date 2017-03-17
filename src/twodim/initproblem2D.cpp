@@ -1,14 +1,14 @@
 #include "problem2D.h"
 #include <set>
 
-void problem2D::initProblem(char *meshfilename) {
+void problem2D::initProblem(const char *meshfilename) {
 	file.open(meshfilename);
 
 	fillNodes();
 	fillElementsGenericElectrode();
 	preparePerimeter();
 	this->electrodeh = 0.0004f;
-	this->totalheight = 0.020f;
+	this->totalheight = 0.027f;
 
 	file.close();
 }

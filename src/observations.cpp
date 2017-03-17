@@ -1,6 +1,6 @@
 #include "problem.h"
 
-void problem::initObs(char *filecurrents, char* filename)
+void problem::initObs(const char *filecurrents, const char* filename)
 {
 	std::ifstream file;
 	std::ifstream filec;

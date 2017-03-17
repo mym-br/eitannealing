@@ -7,7 +7,7 @@
 
 #define TETRAHEDRON_TYPE 4
 
-std::shared_ptr<problem> problem::createNewProblem(char *meshfilename) {
+std::shared_ptr<problem> problem::createNewProblem(const char *meshfilename, bool &is2D) {
 	std::ifstream file;
 	file.open(meshfilename);
 
@@ -22,11 +22,14 @@ std::shared_ptr<problem> problem::createNewProblem(char *meshfilename) {
 	int id, eltype;
 	for (int i = 0; i < elementCout; i++) {
 		file >> id >> eltype;
-		if (eltype == TETRAHEDRON_TYPE) 
-			return std::shared_ptr<problem>(new problem3D);
+		if (eltype == TETRAHEDRON_TYPE)  {
+			is2D = false;
+			return std::shared_ptr<problem>(new problem3D(meshfilename));
+		}
 		std::getline(file, aux);
 	}
 	file.close();
 
-	return std::shared_ptr<problem>(new problem2D);
+	is2D = true;
+	return std::shared_ptr<problem>(new problem2D(meshfilename));
 }

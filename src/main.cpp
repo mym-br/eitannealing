@@ -45,6 +45,8 @@ float param;
 
 std::shared_ptr<problem> input;
 
+unsigned long seed;
+
 void workProc() 
 {
 
@@ -149,7 +151,8 @@ void workProc()
 			sqe += current->getDEstimate()*current->getDEstimate();
 
 			totalit++;
-                        if(totalit % 100 == 0) {
+
+            if(totalit % 100 == 0) {
 				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
 				view->setCurrentSolution(current->getSolution());				
 			}
@@ -159,7 +162,7 @@ void workProc()
 		double sige = sqrt(sqe/solutions - eav*eav);
 		//solution probe(current->getSolution());
 		//probe.saturate();
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations)/(input->getNObs()*solutions) << std::endl;
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations) / (input->getNObs()*solutions) << ":" << seed << std::endl;
 		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
@@ -315,27 +318,45 @@ double get_time()
 #endif
 }
 
+unsigned long getSeed() {
+	// Windows specific
+#ifdef _WIN32
+	return GetTickCount();
+#else // _WIN32
+	// Linux specific
+	struct timeval tv1;
+	gettimeofday(&tv1, (struct timezone*)0);
+	return (unsigned long)(tv1.tv_sec*1.E3 + tv1.tv_usec);
+#endif
+}
+
 int main(int argc, char *argv[])
 {
-	//  struct timespec time;
-	//  clock_gettime(CLOCK_REALTIME, &time);
-	// init_genrand64(time.tv_nsec);
 	if (argc > 4)
 		param = atof(argv[4]);
 	else
 		param = 0.875f;
 
 	std::string gname, gaddress;
+	bool seedSpecified = false;
 	for (int i = 0; i < argc; i++){
 		if (std::string(argv[i]) == "-onelab" && i + 2 < argc){
 			gname = std::string(argv[i + 1]);
 			gaddress = std::string(argv[i + 2]);
 		}
+		if (std::string(argv[i]) == "-seed" && i + 1 < argc){
+			seed = strtoul(argv[i + 1], NULL, 0);
+			seedSpecified = true;
+		}
 	}
+
 	if (gname.empty() || gaddress.empty()) {
 		gname = "eitannealingtest";
 		gaddress = "127.0.0.1:44202";
 	}
+	
+	if (!seedSpecified) seed = getSeed();
+	init_genrand64(seed);
 
 	QApplication app(argc, argv);
 

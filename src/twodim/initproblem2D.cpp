@@ -170,7 +170,7 @@ void problem2D::fillElementsGenericElectrode() {
 		bool ncok = (outerRingNodes.find(e.c) == outerRingNodes.end());
 
 		if (naok && nbok) insertAdjNodePair(e.a, e.b);
-		if (nbok && ncok) insertAdjNodePair(e.a, e.b);
+		if (nbok && naok) insertAdjNodePair(e.a, e.b);
 		if (nbok && ncok) insertAdjNodePair(e.b, e.c);
 	}
 

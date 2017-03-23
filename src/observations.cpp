@@ -8,10 +8,12 @@ void problem::initObs(const char *filecurrents, const char* filename)
 	filec.open(filecurrents);
 	file.open(filename);
 
-	// FIXME: Read from file!
-	nobs = 32;
 	int n = getGenericElectrodesCount() - 1;
+	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
+	nobs = valuesCount / getGenericElectrodesCount();
 
+	file.clear();
+	file.seekg(0, std::ios::beg);
 	tensions = new Eigen::VectorXd[nobs];
 	currents = new Eigen::VectorXd[nobs];
 	Eigen::VectorXd current(getNodesCount() - 1);

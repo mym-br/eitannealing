@@ -26,6 +26,7 @@ set(eitannealingtest_SRCS
   src/twodim/initproblem2D.cpp
   src/twodim/nodecoeficients2D.cpp
   src/gmsh/gmshgraphics.cpp
+  src/parameters/parametersparser.cpp
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})

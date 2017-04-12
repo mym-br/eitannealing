@@ -17,6 +17,7 @@
 #include <memory>
 #include <ctime>
 #include <iostream>
+#include <QCommandLineParser>
 //#include "problemdescription.h"
 #include "graphics.h"
 #include "solver.h"
@@ -30,6 +31,7 @@
 //#include "sparseincompletelq.h"
 #include "gradientnormregularisation.h"
 #include "gmsh\gmshgraphics.h"
+#include "parameters\parametersparser.h"
 
 solutionView *view;
 
@@ -332,38 +334,43 @@ unsigned long getSeed() {
 
 int main(int argc, char *argv[])
 {
-	if (argc > 4)
-		param = atof(argv[4]);
-	else
-		param = 0.875f;
+	QApplication app(argc, argv);
+	QApplication::setApplicationName("EIT Annealing Test");
+	QApplication::setApplicationVersion("0.1");
 
-	std::string gname, gaddress;
-	bool seedSpecified = false;
-	for (int i = 0; i < argc; i++){
-		if (std::string(argv[i]) == "-onelab" && i + 2 < argc){
-			gname = std::string(argv[i + 1]);
-			gaddress = std::string(argv[i + 2]);
-		}
-		if (std::string(argv[i]) == "-seed" && i + 1 < argc){
-			seed = strtoul(argv[i + 1], NULL, 0);
-			seedSpecified = true;
-		}
+	// --> Parse command line arguments
+	QCommandLineParser parser;
+	parser.setApplicationDescription("EIT Annealing Test.");
+	EitAnnealingArgs params;
+	QString errorMessage;
+	switch (parseCommandLine(parser, &params, &errorMessage)) {
+	case CommandLineOk:
+		break;
+	case CommandLineError:
+		fputs(qPrintable(errorMessage), stderr);
+		fputs("\n\n", stderr);
+		fputs(qPrintable(parser.helpText()), stderr);
+		return 1;
+	case CommandLineVersionRequested:
+		printf("%s %s\n", qPrintable(QCoreApplication::applicationName()),
+			qPrintable(QCoreApplication::applicationVersion()));
+		return 0;
+	case CommandLineHelpRequested:
+		parser.showHelp();
+		Q_UNREACHABLE();
 	}
 
-	if (gname.empty() || gaddress.empty()) {
-		gname = "eitannealingtest";
-		gaddress = "127.0.0.1:44202";
-	}
-	
-	if (!seedSpecified) seed = getSeed();
+	if (!params.isSeedSpecified()) seed = getSeed();
+	else seed = params.getSeed();
 	init_genrand64(seed);
 
-	QApplication app(argc, argv);
-
 	bool is2dProblem;
-	input = problem::createNewProblem(argv[1], is2dProblem);
-	input->initProblem(argv[1]);
-	input->initObs(argv[2], argv[3]);
+	std::string meshfname = params.inputMesh.toStdString();
+	std::string currentsfname = params.inputCurrents.toStdString();
+	std::string tensionsfname = params.inputTensions.toStdString();
+	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	input->initProblem(meshfname.c_str());
+	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
@@ -382,9 +389,9 @@ int main(int argc, char *argv[])
 	list.setContextMenuPolicy(Qt::ActionsContextMenu);
 	list.show();
 
-	viewport graphics(600, 600, argc > 3 ? argv[4] : "Reverse Problem", std::dynamic_pointer_cast<problem2D>(input));
-	gmshviewport graphics_gmsh(gname.c_str(), gaddress.c_str(), input);
-	if (!gname.empty() && !gaddress.empty()) {
+	viewport graphics(600, 600, "Reverse Problem", std::dynamic_pointer_cast<problem2D>(input));
+	gmshviewport graphics_gmsh("eitannealingtest", params.gmeshAddress.toStdString().c_str(), input);
+	if (!params.gmeshAddress.isEmpty()) {
 		graphics_gmsh.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 	}
 	if (is2dProblem) {

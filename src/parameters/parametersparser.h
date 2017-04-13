@@ -8,6 +8,7 @@ struct EitAnnealingArgs {
 	EitAnnealingArgs() : seedSpecified(false) {}
 
     QString inputMesh, inputCurrents, inputTensions;
+	QString outputMesh;
 	QString gmeshAddress;
 
 	bool isSeedSpecified() { return seedSpecified; }

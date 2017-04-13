@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
 	list.show();
 
 	viewport graphics(600, 600, "Reverse Problem", std::dynamic_pointer_cast<problem2D>(input));
-	gmshviewport graphics_gmsh("eitannealingtest", params.gmeshAddress.toStdString().c_str(), input);
+	gmshviewport graphics_gmsh("eitannealingtest", params.outputMesh.toStdString().c_str(), params.gmeshAddress.toStdString().c_str(), input);
 	if (!params.gmeshAddress.isEmpty()) {
 		graphics_gmsh.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 	}

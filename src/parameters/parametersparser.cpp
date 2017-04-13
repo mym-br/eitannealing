@@ -11,6 +11,7 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
 	
 	const QCommandLineOption gmeshOpt("gmesh", "Address for gmesh socket communication.", "address"); parser.addOption(gmeshOpt);
 	const QCommandLineOption seedOpt("seed", "Seed for the random number generator.", "number"); parser.addOption(seedOpt);
+	const QCommandLineOption outputOpt("output", "Output mesh file name.", "number"); parser.addOption(outputOpt);
 
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
@@ -43,8 +44,8 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
 	params->inputCurrents = positionalArguments.at(1);
 	params->inputTensions = positionalArguments.at(2);
 
-	if (parser.isSet(gmeshOpt)) params->gmeshAddress = parser.value(gmeshOpt);
-	else params->gmeshAddress = "127.0.0.1:44202";
+	if (parser.isSet(gmeshOpt)) params->gmeshAddress = parser.value(gmeshOpt); else params->gmeshAddress = "127.0.0.1:44202";
+	if (parser.isSet(outputOpt)) params->outputMesh = parser.value(outputOpt); else params->outputMesh = "solution.msh";
 	if (parser.isSet(seedOpt)) params->setSeed(parser.value(seedOpt).toULong());
 
     return CommandLineOk;

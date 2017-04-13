@@ -1,7 +1,7 @@
 #include "gmshgraphics.h"
 #include <QDir>
 
-gmshviewport::gmshviewport(const char* name, const char* address, std::shared_ptr<problem> _input) : input(_input), iter(0){
+gmshviewport::gmshviewport(const char* name, std::string _outputFname, const char* address, std::shared_ptr<problem> _input) : input(_input), iter(0), outputFname(_outputFname) {
 	gmeshClient = std::shared_ptr<onelab::remoteNetworkClient>(new onelab::remoteNetworkClient(name, address));
 }
 
@@ -18,13 +18,13 @@ void gmshviewport::solution_updated(const QModelIndex & topLeft, const QModelInd
 		onelab::string s("Gmsh/Action", "refresh");
 		gmeshClient->set(s);
 		if (iter % 10 == 0) gmeshClient->sendParseStringRequest("Delete View[0];");
-		gmeshClient->sendMergeFileRequest(binDir.absoluteFilePath("solution.msh").toStdString());
+		gmeshClient->sendMergeFileRequest(binDir.absoluteFilePath(outputFname.c_str()).toStdString());
 	}
 }
 
 void gmshviewport::saveTempMesh(double *sol) {
 	std::ofstream myfile;
-	myfile.open("solution.msh");
+	myfile.open(outputFname.c_str());
 
 	std::ifstream inputfile(input->getMeshFilename());
 	for (int i = 0; inputfile.eof() != true; i++) {

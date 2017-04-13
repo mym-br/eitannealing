@@ -113,6 +113,9 @@ class solution {
 		bool compareWithMinIt(solution &target, double kt, int minit);
 		bool compareWithMaxE2(solution &target, double kt, double e2);
 		solution *shuffle(shuffleData *data, const shuffler &sh) const;
+
+		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);
+
 		double getRegularisationValue() const {
 		  return this->regularisation;
 		  

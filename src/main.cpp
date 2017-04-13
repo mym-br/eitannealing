@@ -296,7 +296,7 @@ void workProc()
 	totalerror = sqrt(totalerror);
 	std::cout << "Total error:" << totalerror << std::endl;*/
 #endif //#ifdef GGGGGGGGGGGG
-
+	QApplication::quit();
 }
 
 void setSol(float *sol);

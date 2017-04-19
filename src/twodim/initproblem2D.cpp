@@ -8,7 +8,7 @@ void problem2D::initProblem(const char *meshfilename) {
 	fillElementsGenericElectrode();
 	preparePerimeter();
 	this->electrodeh = 0.0004f;
-	this->totalheight = 0.027f;
+	this->totalheight = 0.020f;
 
 	file.close();
 }
@@ -170,7 +170,7 @@ void problem2D::fillElementsGenericElectrode() {
 		bool ncok = (outerRingNodes.find(e.c) == outerRingNodes.end());
 
 		if (naok && nbok) insertAdjNodePair(e.a, e.b);
-		if (nbok && naok) insertAdjNodePair(e.a, e.b);
+		if (naok && ncok) insertAdjNodePair(e.a, e.c);
 		if (nbok && ncok) insertAdjNodePair(e.b, e.c);
 	}
 

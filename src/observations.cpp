@@ -16,9 +16,11 @@ void problem::initObs(const char *filecurrents, const char* filename)
 	file.seekg(0, std::ios::beg);
 	tensions = new Eigen::VectorXd[nobs];
 	currents = new Eigen::VectorXd[nobs];
-	Eigen::VectorXd current(getNodesCount() - 1);
+	currentVals = Eigen::VectorXd(nobs);
+	//Eigen::VectorXd current(getNodesCount() - 1);
+	Eigen::VectorXd current(getNodesCount());
 	current.fill(0);
-	int baseIndex = (int)current.size() - n;
+	int baseIndex = (int)current.size() - n - 1;
 	for (int i = 0; i<nobs; i++) {
 		double c;
 		int entry, exit;
@@ -26,10 +28,11 @@ void problem::initObs(const char *filecurrents, const char* filename)
 		filec >> exit;
 		filec >> c;
 		entry--; exit--;	// zero-based
+		currentVals[i] = c;
 		currents[i] = current;
-		if (entry != n)
+		//if (entry != n)
 			currents[i][baseIndex + entry] = 1;
-		if (exit != n)
+		//if (exit != n)
 			currents[i][baseIndex + exit] = -1;
 
 		// read tensions from file

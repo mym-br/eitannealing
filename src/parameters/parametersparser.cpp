@@ -13,6 +13,7 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
 	const QCommandLineOption seedOpt("seed", "Seed for the random number generator.", "number"); parser.addOption(seedOpt);
 	const QCommandLineOption outputOpt("output", "Output mesh file name.", "number"); parser.addOption(outputOpt);
 	const QCommandLineOption peparamOpt("peparam", "Partial cost evaluation probability parameter.", "probability"); parser.addOption(peparamOpt);
+	const QCommandLineOption groundOpt("ground", "Ground number (debug).", "index"); parser.addOption(groundOpt);
 
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
@@ -49,6 +50,7 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
 	if (parser.isSet(outputOpt)) params->outputMesh = parser.value(outputOpt); else params->outputMesh = "solution.msh";
 	if (parser.isSet(seedOpt)) params->setSeed(parser.value(seedOpt).toULong());
 	if (parser.isSet(peparamOpt)) params->peParam = parser.value(peparamOpt).toFloat(); else params->peParam = 0.875f;
+	if (parser.isSet(groundOpt)) params->groundNode = parser.value(groundOpt).toInt();
 
     return CommandLineOk;
 }

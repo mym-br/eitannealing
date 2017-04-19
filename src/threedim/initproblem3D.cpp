@@ -149,7 +149,7 @@ void problem3D::fillElementsGenericElectrode() {
 	}
 
 	numcoefficients = condIndex;
-	groundNode = (*(--gelectrodes.end())).second.baseNode;
+	if (groundNode == -1) groundNode = (*(--gelectrodes.end())).second.baseNode;
 
 	// Prepare inner nodes adjacency map
 	//	Adjacency is established between nodes that are NOT in the outter ring

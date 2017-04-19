@@ -46,6 +46,7 @@ class problem {
 	Eigen::VectorXd *tensions;
 	Eigen::VectorXd *rebased_tensions;
 	Eigen::VectorXd *currents;
+	Eigen::VectorXd currentVals;
 	nodeCoefficients **nodeCoef;
 	std::vector<std::pair<int, int> > innerAdjacency;
 	matrix *skeleton;
@@ -63,7 +64,7 @@ public:
 	int getNumCoefficients() { return numcoefficients; }
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
 	int getNode2Coefficient(int id) { return node2coefficient[id]; }
-	problem(const char *meshfilename) : filename(meshfilename) {};
+	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1) {};
 	virtual ~problem(){};
 	int getNObs() { return nobs; }
 	Eigen::VectorXd *getTensions() { return tensions; }
@@ -72,6 +73,10 @@ public:
 	void createCoef2KMatrix();
 	void assembleProblemMatrix(double *cond, matrix **stiffnes);
 	const char* getMeshFilename() { return filename; }
+	double getCurrentVal(int i) { return currentVals[i]; }
+	int getCurrentsCount() { return (int)currentVals.size(); }
+	void setGroundNode(int nodeid) { this->groundNode = nodeid; }
+	int getGroundNode() { return this->groundNode; }
 };
 
 const double mincond = 0.005;

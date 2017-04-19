@@ -30,10 +30,8 @@ void problem::initObs(const char *filecurrents, const char* filename)
 		entry--; exit--;	// zero-based
 		currentVals[i] = c;
 		currents[i] = current;
-		//if (entry != n)
-			currents[i][baseIndex + entry] = 1;
-		//if (exit != n)
-			currents[i][baseIndex + exit] = -1;
+		currents[i][baseIndex + entry] = 1;
+		currents[i][baseIndex + exit] = -1;
 
 		// read tensions from file
 		tensions[i].resize(getGenericElectrodesCount() - 1);

@@ -40,7 +40,6 @@ class problem {
 	float electrodeh;
 	std::map<int, int> node2coefficient;
 	int numcoefficients;
-	int groundNode;
 	// Observations
 	int nobs;
 	Eigen::VectorXd *tensions;
@@ -64,7 +63,7 @@ public:
 	int getNumCoefficients() { return numcoefficients; }
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
 	int getNode2Coefficient(int id) { return node2coefficient[id]; }
-	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1) {};
+	problem(const char *meshfilename) : filename(meshfilename) {};
 	virtual ~problem(){};
 	int getNObs() { return nobs; }
 	Eigen::VectorXd *getTensions() { return tensions; }
@@ -75,8 +74,6 @@ public:
 	const char* getMeshFilename() { return filename; }
 	double getCurrentVal(int i) { return currentVals[i]; }
 	int getCurrentsCount() { return (int)currentVals.size(); }
-	void setGroundNode(int nodeid) { this->groundNode = nodeid; }
-	int getGroundNode() { return this->groundNode; }
 };
 
 const double mincond = 0.005;

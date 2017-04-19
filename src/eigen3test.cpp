@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
 	std::shared_ptr<problem> input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
-	input->setGroundNode(params.groundNode);
 	input->initProblem(meshfname.c_str());
 	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	input->buildNodeCoefficients();
@@ -57,7 +56,7 @@ int main(int argc, char *argv[])
     matrixView.setModel(makeMatrixTableModel(m1->selfadjointView<Eigen::Lower>()));
     matrixView.setWindowTitle("Stiffness");
     matrixView.show();
-	
+
 	Eigen::VectorXd currents;
 	QTableView vectorbView;
 	vectorbView.setWindowTitle("Currents");
@@ -67,7 +66,6 @@ int main(int argc, char *argv[])
 	vectorView.setWindowTitle("Tensions");
 
 	std::vector<Eigen::VectorXd> solutions;
-	//for (int patterno = 0; patterno < input->getCurrentsCount(); patterno++) {
 	for (int patterno = 0; patterno < input->getCurrentsCount(); patterno++) {
 		currents = input->getCurrents()[patterno];
 		double currentVal = input->getCurrentVal(patterno);

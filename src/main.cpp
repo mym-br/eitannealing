@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
 	if (!params.isSeedSpecified()) seed = getSeed();
 	else seed = params.getSeed();
 	init_genrand64(seed);
-
+	param = params.peParam;
 	bool is2dProblem;
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsfname = params.inputCurrents.toStdString();

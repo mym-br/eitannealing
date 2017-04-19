@@ -10,6 +10,7 @@ struct EitAnnealingArgs {
     QString inputMesh, inputCurrents, inputTensions;
 	QString outputMesh;
 	QString gmeshAddress;
+	float peParam;
 
 	bool isSeedSpecified() { return seedSpecified; }
 	unsigned long getSeed() { return seed; }

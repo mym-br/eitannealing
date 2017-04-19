@@ -346,11 +346,36 @@ void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<probl
 	}
 
 	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
-	myfile << "$NodeData\n1\n\"electric potential\"\n1\n0.0\n3\n" << step << "\n1\n" << input->getNodesCount() << "\n";
+	myfile << "$NodeData\n1\n\"Conductivity\"\n1\n0.0\n3\n" << step << "\n1\n" << input->getNodesCount() << "\n";
 	for (int j = 0; j < input->getNodesCount(); j++) {
 		myfile << (j + 1) << "\t" << sol[input->getNode2Coefficient(j)] << "\n";
 	}
 	myfile << "$EndNodeData\n";
+	myfile.flush();
+	myfile.close();
+}
+
+void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input) {
+	std::ofstream myfile;
+	myfile.open(filename);
+
+	std::ifstream inputfile(input->getMeshFilename());
+	for (int i = 0; inputfile.eof() != true; i++) {
+		std::string line;
+		std::getline(inputfile, line);
+		myfile << line << '\n';
+	}
+
+	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
+	for (int patterno = 0; patterno < input->getCurrentsCount(); patterno++) {
+		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
+		for (int j = 0; j < input->getNodesCount(); j++) {
+			if (j == input->getGroundNode()) myfile << (j + 1) << "\t" << 0 << "\n";
+			else myfile << (j + 1) << "\t" << sols[patterno][j] * input->getCurrentVal(patterno) << "\n";
+
+		}
+		myfile << "$EndNodeData\n";
+	}
 	myfile.flush();
 	myfile.close();
 }

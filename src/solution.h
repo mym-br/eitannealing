@@ -115,6 +115,7 @@ class solution {
 		solution *shuffle(shuffleData *data, const shuffler &sh) const;
 
 		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);
+		static void savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input);
 
 		double getRegularisationValue() const {
 		  return this->regularisation;

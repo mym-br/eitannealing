@@ -17,7 +17,6 @@ void problem::initObs(const char *filecurrents, const char* filename)
 	tensions = new Eigen::VectorXd[nobs];
 	currents = new Eigen::VectorXd[nobs];
 	currentVals = Eigen::VectorXd(nobs);
-	//Eigen::VectorXd current(getNodesCount() - 1);
 	Eigen::VectorXd current(getNodesCount());
 	current.fill(0);
 	int baseIndex = (int)current.size() - n - 1;
@@ -34,16 +33,18 @@ void problem::initObs(const char *filecurrents, const char* filename)
 		currents[i][baseIndex + exit] = -1;
 
 		// read tensions from file
-		tensions[i].resize(getGenericElectrodesCount() - 1);
-		double val;
-		for (int j = 0; j<getGenericElectrodesCount() - 1; j++) {
+		tensions[i].resize(getGenericElectrodesCount());
+		double val, avg;
+		avg = 0;
+		for (int j = 0; j<getGenericElectrodesCount(); j++) {
 			file >> val;
 			tensions[i][j] = val / c;  // Values are normalized by current
+			avg += tensions[i][j];
 		}
-		// rebase tensions, as our last electrode is always the ground
-		file >> val;
-		for (int j = 0; j<getGenericElectrodesCount() - 1; j++) {
-			tensions[i][j] -= val / c;
+		// rebase tensions, apply offset for zero sum on electrodes
+		avg /= (double)getGenericElectrodesCount();
+		for (int j = 0; j < getGenericElectrodesCount(); j++) {
+			tensions[i][j] -= avg;
 		}
 	}
 

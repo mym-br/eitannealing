@@ -367,7 +367,7 @@ void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *fi
 	}
 
 	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
-	for (int patterno = 0; patterno < input->getCurrentsCount(); patterno++) {
+	for (int patterno = 0; patterno < sols.size(); patterno++) {
 		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
 		for (int j = 0; j < input->getNodesCount(); j++) 
 			myfile << (j + 1) << "\t" << sols[patterno][j] * input->getCurrentVal(patterno) << "\n";

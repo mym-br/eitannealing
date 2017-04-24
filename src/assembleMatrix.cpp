@@ -19,7 +19,8 @@ void problem::prepareSkeletonMatrix()
 }
 
 void problem::createCoef2KMatrix()
-{	Scalar *base = skeleton->valuePtr();// coeffRef(0, 0);
+{
+	Scalar *base = skeleton->valuePtr();// coeffRef(0, 0);
 	std::vector<Eigen::Triplet<Scalar> > tripletList;
 	for (int i = 0; i<getNodesCount(); ++i) {
 		for (nodeCoefficients *aux = nodeCoef[i]; aux != NULL; aux = aux->next) {
@@ -49,4 +50,10 @@ void problem::assembleProblemMatrix(double *cond, matrix **stiffnes)
 	Eigen::Map<vectorx>(m->valuePtr(), m->nonZeros()).noalias() = (*coef2KMatrix)*Eigen::Map<Eigen::VectorXd>(cond, numcoefficients);
 	m->resizeNonZeros(skeleton->nonZeros());
 	*stiffnes = m;
+
+	for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
+	for (int j = getNodesCount() - nobs; j < getNodesCount(); j++) {
+		double *val = &(*stiffnes)->coeffRef(i, j);
+		*val = *val + 1/32.0;
+	}
 }

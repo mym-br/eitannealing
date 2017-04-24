@@ -9,15 +9,8 @@ void problem2D::buildNodeCoefficients()
 	auto insertElectrodeCoefficient = [this](int node_a, int node_b, int condIndex, double cab) {
 		insertNewCoefficient(&nodeCoef[node_a], node_b, condIndex, cab);
 	};
-	for (const genericEletrode &e1 : gelectrodes) {
-		calcAndInsertGenericElectrodeCoefficients(e1, nodes, electrodeh, totalheight, node2coefficient, insertElectrodeCoefficient);
-
-		// Fake coefficients to force zero sum on electrodes
-		for (const genericEletrode &e2 : gelectrodes) {
-			std::map<int, int>::const_iterator ii = node2coefficient.find(e2.baseNode);
-			if (ii != node2coefficient.end()) insertElectrodeCoefficient(e1.baseNode, e2.baseNode, ii->second, 1);
-		}
-	}
+	for (const genericEletrode &e : gelectrodes) calcAndInsertGenericElectrodeCoefficients(
+		e, nodes, electrodeh, totalheight, node2coefficient, insertElectrodeCoefficient);
 
 		// Now prepare the coefficients due to the elements
 	for (const triangularElement e : elements) {

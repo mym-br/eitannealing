@@ -104,6 +104,7 @@ class solution {
 			solution(double *sol, const solution &base, std::shared_ptr<problem> _input);
 			double regularisation;
 			std::shared_ptr<problem> input;
+			void zeroSumVector(Eigen::VectorXd &vec);
 
 	public:
 

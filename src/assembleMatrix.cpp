@@ -22,6 +22,7 @@ void problem::createCoef2KMatrix()
 {
 	Scalar *base = skeleton->valuePtr();// coeffRef(0, 0);
 	std::vector<Eigen::Triplet<Scalar> > tripletList;
+	bool groundNodeSet = false;
 	for (int i = 0; i<getNodesCount(); ++i) {
 		for (nodeCoefficients *aux = nodeCoef[i]; aux != NULL; aux = aux->next) {
 			if (aux->node < i) continue; // skip upper triangular
@@ -51,9 +52,15 @@ void problem::assembleProblemMatrix(double *cond, matrix **stiffnes)
 	m->resizeNonZeros(skeleton->nonZeros());
 	*stiffnes = m;
 
+	#ifdef BLOCKGND
 	for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
-	for (int j = getNodesCount() - nobs; j < getNodesCount(); j++) {
-		double *val = &(*stiffnes)->coeffRef(i, j);
+	for (int j = i; j < getNodesCount(); j++) {
+		double *val = &(*stiffnes)->coeffRef(j, i);
 		*val = *val + 1/32.0;
 	}
+	#else
+	for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0;
+	for (int i = getGroundNode(); i < getNodesCount(); i++) *(&(*stiffnes)->coeffRef(i, getGroundNode())) = 0;
+	*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1;
+	#endif
 }

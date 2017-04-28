@@ -11,6 +11,7 @@ struct EitAnnealingArgs {
 	QString outputMesh;
 	QString gmeshAddress;
 	float peParam;
+	int ground;
 
 	bool isSeedSpecified() { return seedSpecified; }
 	unsigned long getSeed() { return seed; }

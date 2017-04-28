@@ -145,6 +145,7 @@ void problem2D::fillElementsGenericElectrode() {
 	}
 
 	numcoefficients = condIndex;
+	if (getGroundNode() == -1) setGroundNode(gelectrodes.back().baseNode);
 
 	// Prepare inner nodes adjacency map
 	//	Adjacency is established between nodes that are NOT in the outter ring

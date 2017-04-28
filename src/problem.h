@@ -35,6 +35,9 @@ class problem {
 	friend class gradientNormRegularisation_old;
 	friend class solution;
 
+	private:
+	int groundNode;
+
 	protected:
 	// Node data
 	float electrodeh;
@@ -63,7 +66,7 @@ public:
 	int getNumCoefficients() { return numcoefficients; }
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
 	int getNode2Coefficient(int id) { return node2coefficient[id]; }
-	problem(const char *meshfilename) : filename(meshfilename) {};
+	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1), nobs(-1) {};
 	virtual ~problem(){};
 	int getNObs() { return nobs; }
 	Eigen::VectorXd *getTensions() { return tensions; }
@@ -74,6 +77,8 @@ public:
 	const char* getMeshFilename() { return filename; }
 	double getCurrentVal(int i) { return currentVals[i]; }
 	int getCurrentsCount() { return (int)currentVals.size(); }
+	void setGroundNode(int nodeid);
+	int getGroundNode() { return this->groundNode; }
 };
 
 const double mincond = 0.005;

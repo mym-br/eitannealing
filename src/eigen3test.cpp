@@ -6,6 +6,7 @@
 #include <QCommandLineParser>
 #include "parameters\parametersparser.h"
 #include "matrixview.h"
+#include <iostream>
 
 int main(int argc, char *argv[])
 {
@@ -40,6 +41,7 @@ int main(int argc, char *argv[])
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
 	std::shared_ptr<problem> input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
 	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	input->buildNodeCoefficients();
@@ -57,6 +59,16 @@ int main(int argc, char *argv[])
     matrixView.setWindowTitle("Stiffness");
     matrixView.show();
 
+	std::ofstream myfile;
+	myfile.open("stiffness.txt");
+	for (int i = 0; i < m1->rows(); i++) {
+		for (int j = 0; j < m1->cols(); j++)
+			if (j < i) myfile << m1->coeff(i, j) << " ";
+			else myfile << m1->coeff(j, i) << " ";
+		myfile << std::endl;
+	}
+	myfile.close();
+
 	Eigen::VectorXd currents;
 	QTableView vectorbView;
 	vectorbView.setWindowTitle("Currents");
@@ -68,8 +80,11 @@ int main(int argc, char *argv[])
 	std::vector<Eigen::VectorXd> solutions;
 	for (int patterno = 0; patterno < input->getCurrentsCount(); patterno++) {
 		currents = input->getCurrents()[patterno];
-		double currentVal = input->getCurrentVal(patterno);
 
+		myfile;
+		myfile.open("currents" + std::to_string(patterno+1) + ".txt");
+		for (int i = 0; i < currents.size(); i++) myfile << currents.coeff(i) << std::endl;
+		myfile.close();
 		
 		vectorbView.setModel(makeMatrixTableModel(currents));	
 		vectorbView.show();
@@ -79,10 +94,24 @@ int main(int argc, char *argv[])
 		for (int i = 0; i < 100; i++) solver.do_iteration();
 		
 		x = solver.getX();
+		#ifndef BLOCKGND
+		// Correct potentials
+		double avg = 0;
+		for (int i = input->getNodesCount() - input->getGenericElectrodesCount(); i < input->getNodesCount(); i++) avg += x[i];
+		avg /= input->getGenericElectrodesCount();
+		for (int i = 0; i < input->getNodesCount(); i++) x[i] -= avg;
+		#endif
+
 		vectorView.setModel(makeMatrixTableModel(x.selfadjointView<Eigen::Lower>()));
 		vectorView.show();
 
+		myfile;
+		myfile.open("tensions" + std::to_string(patterno+1) + ".txt");
+		for (int i = 0; i < x.size(); i++) myfile << x.coeff(i) << std::endl;
+		myfile.close();
+
 		solutions.push_back(x);
+		std::cout << "Finished solution " << patterno + 1 << " of " << input->getCurrentsCount() << std::endl;
 	}
 
 	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input);

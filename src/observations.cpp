@@ -31,6 +31,10 @@ void problem::initObs(const char *filecurrents, const char* filename)
 		currents[i] = current;
 		currents[i][baseIndex + entry] = 1;
 		currents[i][baseIndex + exit] = -1;
+		#ifndef BLOCKGND
+		// Zero ground node current
+		if (groundNode > 0 && groundNode < getNodesCount()) currents[i][groundNode] = 0;
+		#endif
 
 		// read tensions from file
 		tensions[i].resize(getGenericElectrodesCount());

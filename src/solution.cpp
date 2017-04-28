@@ -21,6 +21,13 @@
 #define min(x,y) ((x)<(y)?(x):(y))
 #endif
 
+void solution::zeroSumVector(Eigen::VectorXd &vec) {
+	double avg = 0;
+	for (int i = 0; i < vec.size(); i++) avg += vec[i];
+	avg /= input->getGenericElectrodesCount();
+	for (int i = 0; i < vec.size(); i++) vec[i] -= avg;
+}
+
 void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
@@ -33,6 +40,10 @@ void solution::improve()
 	// Recalcule expected distance and boundaries
 	
 	aux = simulations[critical]->getX().tail(input->getGenericElectrodesCount());
+	#ifndef BLOCKGND
+	// Rebase tension for zero sum
+	zeroSumVector(aux);
+	#endif
 	aux -= input->getTensions()[critical];
 					
 	distance[critical] = aux.norm();
@@ -256,8 +267,12 @@ void solution::initErrors()
 	for(i=0;i<input->getNObs();i++) {
 		// Compare with observation
 		aux = simulations[i]->getX().tail(aux.size());
+		#ifndef BLOCKGND
+		// Rebase tension for zero sum
+		zeroSumVector(aux);
+		#endif
 		aux -= input->getTensions()[i];
-		
+
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
@@ -489,6 +504,10 @@ void solution::ensureMinIt(unsigned int it)
 		this->totalit++;
 		// Recalcule expected distance and boundaries
 		aux = simulations[i]->getX().tail(input->getGenericElectrodesCount());
+		#ifndef BLOCKGND
+		// Rebase tension for zero sum
+		zeroSumVector(aux);
+		#endif
 		aux -= input->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
@@ -522,6 +541,10 @@ void solution::ensureMaxE2(double e2)
 		this->totalit++;
 		// Recalcule expected distance and boundaries
 		aux = simulations[i]->getX().tail(input->getGenericElectrodesCount());
+		#ifndef BLOCKGND
+		// Rebase tension for zero sum
+		zeroSumVector(aux);
+		#endif
 		aux -= input->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());

@@ -369,6 +369,7 @@ int main(int argc, char *argv[])
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
 	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
 	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	input->buildNodeCoefficients();

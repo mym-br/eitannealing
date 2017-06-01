@@ -86,6 +86,8 @@ class CG_Solver {
 
 		void init();
 						
+		void saveVals(const char* fname, double val, bool app = true);
+
 	public:
 	
 		void setrefresh() {

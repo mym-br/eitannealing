@@ -35,6 +35,8 @@ void problem2D::fillNodes() {
 		file.ignore(256, ' ');
 		nodes.push_back(n);
 	}
+
+	nodeCount = nodes.size();
 }
 
 void problem2D::fillElementsGenericElectrode() {

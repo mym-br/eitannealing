@@ -55,3 +55,58 @@ void problem::initObs(const char *filecurrents, const char* filename)
 	filec.close();
 	file.close();
 }
+
+void problem::initObsComplex(const char *filecurrents, const char* filename) {
+	std::ifstream file;
+	std::ifstream filec;
+
+	filec.open(filecurrents);
+	file.open(filename);
+
+	int n = getGenericElectrodesCount() - 1;
+	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
+	nobs = valuesCount / getGenericElectrodesCount();
+
+	file.clear();
+	file.seekg(0, std::ios::beg);
+	tensionscomplex = new Eigen::VectorXcd[nobs];
+	currentscomplex = new Eigen::VectorXcd[nobs];
+	currentValscomplex = Eigen::VectorXcd(nobs);
+	Eigen::VectorXcd current(getNodesCount());
+	current.fill(0);
+	int baseIndex = (int)current.size() - n - 1;
+	for (int i = 0; i<nobs; i++) {
+		double c;
+		int entry, exit;
+		filec >> entry;
+		filec >> exit;
+		filec >> c;
+		entry--; exit--;	// zero-based
+		currentValscomplex[i] = c;
+		currentscomplex[i] = current;
+		currentscomplex[i][baseIndex + entry] = 1;
+		currentscomplex[i][baseIndex + exit] = -1;
+#ifndef BLOCKGND
+		// Zero ground node current
+		//if (groundNode > 0 && groundNode < getNodesCount()) currentscomplex[i][groundNode] = 0;
+#endif
+
+		// read tensions from file
+		tensionscomplex[i].resize(getGenericElectrodesCount());
+		std::complex<double> val, avg;
+		avg = 0;
+		for (int j = 0; j<getGenericElectrodesCount(); j++) {
+			file >> val;
+			tensionscomplex[i][j] = val / c;  // Values are normalized by current
+			avg += tensionscomplex[i][j];
+		}
+		// rebase tensions, apply offset for zero sum on electrodes
+		avg /= (double)getGenericElectrodesCount();
+		for (int j = 0; j < getGenericElectrodesCount(); j++) {
+			tensionscomplex[i][j] -= avg;
+		}
+	}
+
+	filec.close();
+	file.close();
+}

@@ -33,6 +33,8 @@ void problem3D::fillNodes() {
 		file >> n.z;
 		nodes.push_back(n);
 	}
+
+	nodeCount = nodes.size();
 }
 
 problem3D::gmeshElement problem3D::getNextElement() {

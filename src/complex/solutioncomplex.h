@@ -1,16 +1,16 @@
 /*
- * solution.h
+ * solutioncomplex.h
  *
  *  Created on: Sep 12, 2010
- *      Author: thiago
+ *      Author: aksato
  */
 
-#ifndef SOLUTION_H_
-#define SOLUTION_H_
+#ifndef SOLUTIONCOMPLEX_H_
+#define SOLUTIONCOMPLEX_H_
 
 class solution;
 
-#include "solver.h"
+#include "solvercomplex.h"
 //#include "assembleMatrix.h"
 //#include "problemdescription.h"
 #include "problem.h"
@@ -38,17 +38,17 @@ struct shuffleData {
 	bool swap;
 };
 
-struct shuffler {
+struct shufflercomplex {
 	int * shuffleConsts;
 	int * swapshuffleconsts;
-	shuffler(std::shared_ptr<problem> input) {
+	shufflercomplex(std::shared_ptr<problem> input) {
 		shuffleConsts = new int[input->getNumCoefficients()];
 		swapshuffleconsts = new int[input->getInnerAdjacencyCount()];
 
 		for (int i = 0; i<input->getNumCoefficients(); i++) shuffleConsts[i] = 0;
 		for (int i = 0; i<input->getInnerAdjacencyCount(); i++) swapshuffleconsts[i] = 0;
 	}
-	~shuffler() {
+	~shufflercomplex() {
 		delete[] shuffleConsts;
 		delete[] swapshuffleconsts;
 
@@ -56,16 +56,16 @@ struct shuffler {
 	void addShufflerFeedback(const shuffleData &data, bool pos);
 };
 
-class solution {
+class solutioncomplex {
 	private:
 
 
-			double *sol;
-			matrix *stiffness;
-			SparseIncompleteLLT *precond;
+			std::complex<double> *sol;
+			matrixcomplex *stiffness, *stiffnessorig;
+			SparseIncompleteLLTComplex *precond;
 
 
-			CG_Solver **simulations;
+			CG_SolverComplex **simulations;
 			Eigen::VectorXd distance;
 			Eigen::VectorXd maxdist;
 			Eigen::VectorXd mindist;
@@ -85,36 +85,37 @@ class solution {
 
 
 			void initSimulations();
-			void initSimulations(const solution &base);
+			void initSimulations(const solutioncomplex &base);
 			void initErrors();
-
+public:
 			double *getShufledSolution();
-			static double *getNewRandomSolution(std::shared_ptr<problem> input);
-			static double *copySolution(const double *sol, std::shared_ptr<problem> input);
+			static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input);
+			static std::complex<double> *copySolution(const std::complex<double> *sol, std::shared_ptr<problem> input);
 
-			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
+			std::complex<double> *getShuffledSolution(shuffleData *data, const shufflercomplex &sh) const;
 
-			static matrix *getNewStiffness(double *sol, std::shared_ptr<problem> input) {
-				matrix *aux;
-				input->assembleProblemMatrix(sol, &aux);
+			static matrixcomplex *getNewStiffness(std::complex<double> *sol, matrixcomplex **stiffnessorig, std::shared_ptr<problem> input) {
+				matrixcomplex *aux = new matrixcomplex;
+				input->assembleProblemMatrix(sol, stiffnessorig);
+				*aux = (**stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * (matrixcomplex)(**stiffnessorig).selfadjointView<Eigen::Lower>();
 				input->postAssempleProblemMatrix(&aux);
 				return aux;
 			}
 
 			// shuffle constructor
-			solution(double *sol, const solution &base, std::shared_ptr<problem> _input);
+			solutioncomplex(std::complex<double> *sol, const solutioncomplex &base, std::shared_ptr<problem> _input);
 			double regularisation;
 			std::shared_ptr<problem> input;
-			void zeroSumVector(Eigen::VectorXd &vec);
+			void zeroSumVector(Eigen::VectorXcd &vec);
 
-	public:
+	//public:
 
-		solution(const double *sol, std::shared_ptr<problem> input);
-		solution(std::shared_ptr<problem> _input);	// New random solution
-		bool compareWith(solution &target, double kt, double prob);
-		bool compareWithMinIt(solution &target, double kt, int minit);
-		bool compareWithMaxE2(solution &target, double kt, double e2);
-		solution *shuffle(shuffleData *data, const shuffler &sh) const;
+		solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem> input);
+		solutioncomplex(std::shared_ptr<problem> _input);	// New random solution
+		bool compareWith(solutioncomplex &target, double kt, double prob);
+		bool compareWithMinIt(solutioncomplex &target, double kt, int minit);
+		bool compareWithMaxE2(solutioncomplex &target, double kt, double e2);
+		solutioncomplex *shuffle(shuffleData *data, const shufflercomplex &sh) const;
 
 		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);
 		static void savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input);
@@ -137,7 +138,7 @@ class solution {
 			return minTotalDist;
 		}
 
-		double *getSolution() {
+		std::complex<double> *getSolution() {
 			return this->sol;
 		}
 
@@ -149,7 +150,7 @@ class solution {
 			return this->critErr;
 		}
 
-		double getErrorAt(int sim) const {
+		std::complex<double> getErrorAt(int sim) const {
 			return this->distance[sim];
 		}
 
@@ -163,9 +164,9 @@ class solution {
 		
 		void ensureMaxE2(double e2);
 
-		~solution();
+		~solutioncomplex();
 
 };
 
 
-#endif /* SOLUTION_H_ */
+#endif /* SOLUTIONCOMPLEX_H_ */

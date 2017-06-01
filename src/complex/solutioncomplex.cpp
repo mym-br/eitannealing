@@ -5,13 +5,13 @@
  *      Author: thiago
  */
 
-#include "solution.h"
+#include "solutioncomplex.h"
 #include "random.h"
 //#include "observations.h"
 //#include "problemdescription.h"
 #include <iostream>
 //#include <boost/numeric/interval.hpp>
-#include "gradientnormregularisation.h"
+#include "gradientnormregularisationcomplex.h"
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -21,20 +21,22 @@
 #define min(x,y) ((x)<(y)?(x):(y))
 #endif
 
-void solution::zeroSumVector(Eigen::VectorXd &vec) {
-	double avg = 0;
+void solutioncomplex::zeroSumVector(Eigen::VectorXcd &vec) {
+	std::complex<double> avg = 0;
 	for (int i = 0; i < vec.size(); i++) avg += vec[i];
 	avg /= input->getGenericElectrodesCount();
 	for (int i = 0; i < vec.size(); i++) vec[i] -= avg;
 }
 
-void solution::improve()
+void solutioncomplex::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
+	static Eigen::VectorXcd aux(input->getGenericElectrodesCount());
 
 	// Do another iteration on the critical solver
+	double rnorm = simulations[critical]->getResidueSquaredNorm();
+	if (simulations[critical]->getResidueSquaredNorm() == 0.0) return;
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
@@ -44,7 +46,7 @@ void solution::improve()
 	// Rebase tension for zero sum
 	zeroSumVector(aux);
 	#endif
-	aux -= input->getTensions()[critical];
+	aux -= input->getTensionsComplex()[critical];
 					
 	distance[critical] = aux.norm();
 	err[critical] = sqrt(simulations[critical]->getErrorl2Estimate());
@@ -66,43 +68,50 @@ void solution::improve()
 	critErr = err[critical];
 }
 
-bool solution::compareWith(solution &target, double kt, double prob)
+bool solutioncomplex::compareWith(solutioncomplex &target, double kt, double prob)
 {
 	double delta, expdelta;
-	// Ensure errors are within required margin
-	while(true) {
-		double min_delta = target.minTotalDist - this->maxTotalDist;
-		double max_delta = target.maxTotalDist - this->minTotalDist;
-		delta = target.totalDist - this->totalDist;
-		expdelta = exp(-delta/kt);
-		// Check boundary conditions:
-		// Upper bound is negative, no doubt here
-		if(max_delta < 0) break;
-		// Estimate is negative, but upper bound is positive
-		else if(delta <= 0) {
-			if(exp(-max_delta/kt)>=(1-prob)) break; // Upper condition only
-		}
-		// Estimate and upper bounds are positive, lower bound is negative
-		else if(min_delta <= 0) {
-			if(expdelta >= 1 - prob) { // Lower condition
-				if(expdelta <= prob) break;	// upper condition
-				if(exp(-max_delta/kt)>=(expdelta-prob)) break;
-			}
-		}
-		// Classic case, everything is positive
-		else {
-			if(exp(-min_delta/kt)<=prob+expdelta) { // lower condition
-				if(expdelta <= prob) break;	// upper condition
-				if(exp(-max_delta/kt)>=(expdelta-prob)) break;
-			}
-		}
-		// Not there yet, improve boundaries
-		// Select wich one to improve
-		if(this->critErr > target.critErr)
-			this->improve();
-		else
-			target.improve();
+	//// Ensure errors are within required margin
+	//while(true) {
+	//	double min_delta = target.minTotalDist - this->maxTotalDist;
+	//	double max_delta = target.maxTotalDist - this->minTotalDist;
+	//	delta = target.totalDist - this->totalDist;
+	//	expdelta = exp(-delta/kt);
+	//	// Check boundary conditions:
+	//	// Upper bound is negative, no doubt here
+	//	if(max_delta < 0) break;
+	//	// Estimate is negative, but upper bound is positive
+	//	else if(delta <= 0) {
+	//		if(exp(-max_delta/kt)>=(1-prob)) break; // Upper condition only
+	//	}
+	//	// Estimate and upper bounds are positive, lower bound is negative
+	//	else if(min_delta <= 0) {
+	//		if(expdelta >= 1 - prob) { // Lower condition
+	//			if(expdelta <= prob) break;	// upper condition
+	//			if(exp(-max_delta/kt)>=(expdelta-prob)) break;
+	//		}
+	//	}
+	//	// Classic case, everything is positive
+	//	else {
+	//		if(exp(-min_delta/kt)<=prob+expdelta) { // lower condition
+	//			if(expdelta <= prob) break;	// upper condition
+	//			if(exp(-max_delta/kt)>=(expdelta-prob)) break;
+	//		}
+	//	}
+	//	// Not there yet, improve boundaries
+	//	// Select wich one to improve
+	//	if(this->critErr > target.critErr)
+	//		this->improve();
+	//	else
+	//		target.improve();
+	//}
+
+	for (int i = 0; i < 100 ; i++) {
+		target.improve();
 	}
+	
+	delta = target.totalDist - this->totalDist;
+	expdelta = exp(-delta / kt);
 	if(delta <= 0) {
 		//std::cout << "+";
 		return true;
@@ -116,7 +125,7 @@ bool solution::compareWith(solution &target, double kt, double prob)
 }
 
 
-bool solution::compareWithMinIt(solution &target, double kt,  int minit)
+bool solutioncomplex::compareWithMinIt(solutioncomplex &target, double kt, int minit)
 {
 	double delta, expdelta;
 	// Ensure errors are within required margin
@@ -131,7 +140,7 @@ bool solution::compareWithMinIt(solution &target, double kt,  int minit)
 	return false;
 }
 
-bool solution::compareWithMaxE2(solution &target, double kt,  double e2)
+bool solutioncomplex::compareWithMaxE2(solutioncomplex &target, double kt, double e2)
 {
 	double delta, expdelta;
 	// Ensure errors are within required margin
@@ -147,11 +156,11 @@ bool solution::compareWithMaxE2(solution &target, double kt,  double e2)
 }
 
 
-solution::solution(const double *sigma, std::shared_ptr<problem> _input) :
-				sol(solution::copySolution(sigma, _input)),
-				stiffness(solution::getNewStiffness(sol, _input)),
-				precond(new SparseIncompleteLLT(*stiffness)),
-				simulations(new CG_Solver *[_input->getNObs()]),
+solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_ptr<problem> _input) :
+				sol(solutioncomplex::copySolution(sigma, _input)),
+				stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
+				precond(new SparseIncompleteLLTComplex(*stiffness)),
+				simulations(new CG_SolverComplex *[_input->getNObs()]),
 				distance(_input->getNObs()),
 				maxdist(_input->getNObs()),
 				mindist(_input->getNObs()),
@@ -165,11 +174,11 @@ solution::solution(const double *sigma, std::shared_ptr<problem> _input) :
 
 
 // New random solution
-solution::solution(std::shared_ptr<problem> _input) :
-		sol(solution::getNewRandomSolution(_input)),
-		stiffness(solution::getNewStiffness(sol,  _input)),
-		precond(new SparseIncompleteLLT(*stiffness)),
-		simulations(new CG_Solver *[_input->getNObs()]),
+solutioncomplex::solutioncomplex(std::shared_ptr<problem> _input) :
+		sol(solutioncomplex::getNewRandomSolution(_input)),
+		stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
+		precond(new SparseIncompleteLLTComplex(*stiffness)),
+		simulations(new CG_SolverComplex *[_input->getNObs()]),
 		distance(_input->getNObs()),
 		maxdist(_input->getNObs()),
 		mindist(_input->getNObs()),
@@ -182,11 +191,11 @@ solution::solution(std::shared_ptr<problem> _input) :
 }
 
 // New randomly modified solution
-solution::solution(double *sigma, const solution &base, std::shared_ptr<problem> _input) :
+solutioncomplex::solutioncomplex(std::complex<double> *sigma, const solutioncomplex &base, std::shared_ptr<problem> _input) :
 		sol(sigma),
-		stiffness(solution::getNewStiffness(sol, _input)),
-		precond(new SparseIncompleteLLT(*stiffness)),
-		simulations(new CG_Solver *[_input->getNObs()]),
+		stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
+		precond(new SparseIncompleteLLTComplex(*stiffness)),
+		simulations(new CG_SolverComplex *[_input->getNObs()]),
 		distance(_input->getNObs()),
 		maxdist(_input->getNObs()),
 		mindist(_input->getNObs()),
@@ -198,7 +207,7 @@ solution::solution(double *sigma, const solution &base, std::shared_ptr<problem>
 	this->initErrors();
 }
 
-void solution::initSimulations(const solution &base)
+void solutioncomplex::initSimulations(const solutioncomplex &base)
 {
 	// Prepare solvers
 	int i;
@@ -206,7 +215,9 @@ void solution::initSimulations(const solution &base)
 	for(i=0;i<input->getNObs();i++)
 	{
 		// Reuse previous solutions as initial values
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrents()[i], base.simulations[i]->getX(), *precond);
+		simulations[i] = new CG_SolverComplex(*stiffness, input->getCurrentsComplex(stiffnessorig, i), base.simulations[i]->getX(), *precond);
+		//Eigen::VectorXcd current = (*stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrentsComplex()[i];
+		//simulations[i] = new CG_SolverComplex(*stiffness, current, base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -214,7 +225,7 @@ void solution::initSimulations(const solution &base)
 		double err = simulations[i]->getErrorl2Estimate();
 		double aux;
 		int ndecr = 0;
-		while(ndecr<2) {
+		while (ndecr<2 && simulations[i]->getResidueSquaredNorm() != 0.0) {
 			simulations[i]->do_iteration();
 			aux = simulations[i]->getErrorl2Estimate();
 			if(aux>=err) ndecr = 0;
@@ -227,25 +238,27 @@ void solution::initSimulations(const solution &base)
 	}
 }
 
-void solution::initSimulations()
+void solutioncomplex::initSimulations()
 {
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
 	for(i=0;i<input->getNObs();i++)
 	{
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrents()[i], *precond);
+		simulations[i] = new CG_SolverComplex(*stiffness, input->getCurrentsComplex(stiffnessorig, i), *precond);
+		//Eigen::VectorXcd current = (*stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrentsComplex()[i];
+		//simulations[i] = new CG_SolverComplex(*stiffness, current, *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
 		double err = simulations[i]->getErrorl2Estimate();
-		double aux;
+		double aux = 1;
 		int ndecr = 0;
-		while(ndecr<2) {
+		while(ndecr<2 && aux != 0.0) {
 			simulations[i]->do_iteration();
 			aux = simulations[i]->getErrorl2Estimate();
-			if(aux>=err) ndecr = 0;
+			if (aux >= err) ndecr = 0;
 			else {
 				ndecr++;
 			}
@@ -255,14 +268,14 @@ void solution::initSimulations()
 	}
 }
 
-void solution::initErrors()
+void solutioncomplex::initErrors()
 {
 	// Calc regularisation value
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30;
+	this->regularisation = std::abs(gradientNormRegularisationComplex::getInstance()->getRegularisation(this->sol))*30;
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
+	static Eigen::VectorXcd aux(input->getGenericElectrodesCount());
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<input->getNObs();i++) {
 		// Compare with observation
@@ -271,12 +284,16 @@ void solution::initErrors()
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
 		#endif
-		aux -= input->getTensions()[i];
+		aux -= input->getTensionsComplex()[i];
 
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
 		mindist[i] = max(distance[i] - err[i],0);
+		double distancei = distance[i];
+		double erri = err[i];
+		double maxdisti = maxdist[i];
+		double mindisti = mindist[i];
 		err_x_dist[i] = maxdist[i]*err[i];
 	}
 	totalDist = distance.norm()+regularisation;
@@ -295,9 +312,9 @@ void solution::initErrors()
 }
 
 
-double *solution::copySolution(const double *sol, std::shared_ptr<problem> input)
+std::complex<double> *solutioncomplex::copySolution(const std::complex<double> *sol, std::shared_ptr<problem> input)
 {
-	double *res = new double[input->getNumCoefficients()];
+	std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
 
 	for (int i = 0; i<input->getNumCoefficients(); i++)
 		res[i] = sol[i];
@@ -305,9 +322,9 @@ double *solution::copySolution(const double *sol, std::shared_ptr<problem> input
 	return res;
 }
 
-double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
+std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<problem> input)
 {
-	double *res = new double[input->getNumCoefficients()];
+	std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
 	int i = 0;
 /*
 	res[i++] = 0.0795333;
@@ -343,13 +360,14 @@ double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
 	res[i++] = 0.122205;
 	res[i++] = 0.119641;
 	res[i++] = 0.35731;*/
-	for (i = 0; i<input->getNumCoefficients(); i++)
-		res[i] = mincond+genreal()*(maxcond-mincond);
+	for (i = 0; i < input->getNumCoefficients(); i++)
+		//res[i] = std::complex<double>(0.3815, 0.0);
+		res[i] = std::complex<double>(mincond + genreal()*(maxcond - mincond), 0.0);// 0.00000000070922044418976);
 
 	return res;
 }
 
-void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step) {
+void solutioncomplex::saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -370,7 +388,7 @@ void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<probl
 	myfile.close();
 }
 
-void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input) {
+void solutioncomplex::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -392,7 +410,7 @@ void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *fi
 	myfile.close();
 }
 
-void solution::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input) {
+void solutioncomplex::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input) {
 	std::string refname(filename), imfname(filename), absfname(filename), angfname(filename);
 	std::size_t dotfound = refname.find_last_of(".");
 	refname.replace(dotfound, 1, "_re."); imfname.replace(dotfound, 1, "_im."); absfname.replace(dotfound, 1, "_abs."); angfname.replace(dotfound, 1, "_ang.");
@@ -412,10 +430,10 @@ void solution::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *f
 		myfileabs << "$NodeData\n1\n\"Magnitude Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
 		myfileang << "$NodeData\n1\n\"Phase Angle Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
 		for (int j = 0; j < input->getNodesCount(); j++) {
-			myfilereal << (j + 1) << "\t" << sols[patterno][j].real() * input->getCurrentVal(patterno) << "\n";
-			myfileimag << (j + 1) << "\t" << sols[patterno][j].imag() * input->getCurrentVal(patterno) << "\n";
-			myfileabs << (j + 1) << "\t" << std::abs(sols[patterno][j]) * input->getCurrentVal(patterno) << "\n";
-			myfileang << (j + 1) << "\t" << std::arg(sols[patterno][j]) * input->getCurrentVal(patterno) << "\n";
+			myfilereal << (j + 1) << "\t" << sols[patterno][j].real() << "\n";
+			myfileimag << (j + 1) << "\t" << sols[patterno][j].imag() << "\n";
+			myfileabs << (j + 1) << "\t" << std::abs(sols[patterno][j]) << "\n";
+			myfileang << (j + 1) << "\t" << std::arg(sols[patterno][j]) << "\n";
 		}
 		myfilereal << "$EndNodeData\n"; myfileimag << "$EndNodeData\n"; myfileabs << "$EndNodeData\n"; myfileang << "$EndNodeData\n";
 	}
@@ -423,17 +441,17 @@ void solution::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *f
 	myfilereal.close(); myfileimag.close(); myfileabs.close(); myfileang.close();
 }
 
-double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) const
+std::complex<double> *solutioncomplex::getShuffledSolution(shuffleData *data, const shufflercomplex &sh) const
 {
-	double *res = solution::copySolution(sol, input);
+	std::complex<double> *res = solutioncomplex::copySolution(sol, input);
 	// head or tails
 	if(genint(2)) { // Normal
 		int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {
-			res[ncoef] = mincond+genreal()*(maxcond-mincond);
+			res[ncoef] = std::complex<double>(mincond + genreal()*(maxcond - mincond), res[ncoef].imag());
 		} else {
-			double val;
+			std::complex<double> val;
 			do {
 				val = res[ncoef];
 				double rnd = 0;
@@ -443,7 +461,7 @@ double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) con
 				rnd -= 0.5;
 				rnd *= (maxcond - mincond);
 				val += rnd;
-			} while((val < mincond) || (val > maxcond));
+			} while((val.real() < mincond) || (val.real() > maxcond));
 			res[ncoef] = val;
 		}
 		if(data) {
@@ -458,13 +476,13 @@ double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) con
 		node2 = input->node2coefficient[input->innerAdjacency[ncoef].second];
 		
 		// Order nodes
-		if(res[node1]>res[node2]) {
+		if(res[node1].real()>res[node2].real()) {
 			int aux = node1;
 			node1 = node2;;
 			node2 = aux;
 		}
-		double v1 = res[node1], v2 = res[node2];
-		double a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
+		std::complex<double> v1 = res[node1], v2 = res[node2];
+		double a = max(min(v1.real() - mincond, maxcond - v2.real()), min(maxcond - v1.real(), v2.real() - mincond));
 
 		double delta;
 		do {
@@ -480,7 +498,7 @@ double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) con
 			}
 			v1 = res[node1] - delta;
 			v2 = res[node2] + delta;
-		} while((v1 < mincond) || (v2 < mincond) || (v1 > maxcond) || (v2 > maxcond));
+		} while ((v1.real() < mincond) || (v2.real() < mincond) || (v1.real() > maxcond) || (v2.real() > maxcond));
 		res[node1] = v1;
 		res[node2] = v2;
 		if(data) {
@@ -491,7 +509,7 @@ double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) con
 	return res;
 }
 
-void shuffler::addShufflerFeedback(const shuffleData &data, bool pos)
+void shufflercomplex::addShufflerFeedback(const shuffleData &data, bool pos)
 {
 	if(pos) { // positive feedback
 		if(data.swap)
@@ -506,12 +524,12 @@ void shuffler::addShufflerFeedback(const shuffleData &data, bool pos)
 	}
 }
 
-solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
+solutioncomplex *solutioncomplex::shuffle(shuffleData *data, const shufflercomplex &sh) const
 {
-	double *sigma = getShuffledSolution(data, sh);
-	solution *res;
+	std::complex<double> *sigma = getShuffledSolution(data, sh);
+	solutioncomplex *res;
 	try {
-		res = new solution(sigma, *this, input);
+		res = new solutioncomplex(sigma, *this, input);
 	} catch(...) {
 		for(int i=0;i<65;i++)
 			std::cout << i << ":" << sigma[i] << std::endl;
@@ -520,16 +538,16 @@ solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
 	return res;
 }
 
-void solution::saturate()
+void solutioncomplex::saturate()
 {
       ensureMinIt(input->getNodesCount()+30);
 }
 
-void solution::ensureMinIt(unsigned int it)
+void solutioncomplex::ensureMinIt(unsigned int it)
 {     
-	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
+	static Eigen::VectorXcd aux(input->getGenericElectrodesCount());
       for(int i = 0; i<input->getNObs();i++) {
-	    CG_Solver *sim = this->simulations[i];
+	    CG_SolverComplex *sim = this->simulations[i];
 	    while(sim->getIteration()<it) {
 		simulations[i]->do_iteration();
 		this->totalit++;
@@ -543,7 +561,7 @@ void solution::ensureMinIt(unsigned int it)
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
-		mindist[i] = max(distance[i] - err[i],0);
+		//mindist[i] = max(distance[i] - err[i],0);
 		err_x_dist[i] = maxdist[i]*err[i];
 		totalDist = distance.norm();
 		minTotalDist = mindist.norm();
@@ -562,11 +580,11 @@ void solution::ensureMinIt(unsigned int it)
       }
 }
 
-void solution::ensureMaxE2(double e2)
+void solutioncomplex::ensureMaxE2(double e2)
 {     
-	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
+	static Eigen::VectorXcd aux(input->getGenericElectrodesCount());
       for(int i = 0; i<input->getNObs();i++) {
-	    CG_Solver *sim = this->simulations[i];
+	    CG_SolverComplex *sim = this->simulations[i];
 	    while(sim->getLastE2()>e2) {
 		simulations[i]->do_iteration();
 		this->totalit++;
@@ -580,7 +598,7 @@ void solution::ensureMaxE2(double e2)
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
-		mindist[i] = max(distance[i] - err[i],0);
+		//mindist[i] = max(distance[i] - err[i],0);
 		err_x_dist[i] = maxdist[i]*err[i];
 		totalDist = distance.norm();
 		minTotalDist = mindist.norm();
@@ -599,10 +617,11 @@ void solution::ensureMaxE2(double e2)
       }
 }
 
-solution::~solution()
+solutioncomplex::~solutioncomplex()
 {
 	delete[] sol;
 	delete stiffness;
+	delete stiffnessorig;
 	delete precond;
 	for(int i=0;i<input->getNObs();i++) {
 		delete simulations[i];

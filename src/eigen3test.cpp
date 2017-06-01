@@ -7,6 +7,22 @@
 #include "parameters\parametersparser.h"
 #include "matrixview.h"
 #include <iostream>
+#include <Eigen/SparseCholesky>
+//#include "incomplete_choleskycomplex.h"
+
+void saveVals(const char* fname, matrix &mat, bool symm = false) {
+	std::ofstream myfile;
+	myfile.open(fname, std::ios::binary);
+	for (int i = 0; i < mat.rows(); i++) {
+		for (int j = 0; j < mat.cols(); j++) {
+			double valre = j < i && symm ? mat.coeff(i, j) : mat.coeff(j, i);
+			double valim = 0.0;
+			myfile.write((char*)&valre, sizeof(double));
+			myfile.write((char*)&valim, sizeof(double));
+		}
+	}
+	myfile.close();
+}
 
 int main(int argc, char *argv[])
 {
@@ -48,26 +64,15 @@ int main(int argc, char *argv[])
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
 	
+    matrix *m;
+	Eigen::VectorXd vcond(input->getNumCoefficients());
+	for (int i = 0; i < vcond.rows(); i++) vcond[i] = 0.3815;
+	input->assembleProblemMatrix(&vcond[0], &m);
 
-    matrix *m1;
-	Eigen::VectorXd v(input->getNumCoefficients());
-	for (int i = 0; i < v.rows(); i++) v[i] = 1;
-	input->assembleProblemMatrix(&v[0], &m1);  
-    
     QTableView matrixView;
-    matrixView.setModel(makeMatrixTableModel(m1->selfadjointView<Eigen::Lower>()));
+    matrixView.setModel(makeMatrixTableModel(m->selfadjointView<Eigen::Lower>()));
     matrixView.setWindowTitle("Stiffness");
     matrixView.show();
-
-	std::ofstream myfile;
-	myfile.open("stiffness.txt");
-	for (int i = 0; i < m1->rows(); i++) {
-		for (int j = 0; j < m1->cols(); j++)
-			if (j < i) myfile << m1->coeff(i, j) << " ";
-			else myfile << m1->coeff(j, i) << " ";
-		myfile << std::endl;
-	}
-	myfile.close();
 
 	Eigen::VectorXd currents;
 	QTableView vectorbView;
@@ -77,19 +82,36 @@ int main(int argc, char *argv[])
 	QTableView vectorView;
 	vectorView.setWindowTitle("Tensions");
 
+	matrix *m1 = new matrix(m->rows(), m->cols());
+	//*m1 = (*m).selfadjointView<Eigen::Lower>() * (matrix)(*m).selfadjointView<Eigen::Lower>();
+	*m1 = *m;
+	#ifndef BLOCKGND
+	for (int i = 0; i < input->getGroundNode(); i++) *(&m1->coeffRef(input->getGroundNode(), i)) = 0;
+	*(&m1->coeffRef(input->getGroundNode(), input->getGroundNode())) = 1.0/32.0;
+	#endif
+
+	saveVals("A.txt", *m, true);
+	saveVals("A_H.txt", *m1, true);
+
 	std::vector<Eigen::VectorXd> solutions;
 	for (int patterno = 0; patterno < input->getCurrentsCount(); patterno++) {
+		//currents = (*m).selfadjointView<Eigen::Lower>() * input->getCurrents()[patterno];
 		currents = input->getCurrents()[patterno];
+		#ifndef BLOCKGND
+		currents[input->getGroundNode()] = 0;
+		#endif
 
-		myfile;
+		std::ofstream myfile;
 		myfile.open("currents" + std::to_string(patterno+1) + ".txt");
 		for (int i = 0; i < currents.size(); i++) myfile << currents.coeff(i) << std::endl;
 		myfile.close();
 		
-		vectorbView.setModel(makeMatrixTableModel(currents));	
+		vectorbView.setModel(makeMatrixTableModel(currents));
 		vectorbView.show();
 
 		SparseIncompleteLLT precond(*m1);
+		matrix L = precond.matrixL();
+		saveVals("L.txt", L);
 		CG_Solver solver(*m1, currents, precond);
 		for (int i = 0; i < 100; i++) solver.do_iteration();
 		
@@ -105,7 +127,6 @@ int main(int argc, char *argv[])
 		vectorView.setModel(makeMatrixTableModel(x.selfadjointView<Eigen::Lower>()));
 		vectorView.show();
 
-		myfile;
 		myfile.open("tensions" + std::to_string(patterno+1) + ".txt");
 		for (int i = 0; i < x.size(); i++) myfile << x.coeff(i) << std::endl;
 		myfile.close();

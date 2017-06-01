@@ -19,16 +19,18 @@ template <typename _Scalar,typename t_vector > _Scalar EigenSymmQuadraticL(
 {
     typedef typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::Index Index;
     Index col, nextcol;
-    Scalar res = 0;
+	_Scalar res = 0;
     col = m.matrix().outerIndexPtr()[0]; 
     for(Index j=0;j<m.matrix().outerSize();j++) {
 	nextcol = m.matrix().outerIndexPtr()[j+1];
 	if(col==nextcol) continue;
-	Scalar xi = x[m.matrix().innerIndexPtr()[col]];
+	_Scalar xi = x[m.matrix().innerIndexPtr()[col]];
 	res += xi*xi*m.matrix().valuePtr()[col];
 	col++;
 	while(col!=nextcol) {
-	  res += 2*xi*x[m.matrix().innerIndexPtr()[col]]*m.matrix().valuePtr()[col];
+	  //res += 2*xi*x[m.matrix().innerIndexPtr()[col]]*m.matrix().valuePtr()[col];
+		res += xi*x[m.matrix().innerIndexPtr()[col]] * m.matrix().valuePtr()[col];
+		res += xi*x[m.matrix().innerIndexPtr()[col]] * m.matrix().valuePtr()[col];
 	  col++;
 	}
     }

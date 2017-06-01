@@ -51,16 +51,49 @@ void problem::assembleProblemMatrix(double *cond, matrix **stiffnes)
 	Eigen::Map<vectorx>(m->valuePtr(), m->nonZeros()).noalias() = (*coef2KMatrix)*Eigen::Map<Eigen::VectorXd>(cond, numcoefficients);
 	m->resizeNonZeros(skeleton->nonZeros());
 	*stiffnes = m;
+}
 
+void problem::assembleProblemMatrix(std::complex<double> *cond, matrixcomplex **stiffnes)
+{
+	// FIXME: Is there any way to get rid of the initial memset of zeros
+	//	on the outer index?
+	matrixcomplex *m = new matrixcomplex(skeleton->rows(), skeleton->cols());
+	m->reserve(skeleton->nonZeros());
+	// Now byte-copy outer and inner vectors from skeleton
+	memcpy(m->outerIndexPtr(), skeleton->outerIndexPtr(), (m->rows() + 1)*sizeof(matrix::StorageIndex));
+	memcpy(m->innerIndexPtr(), skeleton->innerIndexPtr(), (m->nonZeros()*sizeof(matrix::StorageIndex)));
+
+	// Final coefficient vector is the Sparse x Dense product of coef2KMatrix times coefficients
+	Eigen::Map<vectorxcomplex>(m->valuePtr(), m->nonZeros()).noalias() = (*coef2KMatrix)*Eigen::Map<Eigen::VectorXcd>(cond, numcoefficients);
+
+	m->resizeNonZeros(skeleton->nonZeros());
+	*stiffnes = m;
+}
+
+void problem::postAssempleProblemMatrix(matrixcomplex **stiffnes)
+{
 	#ifdef BLOCKGND
 	for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
 	for (int j = i; j < getNodesCount(); j++) {
-		double *val = &(*stiffnes)->coeffRef(j, i);
-		*val = *val + 1/32.0;
+		std::complex<double> *val = &m->coeffRef(j, i);
+		*val = *val + 1 / 32.0;
 	}
 	#else
-	for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0;
-	for (int i = getGroundNode(); i < getNodesCount(); i++) *(&(*stiffnes)->coeffRef(i, getGroundNode())) = 0;
-	*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1;
+	for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = std::complex<double>(0, 0);
+	*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = std::complex<double>(1, 0);
+	#endif
+}
+
+void problem::postAssempleProblemMatrix(matrix **stiffnes)
+{
+	#ifdef BLOCKGND
+	for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
+	for (int j = i; j < getNodesCount(); j++) {
+		std::complex<double> *val = &m->coeffRef(j, i);
+		*val = *val + 1 / 32.0;
+	}
+	#else
+	for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0.0;
+	*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1.0;
 	#endif
 }

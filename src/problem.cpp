@@ -41,3 +41,24 @@ void problem::setGroundNode(int nodeid) {
 	for (int i = 0; i < nobs; i++) currents[i][this->groundNode] = 0;
 	#endif
 }
+
+problem::~problem(){
+	delete[] tensions;
+	delete[] rebased_tensions;
+	delete[] currents;
+	delete[] tensionscomplex;
+	delete[] rebased_tensionscomplex;
+	delete[] currentscomplex;
+	delete coef2KMatrix;
+	delete skeleton;
+	for (int i = 0; i < getNodesCount(); i++) {
+		nodeCoefficients *node = nodeCoef[i];
+		while (node != NULL)
+		{
+			nodeCoefficients* tmpNode = node->next;
+			delete node;
+			node = tmpNode;
+		}
+	}
+	delete[] nodeCoef;
+};

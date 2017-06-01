@@ -8,7 +8,8 @@
 #include "matrixview.h"
 #include <iostream>
 #include <Eigen/SparseCholesky>
-//#include "incomplete_choleskycomplex.h"
+#include "twodim/problem2D.h"
+#include "threedim/problem3D.h"
 
 void saveVals(const char* fname, matrix &mat, bool symm = false) {
 	std::ofstream myfile;
@@ -56,7 +57,10 @@ int main(int argc, char *argv[])
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
-	std::shared_ptr<problem> input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input;// = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	is2dProblem = problem<Scalar, Eigen::VectorXd, matrix>::isProblem2D(meshfname.c_str());
+	if (is2dProblem) input = std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>>(new problem2D<Scalar, Eigen::VectorXd, matrix>(meshfname.c_str()));
+	else input = std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>>(new problem3D<Scalar, Eigen::VectorXd, matrix>(meshfname.c_str()));
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
 	input->initObs(currentsfname.c_str(), tensionsfname.c_str());

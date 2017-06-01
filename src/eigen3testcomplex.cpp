@@ -12,6 +12,8 @@
 #include <Eigen/SparseCholesky>
 //#include "incomplete_choleskycomplex.h"
 #include "random.h"
+#include "twodim/problem2D.h"
+#include "threedim/problem3D.h"
 
 void saveVals(const char* fname, matrixcomplex &mat, bool symm = false) {
 	std::ofstream myfile;
@@ -73,10 +75,13 @@ int main(int argc, char *argv[])
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
-	std::shared_ptr<problem> input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input;// = problem<Complex, Eigen::VectorXcd, matrixcomplex>::createNewProblem(meshfname.c_str(), is2dProblem);
+	is2dProblem = problem<Complex, Eigen::VectorXcd, matrixcomplex>::isProblem2D(meshfname.c_str());
+	if (is2dProblem) input = std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>>(new problem2D<Complex, Eigen::VectorXcd, matrixcomplex>(meshfname.c_str()));
+	else input = std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>>(new problem3D<Complex, Eigen::VectorXcd, matrixcomplex>(meshfname.c_str()));
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
-	input->initObsComplex(currentsfname.c_str(), tensionsfname.c_str());
+	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
@@ -128,10 +133,9 @@ int main(int argc, char *argv[])
 
 
 	std::vector<Eigen::VectorXcd> solutions;
-	int a = input->getCurrentsComplexCount();
-	for (int patterno = 0; patterno < input->getCurrentsComplexCount(); patterno++) {
-		//currents = (*m).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrents()[patterno];
-		currents = *input->getCurrentsComplex(m, patterno);
+	for (int patterno = 0; patterno < input->getCurrentsCount(); patterno++) {
+		currents = (*m).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrents()[patterno];
+		//currents = input->getCurrents()[patterno];
 		//#ifndef BLOCKGND
 		//currents[input->getGroundNode()] = 0;
 		//#endif
@@ -166,7 +170,7 @@ int main(int argc, char *argv[])
 		//myfile.close();
 
 		solutions.push_back(x);
-		std::cout << "Finished solution " << patterno + 1 << " of " << input->getCurrentsComplexCount() << std::endl;
+		std::cout << "Finished solution " << patterno + 1 << " of " << input->getCurrentsCount() << std::endl;
 	}
 
 	solutioncomplex::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input);

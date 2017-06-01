@@ -147,7 +147,7 @@ bool solution::compareWithMaxE2(solution &target, double kt,  double e2)
 }
 
 
-solution::solution(const double *sigma, std::shared_ptr<problem> _input) :
+solution::solution(const double *sigma, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input) :
 				sol(solution::copySolution(sigma, _input)),
 				stiffness(solution::getNewStiffness(sol, _input)),
 				precond(new SparseIncompleteLLT(*stiffness)),
@@ -165,7 +165,7 @@ solution::solution(const double *sigma, std::shared_ptr<problem> _input) :
 
 
 // New random solution
-solution::solution(std::shared_ptr<problem> _input) :
+solution::solution(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input) :
 		sol(solution::getNewRandomSolution(_input)),
 		stiffness(solution::getNewStiffness(sol,  _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
@@ -182,7 +182,7 @@ solution::solution(std::shared_ptr<problem> _input) :
 }
 
 // New randomly modified solution
-solution::solution(double *sigma, const solution &base, std::shared_ptr<problem> _input) :
+solution::solution(double *sigma, const solution &base, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input) :
 		sol(sigma),
 		stiffness(solution::getNewStiffness(sol, _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
@@ -295,7 +295,7 @@ void solution::initErrors()
 }
 
 
-double *solution::copySolution(const double *sol, std::shared_ptr<problem> input)
+double *solution::copySolution(const double *sol, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input)
 {
 	double *res = new double[input->getNumCoefficients()];
 
@@ -305,7 +305,7 @@ double *solution::copySolution(const double *sol, std::shared_ptr<problem> input
 	return res;
 }
 
-double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
+double *solution::getNewRandomSolution(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input)
 {
 	double *res = new double[input->getNumCoefficients()];
 	int i = 0;
@@ -349,7 +349,7 @@ double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
 	return res;
 }
 
-void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step) {
+void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input, int step) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -370,7 +370,7 @@ void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<probl
 	myfile.close();
 }
 
-void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input) {
+void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -392,7 +392,7 @@ void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *fi
 	myfile.close();
 }
 
-void solution::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input) {
+void solution::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input) {
 	std::string refname(filename), imfname(filename), absfname(filename), angfname(filename);
 	std::size_t dotfound = refname.find_last_of(".");
 	refname.replace(dotfound, 1, "_re."); imfname.replace(dotfound, 1, "_im."); absfname.replace(dotfound, 1, "_abs."); angfname.replace(dotfound, 1, "_ang.");

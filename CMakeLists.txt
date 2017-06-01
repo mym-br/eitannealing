@@ -7,26 +7,24 @@ find_package(Threads REQUIRED)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
-include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} src src/complex)
 
 set(eitannealingtest_SRCS 
-  src/assembleMatrix.cpp
   src/gradientnormregularisation.cpp 
   src/graphics.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  src/main.cpp
-  src/observations.cpp
-  src/problem.cpp
+  src/maincomplex.cpp
   src/solution.cpp
   src/solver.cpp
   src/mt19937-64/mt19937-64.c
-  src/threedim/initproblem3D.cpp
-  src/threedim/nodecoeficients3D.cpp
-  src/twodim/initproblem2D.cpp
-  src/twodim/nodecoeficients2D.cpp
   src/gmsh/gmshgraphics.cpp
   src/parameters/parametersparser.cpp
+  src/complex/incomplete_choleskycomplex.cpp
+  src/complex/solvercomplex.cpp
+  src/complex/solutioncomplex.cpp
+  src/complex/gradientnormregularisationcomplex.cpp
+  src/complex/graphicscomplex.cpp
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})

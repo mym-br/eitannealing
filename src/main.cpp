@@ -25,6 +25,7 @@
 #include "solution.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
+#include "threedim/problem3D.h"
 //#include "solution_lb.h"
 //#include "observations.h"
 #include "random.h"
@@ -45,7 +46,7 @@ float *currentSolution;
 
 float param;
 
-std::shared_ptr<problem> input;
+std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input;
 
 unsigned long seed;
 
@@ -368,7 +369,10 @@ int main(int argc, char *argv[])
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
-	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	//input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	is2dProblem = problem<Scalar, Eigen::VectorXd, matrix>::isProblem2D(meshfname.c_str());
+	if (is2dProblem) input = std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>>(new problem2D<Scalar, Eigen::VectorXd, matrix>(meshfname.c_str()));
+	else input = std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>>(new problem3D<Scalar, Eigen::VectorXd, matrix>(meshfname.c_str()));
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
 	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
@@ -390,7 +394,7 @@ int main(int argc, char *argv[])
 	list.setContextMenuPolicy(Qt::ActionsContextMenu);
 	list.show();
 
-	viewport graphics(600, 600, "Reverse Problem", std::dynamic_pointer_cast<problem2D>(input));
+	viewport graphics(600, 600, "Reverse Problem", std::dynamic_pointer_cast<problem2D<Scalar, Eigen::VectorXd, matrix>>(input));
 	gmshviewport graphics_gmsh("eitannealingtest", params.outputMesh.toStdString().c_str(), params.gmeshAddress.toStdString().c_str(), input);
 	if (!params.gmeshAddress.isEmpty()) {
 		graphics_gmsh.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));

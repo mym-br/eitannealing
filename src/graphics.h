@@ -15,7 +15,8 @@
 #include <QAbstractTableModel>
 #include <QMutex>
 #include <memory>
-class problem2D;
+#include "twodim\problem2D.h"
+//class problem2D;
 
 class solutionView : public QAbstractListModel {
 Q_OBJECT
@@ -34,22 +35,44 @@ Q_OBJECT
 
 class viewport : public QWidget {
 Q_OBJECT
-	QImage paintbuff;
-	QImage scale;
 	public:
-		viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input);
+		viewport(int width, int height, const char *title, std::shared_ptr<problem2D<Scalar, Eigen::VectorXd, matrix>> _input);
 	    QImage &getBuffer() {
 		    return this->paintbuff;
 	    }
 	      
       public slots:
-	      void solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight );
+		void solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight);
 	protected:
+		  QImage paintbuff;
+		  QImage scale;
 	      QBrush getBrushForElement(double *solution, int n1, int n2, int n3);
 	      QColor getColorForLevel(double level);
 	      // override default paint event
 	      void paintEvent ( QPaintEvent * event );
-		  std::shared_ptr<problem2D> input;
+		  std::shared_ptr<problem2D<Scalar, Eigen::VectorXd, matrix>> input;
+};
+
+class viewportcomplex : public QWidget {
+	Q_OBJECT
+public:
+	viewportcomplex(int width, int height, const char *title, std::shared_ptr<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>> _input);
+	QImage &getBuffer() {
+		return this->paintbuff;
+	}
+
+	public slots:
+	void solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight);
+protected:
+	QImage paintbuff;
+	QImage scale;
+	QBrush getBrushForElement(double *solution, int n1, int n2, int n3);
+	QColor getColorForLevel(double level);
+	// override default paint event
+	void paintEvent(QPaintEvent * event);
+	std::shared_ptr<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>> input;
+private:
+	QPoint translateCoordinate(float x, float y);
 };
 
 class TableViewCopyDataPopupMenu : public QObject{

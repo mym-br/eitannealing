@@ -41,7 +41,7 @@ struct shuffleData {
 struct shuffler {
 	int * shuffleConsts;
 	int * swapshuffleconsts;
-	shuffler(std::shared_ptr<problem> input) {
+	shuffler(std::shared_ptr<problem<Scalar,Eigen::VectorXd,matrix>> input) {
 		shuffleConsts = new int[input->getNumCoefficients()];
 		swapshuffleconsts = new int[input->getInnerAdjacencyCount()];
 
@@ -89,12 +89,12 @@ class solution {
 			void initErrors();
 
 			double *getShufledSolution();
-			static double *getNewRandomSolution(std::shared_ptr<problem> input);
-			static double *copySolution(const double *sol, std::shared_ptr<problem> input);
+			static double *getNewRandomSolution(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input);
+			static double *copySolution(const double *sol, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input);
 
 			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
-			static matrix *getNewStiffness(double *sol, std::shared_ptr<problem> input) {
+			static matrix *getNewStiffness(double *sol, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input) {
 				matrix *aux;
 				input->assembleProblemMatrix(sol, &aux);
 				input->postAssempleProblemMatrix(&aux);
@@ -102,23 +102,23 @@ class solution {
 			}
 
 			// shuffle constructor
-			solution(double *sol, const solution &base, std::shared_ptr<problem> _input);
+			solution(double *sol, const solution &base, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input);
 			double regularisation;
-			std::shared_ptr<problem> input;
+			std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input;
 			void zeroSumVector(Eigen::VectorXd &vec);
 
 	public:
 
-		solution(const double *sol, std::shared_ptr<problem> input);
-		solution(std::shared_ptr<problem> _input);	// New random solution
+		solution(const double *sol, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input);
+		solution(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input);	// New random solution
 		bool compareWith(solution &target, double kt, double prob);
 		bool compareWithMinIt(solution &target, double kt, int minit);
 		bool compareWithMaxE2(solution &target, double kt, double e2);
 		solution *shuffle(shuffleData *data, const shuffler &sh) const;
 
-		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);
-		static void savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input);
-		static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input);
+		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input, int step = 0);
+		static void savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input);
+		static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input);
 
 		double getRegularisationValue() const {
 		  return this->regularisation;

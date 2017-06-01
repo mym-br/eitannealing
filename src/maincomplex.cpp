@@ -25,6 +25,7 @@
 #include "solutioncomplex.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
+#include "threedim/problem3D.h"
 //#include "solution_lb.h"
 //#include "observations.h"
 #include "random.h"
@@ -33,7 +34,7 @@
 #include "gmsh\gmshgraphics.h"
 #include "parameters\parametersparser.h"
 
-solutionView *view;
+solutionView *viewre, *viewim, *viewabs, *viewang;
 
 #include <Eigen/QR>
 
@@ -45,7 +46,7 @@ float *currentSolution;
 
 float param;
 
-std::shared_ptr<problem> input;
+std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input;
 
 unsigned long seed;
 
@@ -108,6 +109,8 @@ void workProc()
 
 
 	// Simulated annealing
+	double *solre = new double[input->getNumCoefficients()];
+	double *solim = new double[input->getNumCoefficients()];
 	std::unique_ptr<solutioncomplex> current, next;
 	float kt = 0.05f;
 	
@@ -154,12 +157,14 @@ void workProc()
 			sqe += current->getDEstimate()*current->getDEstimate();
 
 			totalit++;
-			if(totalit == 1) break;
             if(totalit % 100 == 0) {
 				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
-				double *doublesol = new double[input->getNumCoefficients()];
-				for (int kk = 0; kk < input->getNumCoefficients(); kk++) doublesol[kk] = current->getSolution()[kk].real();
-				view->setCurrentSolution(doublesol);
+				for (int kk = 0; kk < input->getNumCoefficients(); kk++) {
+					solre[kk] = current->getSolution()[kk].real();
+					solim[kk] = current->getSolution()[kk].imag();
+				}
+				viewre->setCurrentSolution(solre);
+				viewim->setCurrentSolution(solim);
 			}
 		}
 		double eav = e/solutions;
@@ -193,8 +198,6 @@ void workProc()
 		else
 		  no_avance_count = 0;		
 		prevE = current->getDEstimate();  
-		
-		break;
 		
 	}
 	//probe.saturate();
@@ -371,10 +374,13 @@ int main(int argc, char *argv[])
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
-	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	//input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	is2dProblem = problem<Complex, Eigen::VectorXcd, matrixcomplex>::isProblem2D(meshfname.c_str());
+	if (is2dProblem) input = std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>>(new problem2D<Complex, Eigen::VectorXcd, matrixcomplex>(meshfname.c_str()));
+	else input = std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>>(new problem3D<Complex, Eigen::VectorXcd, matrixcomplex>(meshfname.c_str()));
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
-	input->initObsComplex(currentsfname.c_str(), tensionsfname.c_str());
+	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
@@ -384,35 +390,51 @@ int main(int argc, char *argv[])
 	qRegisterMetaType<QModelIndex>("QModelIndex");
 	qRegisterMetaType<QModelIndex>("QVector<int>");
 
-	view = new solutionView(input->getNumCoefficients());
+	viewre = new solutionView(input->getNumCoefficients());
 	QTableView list;
-	list.setModel(view);
+	list.setModel(viewre);
+	list.setWindowTitle("Sol Real");
 	QAction *copyDataAction = new QAction("Copy", &list);
 	TableViewCopyDataPopupMenu::getInstance()->connect(copyDataAction, SIGNAL(triggered()), SLOT(actionFired()));
 	list.addAction(copyDataAction);
 	list.setContextMenuPolicy(Qt::ActionsContextMenu);
 	list.show();
 
-	viewport graphics(600, 600, "Reverse Problem", std::dynamic_pointer_cast<problem2D>(input));
-	gmshviewport graphics_gmsh("eitannealingtest", params.outputMesh.toStdString().c_str(), params.gmeshAddress.toStdString().c_str(), input);
+	viewim = new solutionView(input->getNumCoefficients());
+	QTableView listim;
+	listim.setModel(viewim);
+	listim.setWindowTitle("Sol Imag");
+	QAction *copyDataActionim = new QAction("Copy", &listim);
+	TableViewCopyDataPopupMenu::getInstance()->connect(copyDataActionim, SIGNAL(triggered()), SLOT(actionFired()));
+	listim.addAction(copyDataActionim);
+	listim.setContextMenuPolicy(Qt::ActionsContextMenu);
+	listim.show();
+
+	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>>(input));
+	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>>(input));
+	//gmshviewport graphics_gmsh("eitannealingtest", params.outputMesh.toStdString().c_str(), params.gmeshAddress.toStdString().c_str(), input);
 	if (!params.gmeshAddress.isEmpty()) {
-		graphics_gmsh.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
+		//graphics_gmsh.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 	}
 	if (is2dProblem) {
 		graphics.show();
-		graphics.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
+		graphics.connect(viewre, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
+		graphicsim.show();
+		graphicsim.connect(viewim, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 	}
 
    double *sol = new double[input->getNumCoefficients()];
    for (int i = 0; i<input->getNumCoefficients(); i++) sol[i] = 1.0;
-   view->setCurrentSolution(sol);
+   viewre->setCurrentSolution(sol);
+   viewim->setCurrentSolution(sol);
    delete[] sol;
    std::thread worker(workProc);
    
    int retval =  app.exec();
    worker.join();
 
-   delete view;
+   delete viewre;
+   delete viewim;
    return 0;
  }
  

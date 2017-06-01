@@ -31,7 +31,7 @@ void CG_Solver::init()
 {
 	r.resize(A.rows());
 	beta = 0;
-	r = b - A*x; saveVals("rnorm.txt", r.norm(), false);
+	r = b - A*x;
 	//p = r;
 
 	z = r;
@@ -57,7 +57,7 @@ void CG_Solver::init()
 
 	// Now do the first 3 iterations
 
-	x += gamma*p; saveVals("rnorm.txt", r.norm());	// 1...
+	x += gamma*p;	// 1...
 	r = r - gamma*q;
 	z = r;
 	precond.solveInPlace(z);
@@ -91,7 +91,7 @@ void CG_Solver::init()
 	alpha_[1] = lalpha;
 	eta_[1] = leta;*/
 
-	x += gamma*p; saveVals("rnorm.txt", r.norm());	// 2...
+	x += gamma*p;	// 2...
 	r = r - gamma*q;
 	z = r;
 	precond.solveInPlace(z);
@@ -128,7 +128,7 @@ void CG_Solver::init()
 	alpha_[2] = lalpha;
 	eta_[2] = leta;*/
 
-	x += gamma*p; saveVals("rnorm.txt", r.norm());	// ...and 3!
+	x += gamma*p;	// ...and 3!
 	r = r - gamma*q;
 	z = r;
 	precond.solveInPlace(z);
@@ -178,10 +178,10 @@ void CG_Solver::do_iteration() {
 
 	x += gamma*p;
 	if((it % 500)==0) {
-		r = b - A*x; saveVals("rnorm.txt", r.norm());
+		r = b - A*x;
 	}
 	else {
-		r = r - gamma*q; saveVals("rnorm.txt", r.norm());
+		r = r - gamma*q;
 	}
 	z = r;
 	precond.solveInPlace(z);

@@ -94,13 +94,13 @@ void gradientNormRegularisation::buildMatrix()
     regularizationMatrix.reset(out);
 }
 
-gradientNormRegularisation::gradientNormRegularisation(std::shared_ptr<problem> _input) : input(_input)
+gradientNormRegularisation::gradientNormRegularisation(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input) : input(_input)
 {
 	electrodecoefficients = input->getGenericElectrodesCount();
     this->buildMatrix();
 }
 
-void gradientNormRegularisation::initInstance(std::shared_ptr<problem> _input)
+void gradientNormRegularisation::initInstance(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input)
 {
 	instance.reset(new gradientNormRegularisation(_input));
 }

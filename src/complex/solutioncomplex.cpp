@@ -46,7 +46,7 @@ void solutioncomplex::improve()
 	// Rebase tension for zero sum
 	zeroSumVector(aux);
 	#endif
-	aux -= input->getTensionsComplex()[critical];
+	aux -= input->getTensions()[critical];
 					
 	distance[critical] = aux.norm();
 	err[critical] = sqrt(simulations[critical]->getErrorl2Estimate());
@@ -156,7 +156,7 @@ bool solutioncomplex::compareWithMaxE2(solutioncomplex &target, double kt, doubl
 }
 
 
-solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_ptr<problem> _input) :
+solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input) :
 				sol(solutioncomplex::copySolution(sigma, _input)),
 				stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 				precond(new SparseIncompleteLLTComplex(*stiffness)),
@@ -174,7 +174,7 @@ solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_
 
 
 // New random solution
-solutioncomplex::solutioncomplex(std::shared_ptr<problem> _input) :
+solutioncomplex::solutioncomplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input) :
 		sol(solutioncomplex::getNewRandomSolution(_input)),
 		stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 		precond(new SparseIncompleteLLTComplex(*stiffness)),
@@ -191,7 +191,7 @@ solutioncomplex::solutioncomplex(std::shared_ptr<problem> _input) :
 }
 
 // New randomly modified solution
-solutioncomplex::solutioncomplex(std::complex<double> *sigma, const solutioncomplex &base, std::shared_ptr<problem> _input) :
+solutioncomplex::solutioncomplex(std::complex<double> *sigma, const solutioncomplex &base, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input) :
 		sol(sigma),
 		stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 		precond(new SparseIncompleteLLTComplex(*stiffness)),
@@ -215,9 +215,9 @@ void solutioncomplex::initSimulations(const solutioncomplex &base)
 	for(i=0;i<input->getNObs();i++)
 	{
 		// Reuse previous solutions as initial values
-		simulations[i] = new CG_SolverComplex(*stiffness, input->getCurrentsComplex(stiffnessorig, i), base.simulations[i]->getX(), *precond);
-		//Eigen::VectorXcd current = (*stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrentsComplex()[i];
-		//simulations[i] = new CG_SolverComplex(*stiffness, current, base.simulations[i]->getX(), *precond);
+		//simulations[i] = new CG_SolverComplex(*stiffness, input->getCurrentsComplex(stiffnessorig, i), base.simulations[i]->getX(), *precond);
+		Eigen::VectorXcd current = (*stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrents()[i];
+		simulations[i] = new CG_SolverComplex(*stiffness, current, base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -245,9 +245,9 @@ void solutioncomplex::initSimulations()
 	this->totalit = 0;
 	for(i=0;i<input->getNObs();i++)
 	{
-		simulations[i] = new CG_SolverComplex(*stiffness, input->getCurrentsComplex(stiffnessorig, i), *precond);
-		//Eigen::VectorXcd current = (*stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrentsComplex()[i];
-		//simulations[i] = new CG_SolverComplex(*stiffness, current, *precond);
+		//simulations[i] = new CG_SolverComplex(*stiffness, input->getCurrentsComplex(stiffnessorig, i), *precond);
+		Eigen::VectorXcd current = (*stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrents()[i];
+		simulations[i] = new CG_SolverComplex(*stiffness, current, *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -284,7 +284,7 @@ void solutioncomplex::initErrors()
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
 		#endif
-		aux -= input->getTensionsComplex()[i];
+		aux -= input->getTensions()[i];
 
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
@@ -312,7 +312,7 @@ void solutioncomplex::initErrors()
 }
 
 
-std::complex<double> *solutioncomplex::copySolution(const std::complex<double> *sol, std::shared_ptr<problem> input)
+std::complex<double> *solutioncomplex::copySolution(const std::complex<double> *sol, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input)
 {
 	std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
 
@@ -322,7 +322,7 @@ std::complex<double> *solutioncomplex::copySolution(const std::complex<double> *
 	return res;
 }
 
-std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<problem> input)
+std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input)
 {
 	std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
 	int i = 0;
@@ -362,12 +362,13 @@ std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<prob
 	res[i++] = 0.35731;*/
 	for (i = 0; i < input->getNumCoefficients(); i++)
 		//res[i] = std::complex<double>(0.3815, 0.0);
-		res[i] = std::complex<double>(mincond + genreal()*(maxcond - mincond), 0.0);// 0.00000000070922044418976);
+		//res[i] = std::complex<double>(0.3815, 0.00000000070922044418976);
+		res[i] = std::complex<double>(mincond + genreal()*(maxcond - mincond), 0.0);//0.00000000070922044418976);
 
 	return res;
 }
 
-void solutioncomplex::saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step) {
+void solutioncomplex::saveMesh(double *sol, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, int step) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -388,7 +389,7 @@ void solutioncomplex::saveMesh(double *sol, const char *filename, std::shared_pt
 	myfile.close();
 }
 
-void solutioncomplex::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input) {
+void solutioncomplex::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -410,7 +411,7 @@ void solutioncomplex::savePotentials(std::vector<Eigen::VectorXd> &sols, const c
 	myfile.close();
 }
 
-void solutioncomplex::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input) {
+void solutioncomplex::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input) {
 	std::string refname(filename), imfname(filename), absfname(filename), angfname(filename);
 	std::size_t dotfound = refname.find_last_of(".");
 	refname.replace(dotfound, 1, "_re."); imfname.replace(dotfound, 1, "_im."); absfname.replace(dotfound, 1, "_abs."); angfname.replace(dotfound, 1, "_ang.");

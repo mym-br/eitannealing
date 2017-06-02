@@ -12,6 +12,8 @@
 #include <iostream>
 //#include <boost/numeric/interval.hpp>
 #include "gradientnormregularisationcomplex.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -360,10 +362,10 @@ std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<prob
 	res[i++] = 0.122205;
 	res[i++] = 0.119641;
 	res[i++] = 0.35731;*/
+	double w = 2 * M_PI * input->getCurrentFreq();
+	double wminperm = w*minperm, wmaxperm = w*maxperm;
 	for (i = 0; i < input->getNumCoefficients(); i++)
-		//res[i] = std::complex<double>(0.3815, 0.0);
-		//res[i] = std::complex<double>(0.3815, 0.00000000070922044418976);
-		res[i] = std::complex<double>(mincond + genreal()*(maxcond - mincond), 0.0);//0.00000000070922044418976);
+		res[i] = std::complex<double>(mincond + genreal()*(maxcond - mincond), wminperm + genreal()*(wmaxperm - wminperm));
 
 	return res;
 }
@@ -445,24 +447,97 @@ void solutioncomplex::savePotentials(std::vector<Eigen::VectorXcd> &sols, const 
 std::complex<double> *solutioncomplex::getShuffledSolution(shuffleData *data, const shufflercomplex &sh) const
 {
 	std::complex<double> *res = solutioncomplex::copySolution(sol, input);
-	// head or tails
-	if(genint(2)) { // Normal
+	// Real or complex shuffle
+	if (genint(2)) { // Real
+		// head or tails
+		if (genint(2)) { // Normal
+			int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
+
+			if (sh.shuffleConsts[ncoef] == 0) {
+				res[ncoef] = std::complex<double>(mincond + genreal()*(maxcond - mincond), res[ncoef].imag());
+			}
+			else {
+				std::complex<double> val;
+				do {
+					val = res[ncoef];
+					double rnd = 0;
+					for (int i = 0; i < sh.shuffleConsts[ncoef]; i++)
+						rnd += genreal();
+					rnd /= sh.shuffleConsts[ncoef];
+					rnd -= 0.5;
+					rnd *= (maxcond - mincond);
+					val += rnd;
+				} while ((val.real() < mincond) || (val.real() > maxcond));
+				res[ncoef] = val;
+			}
+			if (data) {
+				data->swap = false;
+				data->ncoef = ncoef;
+			}
+		}
+		else { // swap
+			int ncoef = genint(input->getInnerAdjacencyCount());
+			int node1, node2;
+
+			node1 = input->node2coefficient[input->innerAdjacency[ncoef].first];
+			node2 = input->node2coefficient[input->innerAdjacency[ncoef].second];
+
+			// Order nodes
+			if (res[node1].real() > res[node2].real()) {
+				int aux = node1;
+				node1 = node2;;
+				node2 = aux;
+			}
+			std::complex<double> v1 = res[node1], v2 = res[node2];
+			double a = max(min(v1.real() - mincond, maxcond - v2.real()), min(maxcond - v1.real(), v2.real() - mincond));
+
+			double delta;
+			do {
+				if (sh.swapshuffleconsts[ncoef] == 0) {
+					delta = a*(genreal() * 2 - 1);
+				}
+				else {
+					double rnd = 0;
+					for (int i = 0; i < sh.swapshuffleconsts[ncoef]; i++)
+						rnd += genreal();
+					rnd /= sh.swapshuffleconsts[ncoef];
+					rnd -= 0.5;
+					delta = a*rnd;
+				}
+				v1 = res[node1] - delta;
+				v2 = res[node2] + delta;
+			} while ((v1.real() < mincond) || (v2.real() < mincond) || (v1.real() > maxcond) || (v2.real() > maxcond));
+			res[node1] = v1;
+			res[node2] = v2;
+			if (data) {
+				data->swap = true;
+				data->ncoef = ncoef;
+			}
+		}
+		return res;
+	}
+
+	// Imaginary
+	double w = 2 * M_PI * input->getCurrentFreq();
+	double wminperm = w*minperm, wmaxperm = w*maxperm;
+	if (genint(2)) { // Normal
 		int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
 
-		if(sh.shuffleConsts[ncoef]==0) {
-			res[ncoef] = std::complex<double>(mincond + genreal()*(maxcond - mincond), res[ncoef].imag());
-		} else {
+		if (sh.shuffleConsts[ncoef] == 0) {
+			res[ncoef] = std::complex<double>(res[ncoef].real(), wminperm + genreal()*(wmaxperm - wminperm));
+		}
+		else {
 			std::complex<double> val;
 			do {
 				val = res[ncoef];
 				double rnd = 0;
-				for(int i=0;i<sh.shuffleConsts[ncoef];i++)
+				for (int i = 0; i < sh.shuffleConsts[ncoef]; i++)
 					rnd += genreal();
 				rnd /= sh.shuffleConsts[ncoef];
 				rnd -= 0.5;
-				rnd *= (maxcond - mincond);
-				val += rnd;
-			} while((val.real() < mincond) || (val.real() > maxcond));
+				rnd *= (wmaxperm - wminperm);
+				val += std::complex<double>(0, rnd);
+			} while ((val.imag() < wminperm) || (val.imag() > wmaxperm));
 			res[ncoef] = val;
 		}
 		if(data) {
@@ -475,31 +550,32 @@ std::complex<double> *solutioncomplex::getShuffledSolution(shuffleData *data, co
 
 		node1 = input->node2coefficient[input->innerAdjacency[ncoef].first];
 		node2 = input->node2coefficient[input->innerAdjacency[ncoef].second];
-		
+
 		// Order nodes
-		if(res[node1].real()>res[node2].real()) {
+		if (res[node1].imag() > res[node2].imag()) {
 			int aux = node1;
 			node1 = node2;;
 			node2 = aux;
 		}
 		std::complex<double> v1 = res[node1], v2 = res[node2];
-		double a = max(min(v1.real() - mincond, maxcond - v2.real()), min(maxcond - v1.real(), v2.real() - mincond));
+		double a = max(min(v1.imag() - wminperm, wmaxperm - v2.imag()), min(wmaxperm - v1.imag(), v2.imag() - wminperm));
 
 		double delta;
 		do {
-			if(sh.swapshuffleconsts[ncoef]==0) {
-				delta = a*(genreal()*2 - 1);
-			} else {
+			if (sh.swapshuffleconsts[ncoef] == 0) {
+				delta = a*(genreal() * 2 - 1);
+			}
+			else {
 				double rnd = 0;
-				for(int i=0;i<sh.swapshuffleconsts[ncoef];i++)
+				for (int i = 0; i < sh.swapshuffleconsts[ncoef]; i++)
 					rnd += genreal();
 				rnd /= sh.swapshuffleconsts[ncoef];
 				rnd -= 0.5;
 				delta = a*rnd;
 			}
-			v1 = res[node1] - delta;
-			v2 = res[node2] + delta;
-		} while ((v1.real() < mincond) || (v2.real() < mincond) || (v1.real() > maxcond) || (v2.real() > maxcond));
+			v1 = res[node1] - std::complex<double>(0, delta);
+			v2 = res[node2] + std::complex<double>(0, delta);
+		} while ((v1.imag() < wminperm) || (v2.imag() < wminperm) || (v1.imag() > wmaxperm) || (v2.imag() > wmaxperm));
 		res[node1] = v1;
 		res[node2] = v2;
 		if(data) {

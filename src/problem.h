@@ -59,6 +59,7 @@ class problem {
 	matrix *skeleton;
 	matrix *coef2KMatrix;
 	const char *filename;
+	double currentFreq;
 
 public:
 
@@ -132,6 +133,8 @@ public:
 	int getCurrentsCount() { return (int)currentVals.size(); }
 	void setGroundNode(int nodeid) { this->groundNode = nodeid; }
 	int getGroundNode() { return this->groundNode; }
+	void setCurrentFreq(double _currentFreq) { this->currentFreq = _currentFreq; }
+	double getCurrentFreq() { return this->currentFreq; }
 
 	// Contructor and destructors
 	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1), nobs(-1),
@@ -270,5 +273,7 @@ public:
 
 const double mincond = 0.005;
 const double maxcond = 0.3815;
+const double minperm = 0.000000000070922044418976;//0.00000005;
+const double maxperm = 0.0000000070922044418976;// 0.05;
 
 #endif // PROBLEM_H_

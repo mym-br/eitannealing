@@ -81,9 +81,6 @@ class solutioncomplex {
 
 			int totalit;
 
-
-
-
 			void initSimulations();
 			void initSimulations(const solutioncomplex &base);
 			void initErrors();

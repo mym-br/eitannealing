@@ -56,7 +56,7 @@ Q_OBJECT
 class viewportcomplex : public QWidget {
 	Q_OBJECT
 public:
-	viewportcomplex(int width, int height, const char *title, std::shared_ptr<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>> _input);
+	viewportcomplex(int width, int height, const char *title, std::shared_ptr<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>> _input, double mincond, double maxcond);
 	QImage &getBuffer() {
 		return this->paintbuff;
 	}
@@ -73,6 +73,7 @@ protected:
 	std::shared_ptr<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>> input;
 private:
 	QPoint translateCoordinate(float x, float y);
+	double minval, maxval;
 };
 
 class TableViewCopyDataPopupMenu : public QObject{

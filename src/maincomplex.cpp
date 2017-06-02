@@ -33,6 +33,8 @@
 #include "gradientnormregularisationcomplex.h"
 #include "gmsh\gmshgraphics.h"
 #include "parameters\parametersparser.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 solutionView *viewre, *viewim, *viewabs, *viewang;
 
@@ -379,6 +381,8 @@ int main(int argc, char *argv[])
 	if (is2dProblem) input = std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>>(new problem2D<Complex, Eigen::VectorXcd, matrixcomplex>(meshfname.c_str()));
 	else input = std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>>(new problem3D<Complex, Eigen::VectorXcd, matrixcomplex>(meshfname.c_str()));
 	input->setGroundNode(params.ground);
+	// TODO: read parameter from commanline
+	input->setCurrentFreq(275000);
 	input->initProblem(meshfname.c_str());
 	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	input->buildNodeCoefficients();
@@ -410,8 +414,9 @@ int main(int argc, char *argv[])
 	listim.setContextMenuPolicy(Qt::ActionsContextMenu);
 	listim.show();
 
-	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>>(input));
-	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>>(input));
+	double w = 2 * M_PI * input->getCurrentFreq();
+	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>>(input), mincond, maxcond);
+	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>>(input), w*minperm, w*maxperm);
 	//gmshviewport graphics_gmsh("eitannealingtest", params.outputMesh.toStdString().c_str(), params.gmeshAddress.toStdString().c_str(), input);
 	if (!params.gmeshAddress.isEmpty()) {
 		//graphics_gmsh.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));

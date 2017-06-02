@@ -108,6 +108,9 @@ int main(int argc, char *argv[])
 	//*(&m1->coeffRef(input->getGroundNode(), input->getGroundNode())) = std::complex<double>(1, 0);
 	//#endif
 
+	saveVals("A.txt", *m, true);
+	saveVals("A_H.txt", *m1, true);
+
     QTableView matrixView;
 	//matrixView.setModel(makeMatrixTableModel(m->selfadjointView<Eigen::Lower>()));
     matrixView.setWindowTitle("Stiffness");
@@ -125,8 +128,6 @@ int main(int argc, char *argv[])
 	QTableView vectorView;
 	vectorView.setWindowTitle("Tensions");
 
-	saveVals("A.txt", *m, true);
-	saveVals("A_H.txt", *m1, true);
 	matrixcomplex L = precond.matrixL();
 	saveVals("L.txt", L);
 	//SparseIncompleteLLTComplex precondalt(*m); matrixcomplex Lalt = precondalt.matrixL(); saveVals("Lalt.txt", Lalt);

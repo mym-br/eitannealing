@@ -15,6 +15,8 @@
 #include <memory>
 #include <Eigen/Core>
 #include "basematrix.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 class solution;
 
 #define TETRAHEDRON_TYPE 4
@@ -60,6 +62,7 @@ class problem {
 	matrix *coef2KMatrix;
 	const char *filename;
 	double currentFreq;
+	double capacitance;
 
 public:
 
@@ -135,6 +138,7 @@ public:
 	int getGroundNode() { return this->groundNode; }
 	void setCurrentFreq(double _currentFreq) { this->currentFreq = _currentFreq; }
 	double getCurrentFreq() { return this->currentFreq; }
+	void setCapacitance(double _capacitance) { this->capacitance = _capacitance; }
 
 	// Contructor and destructors
 	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1), nobs(-1),
@@ -260,7 +264,7 @@ public:
 		*stiffnes = m;
 	}
 
-	void postAssempleProblemMatrix(t_matrix **stiffnes) {
+	void postAssempleProblemMatrix(matrix **stiffnes) {
 		#ifdef BLOCKGND
 		for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
 		for (int j = i; j < getNodesCount(); j++) {
@@ -269,6 +273,26 @@ public:
 		}
 		#else
 		for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0.0;
+		for (int i = getGroundNode() + 1; i < getNodesCount(); i++) *(&(*stiffnes)->coeffRef(i, getGroundNode())) = 0.0;
+		*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1.0;
+		#endif
+	}
+
+	void postAssempleProblemMatrix(matrixcomplex **stiffnes) {
+		for (int i = getNodesCount() - getGenericElectrodesCount(); i < getNodesCount(); i++) {
+			_Scalar *val = &(*stiffnes)->coeffRef(i, i);
+			Complex jwc = std::complex<double>(0, 2 * M_PI * getCurrentFreq() * capacitance);
+			*val = *val + jwc;
+		}
+		#ifdef BLOCKGND
+		for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
+		for (int j = i; j < getNodesCount(); j++) {
+			std::complex<double> *val = &m->coeffRef(j, i);
+			*val = *val + 1 / 32.0;
+		}
+		#else
+		for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0.0;
+		for (int i = getGroundNode() + 1; i < getNodesCount(); i++) *(&(*stiffnes)->coeffRef(i, getGroundNode())) = 0.0;
 		*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1.0;
 		#endif
 	}

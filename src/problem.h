@@ -187,6 +187,9 @@ public:
 			currents[i] = current;
 			currents[i][baseIndex + entry] = 1;
 			currents[i][baseIndex + exit] = -1;
+			#ifndef BLOCKGND
+			currents[i][getGroundNode()] = 0;
+			#endif
 
 			// read tensions from file
 			tensions[i].resize(getGenericElectrodesCount());
@@ -268,6 +271,11 @@ public:
 		for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0.0;
 		*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1.0;
 		#endif
+	}
+
+	vectorxcomplex getConjugatedCurrentVector(int i, matrixcomplex *stiffnes) {
+		vectorxcomplex current = getCurrents()[i];
+		return stiffnes->conjugate().selfadjointView<Eigen::Lower>() * current;
 	}
 };
 

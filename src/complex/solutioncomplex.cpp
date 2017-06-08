@@ -217,9 +217,7 @@ void solutioncomplex::initSimulations(const solutioncomplex &base)
 	for(i=0;i<input->getNObs();i++)
 	{
 		// Reuse previous solutions as initial values
-		//simulations[i] = new CG_SolverComplex(*stiffness, input->getCurrentsComplex(stiffnessorig, i), base.simulations[i]->getX(), *precond);
-		Eigen::VectorXcd current = (*stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrents()[i];
-		simulations[i] = new CG_SolverComplex(*stiffness, current, base.simulations[i]->getX(), *precond);
+		simulations[i] = new CG_SolverComplex(*stiffness, input->getConjugatedCurrentVector(i, stiffnessorig), base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -247,9 +245,7 @@ void solutioncomplex::initSimulations()
 	this->totalit = 0;
 	for(i=0;i<input->getNObs();i++)
 	{
-		//simulations[i] = new CG_SolverComplex(*stiffness, input->getCurrentsComplex(stiffnessorig, i), *precond);
-		Eigen::VectorXcd current = (*stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrents()[i];
-		simulations[i] = new CG_SolverComplex(*stiffness, current, *precond);
+		simulations[i] = new CG_SolverComplex(*stiffness, input->getConjugatedCurrentVector(i, stiffnessorig), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();

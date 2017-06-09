@@ -284,22 +284,12 @@ public:
 			Complex jwc = std::complex<double>(0, 2 * M_PI * getCurrentFreq() * capacitance);
 			*val = *val + jwc;
 		}
-		#ifdef BLOCKGND
-		for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
-		for (int j = i; j < getNodesCount(); j++) {
-			std::complex<double> *val = &m->coeffRef(j, i);
-			*val = *val + 1 / 32.0;
-		}
-		#else
-		for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0.0;
-		for (int i = getGroundNode() + 1; i < getNodesCount(); i++) *(&(*stiffnes)->coeffRef(i, getGroundNode())) = 0.0;
-		*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1.0;
-		#endif
 	}
 
 	vectorxcomplex getConjugatedCurrentVector(int i, matrixcomplex *stiffnes) {
 		vectorxcomplex current = getCurrents()[i];
-		return stiffnes->conjugate().selfadjointView<Eigen::Lower>() * current;
+		matrixcomplex Atransconj = stiffnes->conjugate() + ((matrixcomplex)(stiffnes->selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>();
+		return Atransconj * current;
 	}
 };
 

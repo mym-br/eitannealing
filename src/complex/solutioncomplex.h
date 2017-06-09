@@ -95,7 +95,9 @@ public:
 				matrixcomplex *aux = new matrixcomplex;
 				input->assembleProblemMatrix(sol, stiffnessorig);
 				input->postAssempleProblemMatrix(stiffnessorig);
-				*aux = (**stiffnessorig).conjugate().selfadjointView<Eigen::Lower>() * (matrixcomplex)(**stiffnessorig).selfadjointView<Eigen::Lower>();
+				matrixcomplex Afull = (**stiffnessorig) + ((matrixcomplex)((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>()).conjugate();
+				matrixcomplex A_tfull = (**stiffnessorig).conjugate() + ((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>();
+				*aux = A_tfull * Afull;
 				return aux;
 			}
 

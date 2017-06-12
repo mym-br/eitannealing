@@ -21,7 +21,7 @@ bool SparseIncompleteLLTComplex::solveInPlace(Eigen::VectorXcd &b)  const
   const int size = m_matrix.rows();
   assert(size==b.rows());
   m_matrix.triangularView<Eigen::Lower>().solveInPlace(b);
-  m_matrix.triangularView<Eigen::Lower>().transpose().solveInPlace(b);
+  m_matrix.triangularView<Eigen::Lower>().transpose().conjugate().solveInPlace(b);
 
   return true;
 }

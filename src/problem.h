@@ -63,6 +63,7 @@ class problem {
 	const char *filename;
 	double currentFreq;
 	double capacitance;
+	bool isCapacitive;
 
 public:
 
@@ -116,7 +117,7 @@ public:
 
 		return true;
 	}
-	
+
 	// Virtual functions
 	virtual void initProblem(const char *meshfilename) = 0;
 	virtual void buildNodeCoefficients() = 0;
@@ -138,12 +139,13 @@ public:
 	int getGroundNode() { return this->groundNode; }
 	void setCurrentFreq(double _currentFreq) { this->currentFreq = _currentFreq; }
 	double getCurrentFreq() { return this->currentFreq; }
-	void setCapacitance(double _capacitance) { this->capacitance = _capacitance; }
+	void setCapacitance(double _capacitance) { this->capacitance = _capacitance; isCapacitive = true; }
 
 	// Contructor and destructors
 	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1), nobs(-1),
 		tensions(nullptr), currents(nullptr),
-		skeleton(nullptr), coef2KMatrix(nullptr), nodeCoef(nullptr) {};
+		skeleton(nullptr), coef2KMatrix(nullptr), nodeCoef(nullptr),
+		capacitance(0.0), isCapacitive(false) {};
 	virtual ~problem() {
 		delete[] tensions;
 		delete[] currents;
@@ -191,9 +193,6 @@ public:
 			currents[i] = current;
 			currents[i][baseIndex + entry] = 1;
 			currents[i][baseIndex + exit] = -1;
-			#ifndef BLOCKGND
-			currents[i][getGroundNode()] = 0;
-			#endif
 
 			// read tensions from file
 			tensions[i].resize(getGenericElectrodesCount());
@@ -264,21 +263,23 @@ public:
 		*stiffnes = m;
 	}
 
-	void postAssempleProblemMatrix(matrix **stiffnes) {
-		#ifdef BLOCKGND
-		for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
-		for (int j = i; j < getNodesCount(); j++) {
-			std::complex<double> *val = &m->coeffRef(j, i);
-			*val = *val + 1 / 32.0;
+	void postAssembleProblemMatrix(t_matrix **stiffnes) {
+		if (!isCapacitive) {
+			#ifdef BLOCKGND
+			for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
+			for (int j = i; j < getNodesCount(); j++) {
+				std::complex<double> *val = &m->coeffRef(j, i);
+				*val = *val + 1 / 32.0;
+			}
+			#else
+			for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0.0;
+			for (int i = getGroundNode() + 1; i < getNodesCount(); i++) *(&(*stiffnes)->coeffRef(i, getGroundNode())) = 0.0;
+			*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1.0;
+			#endif
 		}
-		#else
-		for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0.0;
-		for (int i = getGroundNode() + 1; i < getNodesCount(); i++) *(&(*stiffnes)->coeffRef(i, getGroundNode())) = 0.0;
-		*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1.0;
-		#endif
 	}
 
-	void postAssempleProblemMatrix(matrixcomplex **stiffnes) {
+	void addMatrixCapacitances(matrixcomplex **stiffnes) {
 		for (int i = getNodesCount() - getGenericElectrodesCount(); i < getNodesCount(); i++) {
 			_Scalar *val = &(*stiffnes)->coeffRef(i, i);
 			Complex jwc = std::complex<double>(0, 2 * M_PI * getCurrentFreq() * capacitance);
@@ -286,8 +287,19 @@ public:
 		}
 	}
 
+	vectorx getCurrentVector(int i) {
+		vectorx current = getCurrents()[i];
+		#ifndef BLOCKGND
+		current[groundNode] = 0;
+		#endif
+		return current;
+	}
+
 	vectorxcomplex getConjugatedCurrentVector(int i, matrixcomplex *stiffnes) {
 		vectorxcomplex current = getCurrents()[i];
+		#ifndef BLOCKGND
+		//if (!isCapacitive) current[groundNode] = 0;
+		#endif
 		matrixcomplex Atransconj = stiffnes->conjugate() + ((matrixcomplex)(stiffnes->selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>();
 		return Atransconj * current;
 	}

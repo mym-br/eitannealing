@@ -94,10 +94,11 @@ public:
 			static matrixcomplex *getNewStiffness(std::complex<double> *sol, matrixcomplex **stiffnessorig, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input) {
 				matrixcomplex *aux = new matrixcomplex;
 				input->assembleProblemMatrix(sol, stiffnessorig);
-				input->postAssempleProblemMatrix(stiffnessorig);
+				input->addMatrixCapacitances(stiffnessorig);
 				matrixcomplex Afull = (**stiffnessorig) + ((matrixcomplex)((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>()).conjugate();
 				matrixcomplex A_tfull = (**stiffnessorig).conjugate() + ((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>();
 				*aux = A_tfull * Afull;
+				input->postAssembleProblemMatrix(&aux);
 				return aux;
 			}
 

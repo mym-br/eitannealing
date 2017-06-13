@@ -206,7 +206,7 @@ void solution::initSimulations(const solution &base)
 	for(i=0;i<input->getNObs();i++)
 	{
 		// Reuse previous solutions as initial values
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrents()[i], base.simulations[i]->getX(), *precond);
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i), base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -234,7 +234,7 @@ void solution::initSimulations()
 	this->totalit = 0;
 	for(i=0;i<input->getNObs();i++)
 	{
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrents()[i], *precond);
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();

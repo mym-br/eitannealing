@@ -97,7 +97,7 @@ class solution {
 			static matrix *getNewStiffness(double *sol, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input) {
 				matrix *aux;
 				input->assembleProblemMatrix(sol, &aux);
-				input->postAssempleProblemMatrix(&aux);
+				input->postAssembleProblemMatrix(&aux);
 				return aux;
 			}
 

@@ -103,23 +103,23 @@ public:
 			}
 
 			// shuffle constructor
-			solutioncomplex(std::complex<double> *sol, const solutioncomplex &base, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input);
+			solutioncomplex(std::complex<double> *sol, const solutioncomplex &base, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings);
 			double regularisation;
 			std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input;
+			observations<std::complex<double>> *readings;
 			void zeroSumVector(Eigen::VectorXcd &vec);
 
 	//public:
 
-		solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input);
-		solutioncomplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input);	// New random solution
+		solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, observations<std::complex<double>> *_readings);
+		solutioncomplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings);	// New random solution
 		bool compareWith(solutioncomplex &target, double kt, double prob);
 		bool compareWithMinIt(solutioncomplex &target, double kt, int minit);
 		bool compareWithMaxE2(solutioncomplex &target, double kt, double e2);
 		solutioncomplex *shuffle(shuffleData *data, const shufflercomplex &sh) const;
 
 		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, int step = 0);
-		static void savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input);
-		static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input);
+		static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, observations<std::complex<double>> *readings);
 
 		double getRegularisationValue() const {
 		  return this->regularisation;

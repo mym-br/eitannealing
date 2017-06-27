@@ -17,6 +17,7 @@
 #include "basematrix.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include "observations.h"
 class solution;
 
 #define TETRAHEDRON_TYPE 4
@@ -52,10 +53,10 @@ class problem {
 	int numcoefficients;
 	int nodeCount;
 	// Observations
-	int nobs;
-	t_vector *tensions;
-	t_vector *currents;
-	t_vector currentVals;
+	//int nobs;
+	//t_vector *tensions;
+	//t_vector *currents;
+	//t_vector currentVals;
 	nodeCoefficients **nodeCoef;
 	std::vector<std::pair<int, int> > innerAdjacency;
 	matrix *skeleton;
@@ -129,12 +130,12 @@ public:
 	int getNumCoefficients() { return numcoefficients; }
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
 	int getNode2Coefficient(int id) { return node2coefficient[id]; }
-	int getNObs() { return nobs; }
-	t_vector *getTensions() { return tensions; }
-	t_vector *getCurrents() { return currents; }
+	//int getNObs() { return nobs; }
+	//t_vector *getTensions() { return tensions; }
+	//t_vector *getCurrents() { return currents; }
 	const char* getMeshFilename() { return filename; }
-	_Scalar getCurrentVal(int i) { return currentVals[i]; }
-	int getCurrentsCount() { return (int)currentVals.size(); }
+	//_Scalar getCurrentVal(int i) { return currentVals[i]; }
+	//int getCurrentsCount() { return (int)currentVals.size(); }
 	void setGroundNode(int nodeid) { this->groundNode = nodeid; }
 	int getGroundNode() { return this->groundNode; }
 	void setCurrentFreq(double _currentFreq) { this->currentFreq = _currentFreq; }
@@ -142,13 +143,12 @@ public:
 	void setCapacitance(double _capacitance) { this->capacitance = _capacitance; isCapacitive = true; }
 
 	// Contructor and destructors
-	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1), nobs(-1),
-		tensions(nullptr), currents(nullptr),
+	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1),
 		skeleton(nullptr), coef2KMatrix(nullptr), nodeCoef(nullptr),
 		capacitance(0.0), isCapacitive(false) {};
 	virtual ~problem() {
-		delete[] tensions;
-		delete[] currents;
+		//delete[] tensions;
+		//delete[] currents;
 		delete coef2KMatrix;
 		delete skeleton;
 		for (int i = 0; i < getNodesCount(); i++) {
@@ -163,56 +163,56 @@ public:
 		delete[] nodeCoef;
 	}
 
-	void initObs(const char *filecurrents, const char* filename) {
-		std::ifstream file;
-		std::ifstream filec;
+	//void initObs(const char *filecurrents, const char* filename) {
+	//	std::ifstream file;
+	//	std::ifstream filec;
 
-		filec.open(filecurrents);
-		file.open(filename);
+	//	filec.open(filecurrents);
+	//	file.open(filename);
 
-		int n = getGenericElectrodesCount() - 1;
-		int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
-		nobs = valuesCount / getGenericElectrodesCount();
+	//	int n = getGenericElectrodesCount() - 1;
+	//	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
+	//	nobs = valuesCount / getGenericElectrodesCount();
 
-		file.clear();
-		file.seekg(0, std::ios::beg);
-		tensions = new t_vector[nobs];
-		currents = new t_vector[nobs];
-		currentVals = t_vector(nobs);
-		t_vector current(getNodesCount());
-		current.fill(0);
-		int baseIndex = (int)current.size() - n - 1;
-		for (int i = 0; i<nobs; i++) {
-			double c;
-			int entry, exit;
-			filec >> entry;
-			filec >> exit;
-			filec >> c;
-			entry--; exit--;	// zero-based
-			currentVals[i] = c;
-			currents[i] = current;
-			currents[i][baseIndex + entry] = 1;
-			currents[i][baseIndex + exit] = -1;
+	//	file.clear();
+	//	file.seekg(0, std::ios::beg);
+	//	tensions = new t_vector[nobs];
+	//	currents = new t_vector[nobs];
+	//	currentVals = t_vector(nobs);
+	//	t_vector current(getNodesCount());
+	//	current.fill(0);
+	//	int baseIndex = (int)current.size() - n - 1;
+	//	for (int i = 0; i<nobs; i++) {
+	//		double c;
+	//		int entry, exit;
+	//		filec >> entry;
+	//		filec >> exit;
+	//		filec >> c;
+	//		entry--; exit--;	// zero-based
+	//		currentVals[i] = c;
+	//		currents[i] = current;
+	//		currents[i][baseIndex + entry] = 1;
+	//		currents[i][baseIndex + exit] = -1;
 
-			// read tensions from file
-			tensions[i].resize(getGenericElectrodesCount());
-			_Scalar val, avg;
-			avg = 0;
-			for (int j = 0; j<getGenericElectrodesCount(); j++) {
-				file >> val;
-				tensions[i][j] = val / c;  // Values are normalized by current
-				avg += tensions[i][j];
-			}
-			// rebase tensions, apply offset for zero sum on electrodes
-			avg /= (double)getGenericElectrodesCount();
-			for (int j = 0; j < getGenericElectrodesCount(); j++) {
-				tensions[i][j] -= avg;
-			}
-		}
+	//		// read tensions from file
+	//		tensions[i].resize(getGenericElectrodesCount());
+	//		_Scalar val, avg;
+	//		avg = 0;
+	//		for (int j = 0; j<getGenericElectrodesCount(); j++) {
+	//			file >> val;
+	//			tensions[i][j] = val / c;  // Values are normalized by current
+	//			avg += tensions[i][j];
+	//		}
+	//		// rebase tensions, apply offset for zero sum on electrodes
+	//		avg /= (double)getGenericElectrodesCount();
+	//		for (int j = 0; j < getGenericElectrodesCount(); j++) {
+	//			tensions[i][j] -= avg;
+	//		}
+	//	}
 
-		filec.close();
-		file.close();
-	}
+	//	filec.close();
+	//	file.close();
+	//}
 
 	void prepareSkeletonMatrix() {
 		std::vector<Eigen::Triplet<Scalar>> tripletList;
@@ -287,21 +287,22 @@ public:
 		}
 	}
 
-	vectorx getCurrentVector(int i) {
-		vectorx current = getCurrents()[i];
+	vectorx getCurrentVector(int i, observations<double> *obs) {
+		vectorx current = obs->getCurrents()[i];
 		#ifndef BLOCKGND
 		current[groundNode] = 0;
 		#endif
 		return current;
 	}
 
-	vectorxcomplex getConjugatedCurrentVector(int i, matrixcomplex *stiffnes) {
-		vectorxcomplex current = getCurrents()[i];
-		#ifndef BLOCKGND
-		//if (!isCapacitive) current[groundNode] = 0;
-		#endif
+	vectorxcomplex getConjugatedCurrentVector(int i, matrixcomplex *stiffnes, observations<std::complex<double>> *obs) {
+		vectorxcomplex current = obs->getCurrents()[i];
 		matrixcomplex Atransconj = stiffnes->conjugate() + ((matrixcomplex)(stiffnes->selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>();
-		return Atransconj * current;
+		current = Atransconj * current;
+		#ifndef BLOCKGND
+		if (!isCapacitive) current[groundNode] = 0;
+		#endif
+		return current;
 	}
 };
 

@@ -25,6 +25,18 @@ void saveVals(const char* fname, matrix &mat, bool symm = false) {
 	myfile.close();
 }
 
+void saveVals(const char* fname, const Eigen::VectorXd &vec) {
+	std::ofstream myfile;
+	myfile.open(fname, std::ios::binary); myfile;
+	for (int i = 0; i < vec.size(); i++) {
+		double valre = vec.coeff(i);
+		double valim = 0.0;
+		myfile.write((char*)&valre, sizeof(double));
+		myfile.write((char*)&valim, sizeof(double));
+	}
+	myfile.close();
+}
+
 int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
@@ -53,6 +65,8 @@ int main(int argc, char *argv[])
 		Q_UNREACHABLE();
 	}
 
+	observations<double> *readings = new observations<double>;
+
 	bool is2dProblem;
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsfname = params.inputCurrents.toStdString();
@@ -63,7 +77,8 @@ int main(int argc, char *argv[])
 	else input = std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>>(new problem3D<Scalar, Eigen::VectorXd, matrix>(meshfname.c_str()));
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
-	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
+	//input->initObs(currentsfname.c_str(), tensionsfname.c_str());
+	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
@@ -72,6 +87,7 @@ int main(int argc, char *argv[])
 	Eigen::VectorXd vcond(input->getNumCoefficients());
 	for (int i = 0; i < vcond.rows(); i++) vcond[i] = 0.3815;
 	input->assembleProblemMatrix(&vcond[0], &m);
+	input->postAssembleProblemMatrix(&m);
 
     QTableView matrixView;
     matrixView.setModel(makeMatrixTableModel(m->selfadjointView<Eigen::Lower>()));
@@ -86,37 +102,29 @@ int main(int argc, char *argv[])
 	QTableView vectorView;
 	vectorView.setWindowTitle("Tensions");
 
-	matrix *m1 = new matrix(m->rows(), m->cols());
-	//*m1 = (*m).selfadjointView<Eigen::Lower>() * (matrix)(*m).selfadjointView<Eigen::Lower>();
-	*m1 = *m;
-	#ifndef BLOCKGND
-	for (int i = 0; i < input->getGroundNode(); i++) *(&m1->coeffRef(input->getGroundNode(), i)) = 0;
-	*(&m1->coeffRef(input->getGroundNode(), input->getGroundNode())) = 1.0/32.0;
-	#endif
-
 	saveVals("A.txt", *m, true);
-	saveVals("A_H.txt", *m1, true);
 
 	std::vector<Eigen::VectorXd> solutions;
-	for (int patterno = 0; patterno < input->getCurrentsCount(); patterno++) {
+	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
 		//currents = (*m).selfadjointView<Eigen::Lower>() * input->getCurrents()[patterno];
-		currents = input->getCurrents()[patterno];
+		currents = input->getCurrentVector(patterno, readings);
 		#ifndef BLOCKGND
 		currents[input->getGroundNode()] = 0;
 		#endif
 
-		std::ofstream myfile;
-		myfile.open("currents" + std::to_string(patterno+1) + ".txt");
-		for (int i = 0; i < currents.size(); i++) myfile << currents.coeff(i) << std::endl;
-		myfile.close();
+		//std::ofstream myfile;
+		//myfile.open("currents" + std::to_string(patterno+1) + ".txt");
+		//for (int i = 0; i < currents.size(); i++) myfile << currents.coeff(i) << std::endl;
+		//myfile.close();
+		saveVals(("b" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
 		
 		vectorbView.setModel(makeMatrixTableModel(currents));
 		vectorbView.show();
 
-		SparseIncompleteLLT precond(*m1);
+		SparseIncompleteLLT precond(*m);
 		matrix L = precond.matrixL();
 		saveVals("L.txt", L);
-		CG_Solver solver(*m1, currents, precond);
+		CG_Solver solver(*m, currents, precond);
 		for (int i = 0; i < 100; i++) solver.do_iteration();
 		
 		x = solver.getX();
@@ -131,15 +139,16 @@ int main(int argc, char *argv[])
 		vectorView.setModel(makeMatrixTableModel(x.selfadjointView<Eigen::Lower>()));
 		vectorView.show();
 
-		myfile.open("tensions" + std::to_string(patterno+1) + ".txt");
-		for (int i = 0; i < x.size(); i++) myfile << x.coeff(i) << std::endl;
-		myfile.close();
+		//myfile.open("tensions" + std::to_string(patterno+1) + ".txt");
+		//for (int i = 0; i < x.size(); i++) myfile << x.coeff(i) << std::endl;
+		//myfile.close();
+		saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
 
 		solutions.push_back(x);
-		std::cout << "Finished solution " << patterno + 1 << " of " << input->getCurrentsCount() << std::endl;
+		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << std::endl;
 	}
 
-	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input);
+	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input, readings);
 
 	return app.exec();
 }

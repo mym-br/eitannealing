@@ -48,7 +48,7 @@ void solutioncomplex::improve()
 	// Rebase tension for zero sum
 	zeroSumVector(aux);
 	#endif
-	aux -= input->getTensions()[critical];
+	aux -= readings->getTensions()[critical];
 					
 	distance[critical] = aux.norm();
 	err[critical] = sqrt(simulations[critical]->getErrorl2Estimate());
@@ -61,7 +61,7 @@ void solutioncomplex::improve()
 	// reevaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(int i = 1; i<input->getNObs();i++) {
+	for(int i = 1; i<readings->getNObs();i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -158,17 +158,17 @@ bool solutioncomplex::compareWithMaxE2(solutioncomplex &target, double kt, doubl
 }
 
 
-solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input) :
+solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings) :
 				sol(solutioncomplex::copySolution(sigma, _input)),
 				stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 				precond(new SparseIncompleteLLTComplex(*stiffness)),
-				simulations(new CG_SolverComplex *[_input->getNObs()]),
-				distance(_input->getNObs()),
-				maxdist(_input->getNObs()),
-				mindist(_input->getNObs()),
-				err(_input->getNObs()),
-				err_x_dist(_input->getNObs()),
-				input(_input)
+				simulations(new CG_SolverComplex *[_readings->getNObs()]),
+				distance(_readings->getNObs()),
+				maxdist(_readings->getNObs()),
+				mindist(_readings->getNObs()),
+				err(_readings->getNObs()),
+				err_x_dist(_readings->getNObs()),
+				input(_input), readings(_readings)
 {
 	this->initSimulations();
 	this->initErrors();
@@ -176,34 +176,34 @@ solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_
 
 
 // New random solution
-solutioncomplex::solutioncomplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input) :
+solutioncomplex::solutioncomplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings) :
 		sol(solutioncomplex::getNewRandomSolution(_input)),
 		stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 		precond(new SparseIncompleteLLTComplex(*stiffness)),
-		simulations(new CG_SolverComplex *[_input->getNObs()]),
-		distance(_input->getNObs()),
-		maxdist(_input->getNObs()),
-		mindist(_input->getNObs()),
-		err(_input->getNObs()),
-		err_x_dist(_input->getNObs()),
-		input(_input)
+		simulations(new CG_SolverComplex *[_readings->getNObs()]),
+		distance(_readings->getNObs()),
+		maxdist(_readings->getNObs()),
+		mindist(_readings->getNObs()),
+		err(_readings->getNObs()),
+		err_x_dist(_readings->getNObs()),
+		input(_input), readings(_readings)
 {
 	this->initSimulations();
 	this->initErrors();
 }
 
 // New randomly modified solution
-solutioncomplex::solutioncomplex(std::complex<double> *sigma, const solutioncomplex &base, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input) :
+solutioncomplex::solutioncomplex(std::complex<double> *sigma, const solutioncomplex &base, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings) :
 		sol(sigma),
 		stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 		precond(new SparseIncompleteLLTComplex(*stiffness)),
-		simulations(new CG_SolverComplex *[_input->getNObs()]),
-		distance(_input->getNObs()),
-		maxdist(_input->getNObs()),
-		mindist(_input->getNObs()),
-		err(_input->getNObs()),
-		err_x_dist(_input->getNObs()),
-		input(_input)
+		simulations(new CG_SolverComplex *[_readings->getNObs()]),
+		distance(_readings->getNObs()),
+		maxdist(_readings->getNObs()),
+		mindist(_readings->getNObs()),
+		err(_readings->getNObs()),
+		err_x_dist(_readings->getNObs()),
+		input(_input), readings(_readings)
 {
 	this->initSimulations(base);
 	this->initErrors();
@@ -214,10 +214,10 @@ void solutioncomplex::initSimulations(const solutioncomplex &base)
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
-	for(i=0;i<input->getNObs();i++)
+	for (i = 0; i<readings->getNObs(); i++)
 	{
 		// Reuse previous solutions as initial values
-		simulations[i] = new CG_SolverComplex(*stiffness, input->getConjugatedCurrentVector(i, stiffnessorig), base.simulations[i]->getX(), *precond);
+		simulations[i] = new CG_SolverComplex(*stiffness, input->getConjugatedCurrentVector(i, stiffnessorig, readings), base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -243,9 +243,9 @@ void solutioncomplex::initSimulations()
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
-	for(i=0;i<input->getNObs();i++)
+	for (i = 0; i<readings->getNObs(); i++)
 	{
-		simulations[i] = new CG_SolverComplex(*stiffness, input->getConjugatedCurrentVector(i, stiffnessorig), *precond);
+		simulations[i] = new CG_SolverComplex(*stiffness, input->getConjugatedCurrentVector(i, stiffnessorig, readings), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -275,14 +275,14 @@ void solutioncomplex::initErrors()
 	//		WARNING: Obviously thread-unsafe!!!!
 	static Eigen::VectorXcd aux(input->getGenericElectrodesCount());
 	// Retrieve distance estimates, errors and boundaries
-	for(i=0;i<input->getNObs();i++) {
+	for (i = 0; i<readings->getNObs(); i++) {
 		// Compare with observation
 		aux = simulations[i]->getX().tail(aux.size());
 		#ifndef BLOCKGND
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
 		#endif
-		aux -= input->getTensions()[i];
+		aux -= readings->getTensions()[i];
 
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
@@ -300,7 +300,7 @@ void solutioncomplex::initErrors()
 	// evaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(i = 1; i<input->getNObs();i++) {
+	for (i = 1; i<readings->getNObs(); i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -387,29 +387,7 @@ void solutioncomplex::saveMesh(double *sol, const char *filename, std::shared_pt
 	myfile.close();
 }
 
-void solutioncomplex::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input) {
-	std::ofstream myfile;
-	myfile.open(filename);
-
-	std::ifstream inputfile(input->getMeshFilename());
-	for (int i = 0; inputfile.eof() != true; i++) {
-		std::string line;
-		std::getline(inputfile, line);
-		myfile << line << '\n';
-	}
-
-	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
-	for (int patterno = 0; patterno < sols.size(); patterno++) {
-		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
-		for (int j = 0; j < input->getNodesCount(); j++) 
-			myfile << (j + 1) << "\t" << sols[patterno][j] * input->getCurrentVal(patterno) << "\n";
-		myfile << "$EndNodeData\n";
-	}
-	myfile.flush();
-	myfile.close();
-}
-
-void solutioncomplex::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input) {
+void solutioncomplex::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, observations<std::complex<double>> *readings) {
 	std::string refname(filename), imfname(filename), absfname(filename), angfname(filename);
 	std::size_t dotfound = refname.find_last_of(".");
 	refname.replace(dotfound, 1, "_re."); imfname.replace(dotfound, 1, "_im."); absfname.replace(dotfound, 1, "_abs."); angfname.replace(dotfound, 1, "_ang.");
@@ -602,7 +580,7 @@ solutioncomplex *solutioncomplex::shuffle(shuffleData *data, const shufflercompl
 	std::complex<double> *sigma = getShuffledSolution(data, sh);
 	solutioncomplex *res;
 	try {
-		res = new solutioncomplex(sigma, *this, input);
+		res = new solutioncomplex(sigma, *this, input, readings);
 	} catch(...) {
 		for(int i=0;i<65;i++)
 			std::cout << i << ":" << sigma[i] << std::endl;
@@ -619,7 +597,7 @@ void solutioncomplex::saturate()
 void solutioncomplex::ensureMinIt(unsigned int it)
 {     
 	static Eigen::VectorXcd aux(input->getGenericElectrodesCount());
-      for(int i = 0; i<input->getNObs();i++) {
+	for (int i = 0; i<readings->getNObs(); i++) {
 	    CG_SolverComplex *sim = this->simulations[i];
 	    while(sim->getIteration()<it) {
 		simulations[i]->do_iteration();
@@ -630,7 +608,7 @@ void solutioncomplex::ensureMinIt(unsigned int it)
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
 		#endif
-		aux -= input->getTensions()[i];
+		aux -= readings->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
@@ -642,7 +620,7 @@ void solutioncomplex::ensureMinIt(unsigned int it)
 		// reevaluate critical
 		double max = err_x_dist[0];
 		critical = 0;
-		for(int j = 1; j<input->getNObs();j++) {
+		for (int j = 1; j<readings->getNObs(); j++) {
 		  if(max < err_x_dist[j]) {
 			max = err_x_dist[j];
 			critical = j;
@@ -656,7 +634,7 @@ void solutioncomplex::ensureMinIt(unsigned int it)
 void solutioncomplex::ensureMaxE2(double e2)
 {     
 	static Eigen::VectorXcd aux(input->getGenericElectrodesCount());
-      for(int i = 0; i<input->getNObs();i++) {
+	for (int i = 0; i<readings->getNObs(); i++) {
 	    CG_SolverComplex *sim = this->simulations[i];
 	    while(sim->getLastE2()>e2) {
 		simulations[i]->do_iteration();
@@ -667,7 +645,7 @@ void solutioncomplex::ensureMaxE2(double e2)
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
 		#endif
-		aux -= input->getTensions()[i];
+		aux -= readings->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
@@ -679,7 +657,7 @@ void solutioncomplex::ensureMaxE2(double e2)
 		// reevaluate critical
 		double max = err_x_dist[0];
 		critical = 0;
-		for(int j = 1; j<input->getNObs();j++) {
+		for (int j = 1; j<readings->getNObs(); j++) {
 		  if(max < err_x_dist[j]) {
 			max = err_x_dist[j];
 			critical = j;
@@ -696,7 +674,7 @@ solutioncomplex::~solutioncomplex()
 	delete stiffness;
 	delete stiffnessorig;
 	delete precond;
-	for(int i=0;i<input->getNObs();i++) {
+	for (int i = 0; i<readings->getNObs(); i++) {
 		delete simulations[i];
 	}
 	delete[] simulations;

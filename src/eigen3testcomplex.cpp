@@ -14,6 +14,7 @@
 #include "random.h"
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
+#include "observations.h"
 
 void saveVals(const char* fname, matrixcomplex &mat, bool symm = false) {
 	std::ofstream myfile;
@@ -71,6 +72,8 @@ int main(int argc, char *argv[])
 		Q_UNREACHABLE();
 	}
 
+	observations<std::complex<double>> *readingsComplex = new observations<std::complex<double>>;
+
 	bool is2dProblem;
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsfname = params.inputCurrents.toStdString();
@@ -81,44 +84,29 @@ int main(int argc, char *argv[])
 	else input = std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>>(new problem3D<Complex, Eigen::VectorXcd, matrixcomplex>(meshfname.c_str()));
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
-	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
+	//input->initObs(currentsfname.c_str(), tensionsfname.c_str());
+	readingsComplex->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
+	input->setCapacitance(80E-12);
+	input->setCurrentFreq(275000);
 
 	matrixcomplex *m;
-	//Eigen::VectorXd vcond(input->getNumCoefficients()), vperm(input->getNumCoefficients());
-	//for (int i = 0; i < input->getNumCoefficients(); i++) {
-	//	vcond[i] = 0.3815; vperm[i] = 0.00000000070922044418976;
-	//}
-	//input->assembleProblemMatrix(&vcond[0], &vperm[0], &m);
-
-	//Eigen::VectorXcd vcond(input->getNumCoefficients());// , vperm(input->getNumCoefficients());
-	//for (int i = 0; i < input->getNumCoefficients(); i++) {
-	//	vcond[i] = std::complex<double>(0.3815, 0.00000000070922044418976);
-	//}
-	//input->assembleProblemMatrix(&vcond[0], &m);
 
 	unsigned long long seed = 4939495;
 	init_genrand64(seed);
 	std::complex<double> *sol = solutioncomplex::getNewRandomSolution(input);
 	matrixcomplex *m1 = solutioncomplex::getNewStiffness(sol, &m, input);
-	//#ifndef BLOCKGND
-	//for (int i = 0; i < input->getGroundNode(); i++) *(&m1->coeffRef(input->getGroundNode(), i)) = std::complex<double>(0, 0);
-	//*(&m1->coeffRef(input->getGroundNode(), input->getGroundNode())) = std::complex<double>(1, 0);
-	//#endif
 
 	saveVals("A.txt", *m, true);
-	saveVals("A_H.txt", *m1, true);
+	saveVals("A_H.txt", (matrixcomplex)(*m1).selfadjointView<Eigen::Lower>(), false);
+	//saveVals("A_H.txt", *m1, false);
 
     QTableView matrixView;
 	//matrixView.setModel(makeMatrixTableModel(m->selfadjointView<Eigen::Lower>()));
     matrixView.setWindowTitle("Stiffness");
     matrixView.show();
-
-	//matrixcomplex *m1 = new matrixcomplex(m->rows(), m->cols());
-	//*m1 = (*m).conjugate().selfadjointView<Eigen::Lower>() * (matrixcomplex)(*m).selfadjointView<Eigen::Lower>();
-	SparseIncompleteLLTComplex precond(*m1);
 
 	Eigen::VectorXcd currents;
 	QTableView vectorbView;
@@ -128,20 +116,15 @@ int main(int argc, char *argv[])
 	QTableView vectorView;
 	vectorView.setWindowTitle("Tensions");
 
+	SparseIncompleteLLTComplex precond(*m1);
 	matrixcomplex L = precond.matrixL();
 	saveVals("L.txt", L);
-	//SparseIncompleteLLTComplex precondalt(*m); matrixcomplex Lalt = precondalt.matrixL(); saveVals("Lalt.txt", Lalt);
-
 
 	std::vector<Eigen::VectorXcd> solutions;
-	for (int patterno = 0; patterno < input->getCurrentsCount(); patterno++) {
-		currents = (*m).conjugate().selfadjointView<Eigen::Lower>() * input->getCurrents()[patterno];
-		//currents = input->getCurrents()[patterno];
-		//#ifndef BLOCKGND
-		//currents[input->getGroundNode()] = 0;
-		//#endif
+	for (int patterno = 0; patterno < readingsComplex->getCurrentsCount(); patterno++) {
+		currents = input->getConjugatedCurrentVector(patterno, m, readingsComplex);
 
-		//saveVals(("b" + std::to_string(patterno + 1) + ".txt").c_str(), input->getCurrents()[patterno]);
+		saveVals(("b" + std::to_string(patterno + 1) + ".txt").c_str(), readingsComplex->getCurrents()[patterno]);
 		saveVals(("b_H" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
 
 		//vectorbView.setModel(makeMatrixTableModel(currents));
@@ -152,6 +135,7 @@ int main(int argc, char *argv[])
 			solver.do_iteration();
 		
 		x = solver.getX();
+		saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), x);
 		#ifndef BLOCKGND
 		// Correct potentials
 		std::complex<double> avg = 0;
@@ -171,10 +155,10 @@ int main(int argc, char *argv[])
 		//myfile.close();
 
 		solutions.push_back(x);
-		std::cout << "Finished solution " << patterno + 1 << " of " << input->getCurrentsCount() << std::endl;
+		std::cout << "Finished solution " << patterno + 1 << " of " << readingsComplex->getCurrentsCount() << std::endl;
 	}
 
-	solutioncomplex::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input);
+	solutioncomplex::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input, readingsComplex);
 
 	return app.exec();
 }

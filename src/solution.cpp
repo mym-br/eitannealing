@@ -44,7 +44,7 @@ void solution::improve()
 	// Rebase tension for zero sum
 	zeroSumVector(aux);
 	#endif
-	aux -= input->getTensions()[critical];
+	aux -= readings->getTensions()[critical];
 					
 	distance[critical] = aux.norm();
 	err[critical] = sqrt(simulations[critical]->getErrorl2Estimate());
@@ -57,7 +57,7 @@ void solution::improve()
 	// reevaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(int i = 1; i<input->getNObs();i++) {
+	for (int i = 1; i<readings->getNObs(); i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -147,17 +147,17 @@ bool solution::compareWithMaxE2(solution &target, double kt,  double e2)
 }
 
 
-solution::solution(const double *sigma, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input) :
+solution::solution(const double *sigma, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input, observations<double> *_readings) :
 				sol(solution::copySolution(sigma, _input)),
 				stiffness(solution::getNewStiffness(sol, _input)),
 				precond(new SparseIncompleteLLT(*stiffness)),
-				simulations(new CG_Solver *[_input->getNObs()]),
-				distance(_input->getNObs()),
-				maxdist(_input->getNObs()),
-				mindist(_input->getNObs()),
-				err(_input->getNObs()),
-				err_x_dist(_input->getNObs()),
-				input(_input)
+				simulations(new CG_Solver *[_readings->getNObs()]),
+				distance(_readings->getNObs()),
+				maxdist(_readings->getNObs()),
+				mindist(_readings->getNObs()),
+				err(_readings->getNObs()),
+				err_x_dist(_readings->getNObs()),
+				input(_input), readings(_readings)
 {
 	this->initSimulations();
 	this->initErrors();
@@ -165,34 +165,34 @@ solution::solution(const double *sigma, std::shared_ptr<problem<Scalar, Eigen::V
 
 
 // New random solution
-solution::solution(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input) :
+solution::solution(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input, observations<double> *_readings) :
 		sol(solution::getNewRandomSolution(_input)),
 		stiffness(solution::getNewStiffness(sol,  _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
-		simulations(new CG_Solver *[_input->getNObs()]),
-		distance(_input->getNObs()),
-		maxdist(_input->getNObs()),
-		mindist(_input->getNObs()),
-		err(_input->getNObs()),
-		err_x_dist(_input->getNObs()),
-		input(_input)
+		simulations(new CG_Solver *[_readings->getNObs()]),
+		distance(_readings->getNObs()),
+		maxdist(_readings->getNObs()),
+		mindist(_readings->getNObs()),
+		err(_readings->getNObs()),
+		err_x_dist(_readings->getNObs()),
+		input(_input), readings(_readings)
 {
 	this->initSimulations();
 	this->initErrors();
 }
 
 // New randomly modified solution
-solution::solution(double *sigma, const solution &base, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input) :
+solution::solution(double *sigma, const solution &base, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input, observations<double> *_readings) :
 		sol(sigma),
 		stiffness(solution::getNewStiffness(sol, _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
-		simulations(new CG_Solver *[_input->getNObs()]),
-		distance(_input->getNObs()),
-		maxdist(_input->getNObs()),
-		mindist(_input->getNObs()),
-		err(_input->getNObs()),
-		err_x_dist(_input->getNObs()),
-		input(_input)
+		simulations(new CG_Solver *[_readings->getNObs()]),
+		distance(_readings->getNObs()),
+		maxdist(_readings->getNObs()),
+		mindist(_readings->getNObs()),
+		err(_readings->getNObs()),
+		err_x_dist(_readings->getNObs()),
+		input(_input), readings(_readings)
 {
 	this->initSimulations(base);
 	this->initErrors();
@@ -203,10 +203,10 @@ void solution::initSimulations(const solution &base)
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
-	for(i=0;i<input->getNObs();i++)
+	for(i=0;i<readings->getNObs();i++)
 	{
 		// Reuse previous solutions as initial values
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i), base.simulations[i]->getX(), *precond);
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings), base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -232,9 +232,9 @@ void solution::initSimulations()
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
-	for(i=0;i<input->getNObs();i++)
+	for (i = 0; i<readings->getNObs(); i++)
 	{
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i), *precond);
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -264,14 +264,14 @@ void solution::initErrors()
 	//		WARNING: Obviously thread-unsafe!!!!
 	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
 	// Retrieve distance estimates, errors and boundaries
-	for(i=0;i<input->getNObs();i++) {
+	for (i = 0; i<readings->getNObs(); i++) {
 		// Compare with observation
 		aux = simulations[i]->getX().tail(aux.size());
 		#ifndef BLOCKGND
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
 		#endif
-		aux -= input->getTensions()[i];
+		aux -= readings->getTensions()[i];
 
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
@@ -285,7 +285,7 @@ void solution::initErrors()
 	// evaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(i = 1; i<input->getNObs();i++) {
+	for (i = 1; i<readings->getNObs(); i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -370,7 +370,7 @@ void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<probl
 	myfile.close();
 }
 
-void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input) {
+void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input, observations<double> *readings) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -385,42 +385,11 @@ void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *fi
 	for (int patterno = 0; patterno < sols.size(); patterno++) {
 		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
 		for (int j = 0; j < input->getNodesCount(); j++) 
-			myfile << (j + 1) << "\t" << sols[patterno][j] * input->getCurrentVal(patterno) << "\n";
+			myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
 		myfile << "$EndNodeData\n";
 	}
 	myfile.flush();
 	myfile.close();
-}
-
-void solution::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input) {
-	std::string refname(filename), imfname(filename), absfname(filename), angfname(filename);
-	std::size_t dotfound = refname.find_last_of(".");
-	refname.replace(dotfound, 1, "_re."); imfname.replace(dotfound, 1, "_im."); absfname.replace(dotfound, 1, "_abs."); angfname.replace(dotfound, 1, "_ang.");
-	std::ofstream myfilereal(refname), myfileimag(imfname), myfileabs(absfname), myfileang(angfname);
-
-	std::ifstream inputfile(input->getMeshFilename());
-	for (int i = 0; inputfile.eof() != true; i++) {
-		std::string line;
-		std::getline(inputfile, line);
-		myfilereal << line << '\n'; myfileimag << line << '\n';  myfileabs << line << '\n';  myfileang << line << '\n';
-	}
-
-	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
-	for (int patterno = 0; patterno < sols.size(); patterno++) {
-		myfilereal << "$NodeData\n1\n\"Real Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
-		myfileimag << "$NodeData\n1\n\"Imaginary Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
-		myfileabs << "$NodeData\n1\n\"Magnitude Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
-		myfileang << "$NodeData\n1\n\"Phase Angle Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
-		for (int j = 0; j < input->getNodesCount(); j++) {
-			myfilereal << (j + 1) << "\t" << sols[patterno][j].real() * input->getCurrentVal(patterno) << "\n";
-			myfileimag << (j + 1) << "\t" << sols[patterno][j].imag() * input->getCurrentVal(patterno) << "\n";
-			myfileabs << (j + 1) << "\t" << std::abs(sols[patterno][j]) * input->getCurrentVal(patterno) << "\n";
-			myfileang << (j + 1) << "\t" << std::arg(sols[patterno][j]) * input->getCurrentVal(patterno) << "\n";
-		}
-		myfilereal << "$EndNodeData\n"; myfileimag << "$EndNodeData\n"; myfileabs << "$EndNodeData\n"; myfileang << "$EndNodeData\n";
-	}
-	myfilereal.flush(); myfileimag.flush(); myfileabs.flush(); myfileang.flush();
-	myfilereal.close(); myfileimag.close(); myfileabs.close(); myfileang.close();
 }
 
 double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) const
@@ -511,7 +480,7 @@ solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
 	double *sigma = getShuffledSolution(data, sh);
 	solution *res;
 	try {
-		res = new solution(sigma, *this, input);
+		res = new solution(sigma, *this, input, readings);
 	} catch(...) {
 		for(int i=0;i<65;i++)
 			std::cout << i << ":" << sigma[i] << std::endl;
@@ -528,7 +497,7 @@ void solution::saturate()
 void solution::ensureMinIt(unsigned int it)
 {     
 	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
-      for(int i = 0; i<input->getNObs();i++) {
+	for (int i = 0; i<readings->getNObs(); i++) {
 	    CG_Solver *sim = this->simulations[i];
 	    while(sim->getIteration()<it) {
 		simulations[i]->do_iteration();
@@ -539,7 +508,7 @@ void solution::ensureMinIt(unsigned int it)
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
 		#endif
-		aux -= input->getTensions()[i];
+		aux -= readings->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
@@ -551,7 +520,7 @@ void solution::ensureMinIt(unsigned int it)
 		// reevaluate critical
 		double max = err_x_dist[0];
 		critical = 0;
-		for(int j = 1; j<input->getNObs();j++) {
+		for (int j = 1; j<readings->getNObs(); j++) {
 		  if(max < err_x_dist[j]) {
 			max = err_x_dist[j];
 			critical = j;
@@ -565,7 +534,7 @@ void solution::ensureMinIt(unsigned int it)
 void solution::ensureMaxE2(double e2)
 {     
 	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
-      for(int i = 0; i<input->getNObs();i++) {
+	for (int i = 0; i<readings->getNObs(); i++) {
 	    CG_Solver *sim = this->simulations[i];
 	    while(sim->getLastE2()>e2) {
 		simulations[i]->do_iteration();
@@ -576,7 +545,7 @@ void solution::ensureMaxE2(double e2)
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
 		#endif
-		aux -= input->getTensions()[i];
+		aux -= readings->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
 		maxdist[i] = distance[i] + err[i];
@@ -588,7 +557,7 @@ void solution::ensureMaxE2(double e2)
 		// reevaluate critical
 		double max = err_x_dist[0];
 		critical = 0;
-		for(int j = 1; j<input->getNObs();j++) {
+		for (int j = 1; j<readings->getNObs(); j++) {
 		  if(max < err_x_dist[j]) {
 			max = err_x_dist[j];
 			critical = j;
@@ -604,7 +573,7 @@ solution::~solution()
 	delete[] sol;
 	delete stiffness;
 	delete precond;
-	for(int i=0;i<input->getNObs();i++) {
+	for (int i = 0; i<readings->getNObs(); i++) {
 		delete simulations[i];
 	}
 	delete[] simulations;

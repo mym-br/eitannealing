@@ -71,13 +71,9 @@ int main(int argc, char *argv[])
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
-	std::shared_ptr<problem> input;// = problem::createNewProblem(meshfname.c_str(), is2dProblem);
-	is2dProblem = problem::isProblem2D(meshfname.c_str());
-	if (is2dProblem) input = std::shared_ptr<problem>(new problem2D(meshfname.c_str()));
-	else input = std::shared_ptr<problem>(new problem3D(meshfname.c_str()));
+	std::shared_ptr<problem> input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
-	//input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();

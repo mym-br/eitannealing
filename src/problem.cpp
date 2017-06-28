@@ -34,21 +34,7 @@ std::shared_ptr<problem> problem::createNewProblem(const char *meshfilename, boo
 	return std::shared_ptr<problem>(new problem2D(meshfilename));
 }
 
-void problem::setGroundNode(int nodeid) {
-	this->groundNode = nodeid;
-	#ifndef BLOCKGND
-	// Zeroing current vector for ground node. FIXME: Ground not can only be set once!
-	for (int i = 0; i < nobs; i++) currents[i][this->groundNode] = 0;
-	#endif
-}
-
 problem::~problem(){
-	delete[] tensions;
-	delete[] rebased_tensions;
-	delete[] currents;
-	delete[] tensionscomplex;
-	delete[] rebased_tensionscomplex;
-	delete[] currentscomplex;
 	delete coef2KMatrix;
 	delete skeleton;
 	for (int i = 0; i < getNodesCount(); i++) {

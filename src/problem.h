@@ -62,57 +62,7 @@ class problem {
 
 public:
 
-	//static std::shared_ptr<problem> createNewProblem(const char *meshfilename, bool &is2D) {
-		//std::ifstream file;
-		//file.open(meshfilename);
-
-		//std::string aux;
-		//do {
-		//	std::getline(file, aux);
-		//} while (aux.compare("$ELM") != 0 && aux.compare("$Elements") != 0);
-		//// Get number of elements
-		//int elementCout;
-		//file >> elementCout;
-		//// Check if there are any thetahedral elements
-		//int id, eltype;
-		//for (int i = 0; i < elementCout; i++) {
-		//	file >> id >> eltype;
-		//	if (eltype == TETRAHEDRON_TYPE)  {
-		//		is2D = false;
-		//		return std::shared_ptr<problem>(new problem3D(meshfilename));
-		//	}
-		//	std::getline(file, aux);
-		//}
-		//file.close();
-
-		//is2D = true;
-		//return std::shared_ptr<problem>(new problem2D(meshfilename));
-	//}
-
-	static bool isProblem2D(const char *meshfilename) {
-		std::ifstream file;
-		file.open(meshfilename);
-
-		std::string aux;
-		do {
-			std::getline(file, aux);
-		} while (aux.compare("$ELM") != 0 && aux.compare("$Elements") != 0);
-		// Get number of elements
-		int elementCout;
-		file >> elementCout;
-		// Check if there are any thetahedral elements
-		int id, eltype;
-		for (int i = 0; i < elementCout; i++) {
-			file >> id >> eltype;
-			if (eltype == TETRAHEDRON_TYPE)  {
-				return false;
-			}
-			std::getline(file, aux);
-		}
-		file.close();
-
-		return true;
-	}
+	static std::shared_ptr<problem> createNewProblem(const char *meshfilename, bool &is2D);
 
 	// Virtual functions
 	virtual void initProblem(const char *meshfilename) = 0;
@@ -136,22 +86,7 @@ public:
 	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1),
 		skeleton(nullptr), coef2KMatrix(nullptr), nodeCoef(nullptr),
 		capacitance(0.0), isCapacitive(false) {};
-	virtual ~problem() {
-		//delete[] tensions;
-		//delete[] currents;
-		delete coef2KMatrix;
-		delete skeleton;
-		for (int i = 0; i < getNodesCount(); i++) {
-			nodeCoefficients *node = nodeCoef[i];
-			while (node != NULL)
-			{
-				nodeCoefficients* tmpNode = node->next;
-				delete node;
-				node = tmpNode;
-			}
-		}
-		delete[] nodeCoef;
-	}
+	virtual ~problem();
 
 	void prepareSkeletonMatrix() {
 		std::vector<Eigen::Triplet<Scalar>> tripletList;

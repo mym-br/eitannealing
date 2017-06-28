@@ -35,7 +35,6 @@ struct nodeCoefficients {
 		node(node), condIndex(index), coefficient(coefficient), next(next) {}
 };
 
-template <typename _Scalar, typename t_vector, typename t_matrix >
 class problem {
 	friend class gradientNormRegularisation;
 	friend class gradientNormRegularisation_old;
@@ -52,11 +51,6 @@ class problem {
 	std::map<int, int> node2coefficient;
 	int numcoefficients;
 	int nodeCount;
-	// Observations
-	//int nobs;
-	//t_vector *tensions;
-	//t_vector *currents;
-	//t_vector currentVals;
 	nodeCoefficients **nodeCoef;
 	std::vector<std::pair<int, int> > innerAdjacency;
 	matrix *skeleton;
@@ -94,6 +88,7 @@ public:
 		//is2D = true;
 		//return std::shared_ptr<problem>(new problem2D(meshfilename));
 	//}
+
 	static bool isProblem2D(const char *meshfilename) {
 		std::ifstream file;
 		file.open(meshfilename);
@@ -130,12 +125,7 @@ public:
 	int getNumCoefficients() { return numcoefficients; }
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
 	int getNode2Coefficient(int id) { return node2coefficient[id]; }
-	//int getNObs() { return nobs; }
-	//t_vector *getTensions() { return tensions; }
-	//t_vector *getCurrents() { return currents; }
 	const char* getMeshFilename() { return filename; }
-	//_Scalar getCurrentVal(int i) { return currentVals[i]; }
-	//int getCurrentsCount() { return (int)currentVals.size(); }
 	void setGroundNode(int nodeid) { this->groundNode = nodeid; }
 	int getGroundNode() { return this->groundNode; }
 	void setCurrentFreq(double _currentFreq) { this->currentFreq = _currentFreq; }
@@ -162,57 +152,6 @@ public:
 		}
 		delete[] nodeCoef;
 	}
-
-	//void initObs(const char *filecurrents, const char* filename) {
-	//	std::ifstream file;
-	//	std::ifstream filec;
-
-	//	filec.open(filecurrents);
-	//	file.open(filename);
-
-	//	int n = getGenericElectrodesCount() - 1;
-	//	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
-	//	nobs = valuesCount / getGenericElectrodesCount();
-
-	//	file.clear();
-	//	file.seekg(0, std::ios::beg);
-	//	tensions = new t_vector[nobs];
-	//	currents = new t_vector[nobs];
-	//	currentVals = t_vector(nobs);
-	//	t_vector current(getNodesCount());
-	//	current.fill(0);
-	//	int baseIndex = (int)current.size() - n - 1;
-	//	for (int i = 0; i<nobs; i++) {
-	//		double c;
-	//		int entry, exit;
-	//		filec >> entry;
-	//		filec >> exit;
-	//		filec >> c;
-	//		entry--; exit--;	// zero-based
-	//		currentVals[i] = c;
-	//		currents[i] = current;
-	//		currents[i][baseIndex + entry] = 1;
-	//		currents[i][baseIndex + exit] = -1;
-
-	//		// read tensions from file
-	//		tensions[i].resize(getGenericElectrodesCount());
-	//		_Scalar val, avg;
-	//		avg = 0;
-	//		for (int j = 0; j<getGenericElectrodesCount(); j++) {
-	//			file >> val;
-	//			tensions[i][j] = val / c;  // Values are normalized by current
-	//			avg += tensions[i][j];
-	//		}
-	//		// rebase tensions, apply offset for zero sum on electrodes
-	//		avg /= (double)getGenericElectrodesCount();
-	//		for (int j = 0; j < getGenericElectrodesCount(); j++) {
-	//			tensions[i][j] -= avg;
-	//		}
-	//	}
-
-	//	filec.close();
-	//	file.close();
-	//}
 
 	void prepareSkeletonMatrix() {
 		std::vector<Eigen::Triplet<Scalar>> tripletList;
@@ -248,22 +187,22 @@ public:
 		coef2KMatrix->makeCompressed();
 	}
 
-	void assembleProblemMatrix(_Scalar *cond, t_matrix **stiffnes) {
+	template <typename  _Scalar> void assembleProblemMatrix(_Scalar *cond, Eigen::SparseMatrix<_Scalar, Eigen::ColMajor> **stiffnes) {
 		// FIXME: Is there any way to get rid of the initial memset of zeros
 		//	on the outer index?
-		t_matrix *m = new t_matrix(skeleton->rows(), skeleton->cols());
+		Eigen::SparseMatrix<_Scalar, Eigen::ColMajor> *m = new Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>(skeleton->rows(), skeleton->cols());
 		m->reserve(skeleton->nonZeros());
 		// Now byte-copy outer and inner vectors from skeleton
-		memcpy(m->outerIndexPtr(), skeleton->outerIndexPtr(), (m->rows() + 1)*sizeof(t_matrix::StorageIndex));
-		memcpy(m->innerIndexPtr(), skeleton->innerIndexPtr(), m->nonZeros()*sizeof(t_matrix::StorageIndex));
+		memcpy(m->outerIndexPtr(), skeleton->outerIndexPtr(), (m->rows() + 1)*sizeof(Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::StorageIndex));
+		memcpy(m->innerIndexPtr(), skeleton->innerIndexPtr(), m->nonZeros()*sizeof(Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::StorageIndex));
 
 		// Final coefficient vector is the Sparse x Dense product of coef2KMatrix times coefficients
-		Eigen::Map<Eigen::Matrix<_Scalar, Eigen::Dynamic, 1>>(m->valuePtr(), m->nonZeros()).noalias() = (*coef2KMatrix)*Eigen::Map<t_vector>(cond, numcoefficients);
+		Eigen::Map<Eigen::Matrix<_Scalar, Eigen::Dynamic, 1>>(m->valuePtr(), m->nonZeros()).noalias() = (*coef2KMatrix)*Eigen::Map<Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> >(cond, numcoefficients);
 		m->resizeNonZeros(skeleton->nonZeros());
 		*stiffnes = m;
 	}
 
-	void postAssembleProblemMatrix(t_matrix **stiffnes) {
+	template <typename  _Scalar> void postAssembleProblemMatrix(Eigen::SparseMatrix<_Scalar, Eigen::ColMajor> **stiffnes) {
 		if (!isCapacitive) {
 			#ifdef BLOCKGND
 			for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
@@ -281,7 +220,7 @@ public:
 
 	void addMatrixCapacitances(matrixcomplex **stiffnes) {
 		for (int i = getNodesCount() - getGenericElectrodesCount(); i < getNodesCount(); i++) {
-			_Scalar *val = &(*stiffnes)->coeffRef(i, i);
+			Complex *val = &(*stiffnes)->coeffRef(i, i);
 			Complex jwc = std::complex<double>(0, 2 * M_PI * getCurrentFreq() * capacitance);
 			*val = *val + jwc;
 		}

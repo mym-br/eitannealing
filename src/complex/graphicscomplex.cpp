@@ -27,7 +27,7 @@ QPoint viewportcomplex::translateCoordinate(float x, float y)
 	return QPoint((int)(1800*x+0.5)+300, 300 - (int)(1800*y+.5));
 }
 
-viewportcomplex::viewportcomplex(int width, int height, const char *title, std::shared_ptr<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>> _input, double mincond, double maxcond) :
+viewportcomplex::viewportcomplex(int width, int height, const char *title, std::shared_ptr<problem2D> _input, double mincond, double maxcond) :
 scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32), input(_input), minval(mincond), maxval(maxcond)
 {
 	this->setWindowTitle(title);

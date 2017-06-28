@@ -46,7 +46,8 @@ float *currentSolution;
 
 float param;
 
-std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input;
+std::shared_ptr<problem> input;
+observations<double> *readings;
 
 unsigned long seed;
 
@@ -116,7 +117,7 @@ void workProc()
 	int acceptit;
 	shuffleData sdata;
 	shuffler sh(input);
-	current.reset(new solution(input));
+	current.reset(new solution(input, readings));
 	
 	std::cout.flush();
 	
@@ -165,7 +166,7 @@ void workProc()
 		double sige = sqrt(sqe/solutions - eav*eav);
 		//solution probe(current->getSolution());
 		//probe.saturate();
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations) / (input->getNObs()*solutions) << ":" << seed << std::endl;
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations) / (readings->getNObs()*solutions) << ":" << seed << std::endl;
 		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
@@ -370,12 +371,14 @@ int main(int argc, char *argv[])
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
 	//input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
-	is2dProblem = problem<Scalar, Eigen::VectorXd, matrix>::isProblem2D(meshfname.c_str());
-	if (is2dProblem) input = std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>>(new problem2D<Scalar, Eigen::VectorXd, matrix>(meshfname.c_str()));
-	else input = std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>>(new problem3D<Scalar, Eigen::VectorXd, matrix>(meshfname.c_str()));
+	is2dProblem = problem::isProblem2D(meshfname.c_str());
+	if (is2dProblem) input = std::shared_ptr<problem>(new problem2D(meshfname.c_str()));
+	else input = std::shared_ptr<problem>(new problem3D(meshfname.c_str()));
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
-	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
+	//input->initObs(currentsfname.c_str(), tensionsfname.c_str());
+	readings = new observations<double>;
+	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
@@ -394,7 +397,7 @@ int main(int argc, char *argv[])
 	list.setContextMenuPolicy(Qt::ActionsContextMenu);
 	list.show();
 
-	viewport graphics(600, 600, "Reverse Problem", std::dynamic_pointer_cast<problem2D<Scalar, Eigen::VectorXd, matrix>>(input));
+	viewport graphics(600, 600, "Reverse Problem", std::dynamic_pointer_cast<problem2D>(input));
 	gmshviewport graphics_gmsh("eitannealingtest", params.outputMesh.toStdString().c_str(), params.gmeshAddress.toStdString().c_str(), input);
 	if (!params.gmeshAddress.isEmpty()) {
 		graphics_gmsh.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));

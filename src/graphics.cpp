@@ -27,7 +27,7 @@ QPoint translateCoordinate(float x, float y)
 	return QPoint((int)(1800*x+0.5)+300, 300 - (int)(1800*y+.5));
 }
 
-viewport::viewport(int width, int height, const char *title, std::shared_ptr<problem2D<Scalar, Eigen::VectorXd, matrix>> _input) : scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32), input(_input)
+viewport::viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input) : scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32), input(_input)
 {
 	this->setWindowTitle(title);
 	this->setFixedSize(width, height+scale.height());

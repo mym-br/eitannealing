@@ -16,8 +16,7 @@
 class solution;
 class viewport;
 
-template <typename _Scalar, typename t_vector, typename t_matrix >
-class problem2D : public problem <_Scalar, t_vector, t_matrix> {
+class problem2D : public problem {
 	friend class viewport;
 	friend class viewportcomplex;
 

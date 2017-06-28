@@ -48,7 +48,8 @@ float *currentSolution;
 
 float param;
 
-std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input;
+std::shared_ptr<problem> input;
+observations<std::complex<double>> *readings;
 
 unsigned long seed;
 
@@ -120,7 +121,7 @@ void workProc()
 	int acceptit;
 	shuffleData sdata;
 	shufflercomplex sh(input);
-	current.reset(new solutioncomplex(input));
+	current.reset(new solutioncomplex(input, readings));
 	
 	std::cout.flush();
 	
@@ -174,7 +175,7 @@ void workProc()
 		double sige = sqrt(sqe/solutions - eav*eav);
 		//solution probe(current->getSolution());
 		//probe.saturate();
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations) / (input->getNObs()*solutions) << ":" << seed << std::endl;
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations) / (readings->getNObs()*solutions) << ":" << seed << std::endl;
 		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		    std::cout << it << ":" << current->getSolution()[it] << std::endl;
@@ -377,14 +378,16 @@ int main(int argc, char *argv[])
 	std::string currentsfname = params.inputCurrents.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
 	//input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
-	is2dProblem = problem<Complex, Eigen::VectorXcd, matrixcomplex>::isProblem2D(meshfname.c_str());
-	if (is2dProblem) input = std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>>(new problem2D<Complex, Eigen::VectorXcd, matrixcomplex>(meshfname.c_str()));
-	else input = std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>>(new problem3D<Complex, Eigen::VectorXcd, matrixcomplex>(meshfname.c_str()));
+	is2dProblem = problem::isProblem2D(meshfname.c_str());
+	if (is2dProblem) input = std::shared_ptr<problem>(new problem2D(meshfname.c_str()));
+	else input = std::shared_ptr<problem>(new problem3D(meshfname.c_str()));
 	input->setGroundNode(params.ground);
 	// TODO: read parameter from commanline
 	input->setCurrentFreq(275000);
 	input->initProblem(meshfname.c_str());
-	input->initObs(currentsfname.c_str(), tensionsfname.c_str());
+	//input->initObs(currentsfname.c_str(), tensionsfname.c_str());
+	readings = new observations<std::complex<double>>;
+	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
@@ -415,8 +418,8 @@ int main(int argc, char *argv[])
 	listim.show();
 
 	double w = 2 * M_PI * input->getCurrentFreq();
-	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>>(input), mincond, maxcond);
-	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>>(input), w*minperm, w*maxperm);
+	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D>(input), mincond, maxcond);
+	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D>(input), w*minperm, w*maxperm);
 	//gmshviewport graphics_gmsh("eitannealingtest", params.outputMesh.toStdString().c_str(), params.gmeshAddress.toStdString().c_str(), input);
 	if (!params.gmeshAddress.isEmpty()) {
 		//graphics_gmsh.connect(view, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));

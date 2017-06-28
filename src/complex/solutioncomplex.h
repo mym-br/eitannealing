@@ -41,7 +41,7 @@ struct shuffleData {
 struct shufflercomplex {
 	int * shuffleConsts;
 	int * swapshuffleconsts;
-	shufflercomplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input) {
+	shufflercomplex(std::shared_ptr<problem> input) {
 		shuffleConsts = new int[input->getNumCoefficients()];
 		swapshuffleconsts = new int[input->getInnerAdjacencyCount()];
 
@@ -86,40 +86,40 @@ class solutioncomplex {
 			void initErrors();
 public:
 			double *getShufledSolution();
-			static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input);
-			static std::complex<double> *copySolution(const std::complex<double> *sol, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input);
+			static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input);
+			static std::complex<double> *copySolution(const std::complex<double> *sol, std::shared_ptr<problem> input);
 
 			std::complex<double> *getShuffledSolution(shuffleData *data, const shufflercomplex &sh) const;
 
-			static matrixcomplex *getNewStiffness(std::complex<double> *sol, matrixcomplex **stiffnessorig, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input) {
+			static matrixcomplex *getNewStiffness(std::complex<double> *sol, matrixcomplex **stiffnessorig, std::shared_ptr<problem> input) {
 				matrixcomplex *aux = new matrixcomplex;
 				input->assembleProblemMatrix(sol, stiffnessorig);
 				input->addMatrixCapacitances(stiffnessorig);
 				matrixcomplex Afull = (**stiffnessorig) + ((matrixcomplex)((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>()).conjugate();
 				matrixcomplex A_tfull = (**stiffnessorig).conjugate() + ((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>();
 				*aux = A_tfull * Afull;
-				input->postAssembleProblemMatrix(&aux);
+				input->postAssembleProblemMatrix<Complex>(&aux);
 				return aux;
 			}
 
 			// shuffle constructor
-			solutioncomplex(std::complex<double> *sol, const solutioncomplex &base, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings);
+			solutioncomplex(std::complex<double> *sol, const solutioncomplex &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);
 			double regularisation;
-			std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input;
+			std::shared_ptr<problem> input;
 			observations<std::complex<double>> *readings;
 			void zeroSumVector(Eigen::VectorXcd &vec);
 
 	//public:
 
-		solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, observations<std::complex<double>> *_readings);
-		solutioncomplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings);	// New random solution
+		solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem> input, observations<std::complex<double>> *_readings);
+		solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);	// New random solution
 		bool compareWith(solutioncomplex &target, double kt, double prob);
 		bool compareWithMinIt(solutioncomplex &target, double kt, int minit);
 		bool compareWithMaxE2(solutioncomplex &target, double kt, double e2);
 		solutioncomplex *shuffle(shuffleData *data, const shufflercomplex &sh) const;
 
-		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, int step = 0);
-		static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, observations<std::complex<double>> *readings);
+		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);
+		static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input, observations<std::complex<double>> *readings);
 
 		double getRegularisationValue() const {
 		  return this->regularisation;

@@ -2,7 +2,7 @@
 #include "../solution.h"
 #include <QDir>
 
-gmshviewport::gmshviewport(const char* name, std::string _outputFname, const char* address, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input) : input(_input), iter(0), outputFname(_outputFname) {
+gmshviewport::gmshviewport(const char* name, std::string _outputFname, const char* address, std::shared_ptr<problem> _input) : input(_input), iter(0), outputFname(_outputFname) {
 	gmeshClient = std::shared_ptr<onelab::remoteNetworkClient>(new onelab::remoteNetworkClient(name, address));
 }
 

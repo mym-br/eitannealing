@@ -9,18 +9,18 @@ class gradientNormRegularisationComplex
 {
 
 private:
-	gradientNormRegularisationComplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input);
+	gradientNormRegularisationComplex(std::shared_ptr<problem> _input);
 	static std::unique_ptr<gradientNormRegularisationComplex> instance;
     int electrodecoefficients;
     std::unique_ptr<matrixcomplex> regularizationMatrix;
     void buildMatrix();
     int coefficientMap(int node);
     std::set<int> lastElectrodeNodes;    
-	std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input;
+	std::shared_ptr<problem> input;
 public:
     std::complex<double> getRegularisation(const std::complex<double> *sol) const;
   
-	static void initInstance(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input);
+	static void initInstance(std::shared_ptr<problem> _input);
 	static gradientNormRegularisationComplex *getInstance() {
    
      return instance.get();

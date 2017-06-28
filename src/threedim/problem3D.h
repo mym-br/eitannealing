@@ -19,8 +19,7 @@
 class solution;
 class viewport;
 
-template <typename _Scalar, typename t_vector, typename t_matrix >
-class problem3D : public problem <_Scalar, t_vector, t_matrix> {
+class problem3D : public problem {
 	friend class viewport;
 
 	struct node {

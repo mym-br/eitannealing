@@ -35,13 +35,13 @@ void gradientNormRegularisationComplex::buildMatrix()
     regularizationMatrix.reset(out);
 }
 
-gradientNormRegularisationComplex::gradientNormRegularisationComplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input) : input(_input)
+gradientNormRegularisationComplex::gradientNormRegularisationComplex(std::shared_ptr<problem> _input) : input(_input)
 {
 	electrodecoefficients = input->getGenericElectrodesCount();
     this->buildMatrix();
 }
 
-void gradientNormRegularisationComplex::initInstance(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input)
+void gradientNormRegularisationComplex::initInstance(std::shared_ptr<problem> _input)
 {
 	instance.reset(new gradientNormRegularisationComplex(_input));
 }

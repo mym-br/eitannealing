@@ -158,7 +158,7 @@ bool solutioncomplex::compareWithMaxE2(solutioncomplex &target, double kt, doubl
 }
 
 
-solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings) :
+solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) :
 				sol(solutioncomplex::copySolution(sigma, _input)),
 				stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 				precond(new SparseIncompleteLLTComplex(*stiffness)),
@@ -176,7 +176,7 @@ solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_
 
 
 // New random solution
-solutioncomplex::solutioncomplex(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings) :
+solutioncomplex::solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) :
 		sol(solutioncomplex::getNewRandomSolution(_input)),
 		stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 		precond(new SparseIncompleteLLTComplex(*stiffness)),
@@ -193,7 +193,7 @@ solutioncomplex::solutioncomplex(std::shared_ptr<problem<Complex, Eigen::VectorX
 }
 
 // New randomly modified solution
-solutioncomplex::solutioncomplex(std::complex<double> *sigma, const solutioncomplex &base, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> _input, observations<std::complex<double>> *_readings) :
+solutioncomplex::solutioncomplex(std::complex<double> *sigma, const solutioncomplex &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) :
 		sol(sigma),
 		stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 		precond(new SparseIncompleteLLTComplex(*stiffness)),
@@ -310,7 +310,7 @@ void solutioncomplex::initErrors()
 }
 
 
-std::complex<double> *solutioncomplex::copySolution(const std::complex<double> *sol, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input)
+std::complex<double> *solutioncomplex::copySolution(const std::complex<double> *sol, std::shared_ptr<problem> input)
 {
 	std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
 
@@ -320,7 +320,7 @@ std::complex<double> *solutioncomplex::copySolution(const std::complex<double> *
 	return res;
 }
 
-std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input)
+std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<problem> input)
 {
 	std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
 	int i = 0;
@@ -366,7 +366,7 @@ std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<prob
 	return res;
 }
 
-void solutioncomplex::saveMesh(double *sol, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, int step) {
+void solutioncomplex::saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -387,7 +387,7 @@ void solutioncomplex::saveMesh(double *sol, const char *filename, std::shared_pt
 	myfile.close();
 }
 
-void solutioncomplex::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem<Complex, Eigen::VectorXcd, matrixcomplex>> input, observations<std::complex<double>> *readings) {
+void solutioncomplex::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input, observations<std::complex<double>> *readings) {
 	std::string refname(filename), imfname(filename), absfname(filename), angfname(filename);
 	std::size_t dotfound = refname.find_last_of(".");
 	refname.replace(dotfound, 1, "_re."); imfname.replace(dotfound, 1, "_im."); absfname.replace(dotfound, 1, "_abs."); angfname.replace(dotfound, 1, "_ang.");

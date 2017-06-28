@@ -36,7 +36,7 @@ Q_OBJECT
 class viewport : public QWidget {
 Q_OBJECT
 	public:
-		viewport(int width, int height, const char *title, std::shared_ptr<problem2D<Scalar, Eigen::VectorXd, matrix>> _input);
+		viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input);
 	    QImage &getBuffer() {
 		    return this->paintbuff;
 	    }
@@ -50,13 +50,13 @@ Q_OBJECT
 	      QColor getColorForLevel(double level);
 	      // override default paint event
 	      void paintEvent ( QPaintEvent * event );
-		  std::shared_ptr<problem2D<Scalar, Eigen::VectorXd, matrix>> input;
+		  std::shared_ptr<problem2D> input;
 };
 
 class viewportcomplex : public QWidget {
 	Q_OBJECT
 public:
-	viewportcomplex(int width, int height, const char *title, std::shared_ptr<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>> _input, double mincond, double maxcond);
+	viewportcomplex(int width, int height, const char *title, std::shared_ptr<problem2D> _input, double mincond, double maxcond);
 	QImage &getBuffer() {
 		return this->paintbuff;
 	}
@@ -70,7 +70,7 @@ protected:
 	QColor getColorForLevel(double level);
 	// override default paint event
 	void paintEvent(QPaintEvent * event);
-	std::shared_ptr<problem2D<Complex, Eigen::VectorXcd, matrixcomplex>> input;
+	std::shared_ptr<problem2D> input;
 private:
 	QPoint translateCoordinate(float x, float y);
 	double minval, maxval;

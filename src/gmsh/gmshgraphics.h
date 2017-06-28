@@ -18,7 +18,7 @@ class gmshviewport : public QObject {
 Q_OBJECT
 
 public:
-	gmshviewport(const char* name, std::string _outputFname, const char* address, std::shared_ptr<problem<Scalar,Eigen::VectorXd,matrix>> _input);
+	gmshviewport(const char* name, std::string _outputFname, const char* address, std::shared_ptr<problem> _input);
 	~gmshviewport() {};
 
 public slots:
@@ -27,7 +27,7 @@ public slots:
 private:
 	void saveTempMesh(double *sol);
 
-	std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input;
+	std::shared_ptr<problem> input;
 	std::shared_ptr<onelab::remoteNetworkClient> gmeshClient;
 	std::vector<onelab::string> ns;
 	std::string outputFname;

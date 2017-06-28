@@ -147,7 +147,7 @@ bool solution::compareWithMaxE2(solution &target, double kt,  double e2)
 }
 
 
-solution::solution(const double *sigma, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input, observations<double> *_readings) :
+solution::solution(const double *sigma, std::shared_ptr<problem> _input, observations<double> *_readings) :
 				sol(solution::copySolution(sigma, _input)),
 				stiffness(solution::getNewStiffness(sol, _input)),
 				precond(new SparseIncompleteLLT(*stiffness)),
@@ -165,7 +165,7 @@ solution::solution(const double *sigma, std::shared_ptr<problem<Scalar, Eigen::V
 
 
 // New random solution
-solution::solution(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input, observations<double> *_readings) :
+solution::solution(std::shared_ptr<problem> _input, observations<double> *_readings) :
 		sol(solution::getNewRandomSolution(_input)),
 		stiffness(solution::getNewStiffness(sol,  _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
@@ -182,7 +182,7 @@ solution::solution(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _in
 }
 
 // New randomly modified solution
-solution::solution(double *sigma, const solution &base, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> _input, observations<double> *_readings) :
+solution::solution(double *sigma, const solution &base, std::shared_ptr<problem> _input, observations<double> *_readings) :
 		sol(sigma),
 		stiffness(solution::getNewStiffness(sol, _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
@@ -295,7 +295,7 @@ void solution::initErrors()
 }
 
 
-double *solution::copySolution(const double *sol, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input)
+double *solution::copySolution(const double *sol, std::shared_ptr<problem> input)
 {
 	double *res = new double[input->getNumCoefficients()];
 
@@ -305,7 +305,7 @@ double *solution::copySolution(const double *sol, std::shared_ptr<problem<Scalar
 	return res;
 }
 
-double *solution::getNewRandomSolution(std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input)
+double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
 {
 	double *res = new double[input->getNumCoefficients()];
 	int i = 0;
@@ -349,7 +349,7 @@ double *solution::getNewRandomSolution(std::shared_ptr<problem<Scalar, Eigen::Ve
 	return res;
 }
 
-void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input, int step) {
+void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -370,7 +370,7 @@ void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<probl
 	myfile.close();
 }
 
-void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem<Scalar, Eigen::VectorXd, matrix>> input, observations<double> *readings) {
+void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings) {
 	std::ofstream myfile;
 	myfile.open(filename);
 

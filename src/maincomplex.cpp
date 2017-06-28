@@ -385,9 +385,8 @@ int main(int argc, char *argv[])
 	// TODO: read parameter from commanline
 	input->setCurrentFreq(275000);
 	input->initProblem(meshfname.c_str());
-	//input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	readings = new observations<std::complex<double>>;
-	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount());
+	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();

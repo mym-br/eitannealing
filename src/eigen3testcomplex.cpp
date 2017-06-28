@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
 	//input->initObs(currentsfname.c_str(), tensionsfname.c_str());
-	readingsComplex->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount());
+	readingsComplex->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();

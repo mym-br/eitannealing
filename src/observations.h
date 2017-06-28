@@ -33,21 +33,19 @@ public:
 	_Scalar getCurrentVal(int i) { return currentVals[i]; }
 	int getCurrentsCount() { return (int)currentVals.size(); }
 
-	void initObs(const char *filecurrents, const char* filename, int nodesCount) {};
+	void initObs(const char *filecurrents, const char* filename, int nodesCount, int electrodesCount) {};
 };
 
 template<>
-void observations<double>::initObs(const char *filecurrents, const char* filename, int nodesCount) { 
+void observations<double>::initObs(const char *filecurrents, const char* filename, int nodesCount, int electrodesCount) {
 	std::ifstream file;
 	std::ifstream filec;
 
 	filec.open(filecurrents);
 	file.open(filename);
 
-	//int n = 31; // TODO: read number of measurements from file
-	int n = 32; // TODO: read number of measurements from file
+	int n = electrodesCount; // TODO: read number of measurements from file
 	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
-	//nobs = valuesCount / (n+1);
 	nobs = valuesCount / n;
 
 	file.clear();
@@ -57,7 +55,6 @@ void observations<double>::initObs(const char *filecurrents, const char* filenam
 	currentVals = vectorx(nobs);
 	vectorx current(nodesCount);
 	current.fill(0);
-	//int baseIndex = (int)current.size() - n - 1;
 	int baseIndex = (int)current.size() - n;
 	for (int i = 0; i<nobs; i++) {
 		double c;
@@ -72,20 +69,16 @@ void observations<double>::initObs(const char *filecurrents, const char* filenam
 		currents[i][baseIndex + exit] = -1;
 
 		// read tensions from file
-		//tensions[i].resize(n+1);
 		tensions[i].resize(n);
 		Scalar val, avg;
 		avg = 0;
-		//for (int j = 0; j<n+1; j++) {
 		for (int j = 0; j<n; j++) {
 			file >> val;
 			tensions[i][j] = val / c;  // Values are normalized by current
 			avg += tensions[i][j];
 		}
 		// rebase tensions, apply offset for zero sum on electrodes
-		//avg /= (double)n+1;
 		avg /= (double)n;
-		//for (int j = 0; j < n+1; j++) {
 		for (int j = 0; j < n; j++) {
 			tensions[i][j] -= avg;
 		}
@@ -96,14 +89,14 @@ void observations<double>::initObs(const char *filecurrents, const char* filenam
 };
 
 template<>
-void observations<std::complex<double>>::initObs(const char *filecurrents, const char* filename, int nodesCount) {
+void observations<std::complex<double>>::initObs(const char *filecurrents, const char* filename, int nodesCount, int electrodesCount) {
 	std::ifstream file;
 	std::ifstream filec;
 
 	filec.open(filecurrents);
 	file.open(filename);
 
-	int n = 32; // TODO: read number of measurements from file
+	int n = electrodesCount; // TODO: read number of measurements from file
 	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
 	nobs = valuesCount / n;
 

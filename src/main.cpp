@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
 	input->initProblem(meshfname.c_str());
 	//input->initObs(currentsfname.c_str(), tensionsfname.c_str());
 	readings = new observations<double>;
-	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount());
+	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();

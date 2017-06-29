@@ -113,6 +113,7 @@ void observations<std::complex<double>>::initObs(const char **filecurrents, cons
 		char ch;
 		double valreal, valimag;
 		std::complex<double> currin, currout;
+		currents[i] = current;
 		filecin >> ch >> valreal >> ch >> valimag >> ch;
 		currents[i][baseIndex + i] = std::complex<double>(valreal, valimag);
 		filecout >> ch >> valreal >> ch >> valimag >> ch;

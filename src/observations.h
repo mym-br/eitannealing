@@ -33,15 +33,15 @@ public:
 	_Scalar getCurrentVal(int i) { return currentVals[i]; }
 	int getCurrentsCount() { return (int)currentVals.size(); }
 
-	void initObs(const char *filecurrents, const char* filename, int nodesCount, int electrodesCount) {};
+	void initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {};
 };
 
 template<>
-void observations<double>::initObs(const char *filecurrents, const char* filename, int nodesCount, int electrodesCount) {
+void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
 	std::ifstream file;
 	std::ifstream filec;
 
-	filec.open(filecurrents);
+	filec.open(*filecurrents);
 	file.open(filename);
 
 	int n = electrodesCount; // TODO: read number of measurements from file
@@ -89,15 +89,16 @@ void observations<double>::initObs(const char *filecurrents, const char* filenam
 };
 
 template<>
-void observations<std::complex<double>>::initObs(const char *filecurrents, const char* filename, int nodesCount, int electrodesCount) {
+void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
 	std::ifstream file;
-	std::ifstream filec;
+	std::ifstream filecin, filecout;
 
-	filec.open(filecurrents);
+	filecin.open(filecurrents[0]);
+	filecout.open(filecurrents[1]);
 	file.open(filename);
 
-	int n = electrodesCount; // TODO: read number of measurements from file
-	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
+	int n = electrodesCount;
+	int valuesCount = std::count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n');
 	nobs = valuesCount / n;
 
 	file.clear();
@@ -109,34 +110,26 @@ void observations<std::complex<double>>::initObs(const char *filecurrents, const
 	current.fill(0);
 	int baseIndex = (int)current.size() - n;
 	for (int i = 0; i<nobs; i++) {
-		double c;
-		int entry, exit;
-		filec >> entry;
-		filec >> exit;
-		filec >> c;
-		entry--; exit--;	// zero-based
-		currentVals[i] = c;
-		currents[i] = current;
-		currents[i][baseIndex + entry] = 1;
-		currents[i][baseIndex + exit] = -1;
+		char ch;
+		double valreal, valimag;
+		std::complex<double> currin, currout;
+		filecin >> ch >> valreal >> ch >> valimag >> ch;
+		currents[i][baseIndex + i] = std::complex<double>(valreal, valimag);
+		filecout >> ch >> valreal >> ch >> valimag >> ch;
+		currents[i][i == nobs - 1 ? baseIndex : baseIndex + i + 1] = std::complex<double>(valreal, valimag);
 
 		// read tensions from file
 		tensions[i].resize(n);
 		std::complex<double> val, avg;
 		avg = 0;
 		for (int j = 0; j<n; j++) {
-			file >> val;
-			tensions[i][j] = val / c;  // Values are normalized by current
-			avg += tensions[i][j];
-		}
-		// rebase tensions, apply offset for zero sum on electrodes
-		avg /= (double)n;
-		for (int j = 0; j < n; j++) {
-			tensions[i][j] -= avg;
+			file >> ch >> valreal >> ch >> valimag >> ch;
+			tensions[i][j] = std::complex<double>(valreal, valimag);
 		}
 	}
 
-	filec.close();
+	filecin.close();
+	filecout.close();
 	file.close();
 };
 

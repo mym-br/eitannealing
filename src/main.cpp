@@ -27,7 +27,7 @@
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
 //#include "solution_lb.h"
-//#include "observations.h"
+#include "observations.h"
 #include "random.h"
 //#include "sparseincompletelq.h"
 #include "gradientnormregularisation.h"
@@ -374,7 +374,8 @@ int main(int argc, char *argv[])
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
 	readings = new observations<double>;
-	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
+	const char *currentsfnamecstr = currentsfname.c_str();
+	readings->initObs(&currentsfnamecstr, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();

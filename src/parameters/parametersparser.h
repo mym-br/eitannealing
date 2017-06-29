@@ -7,7 +7,7 @@ class QCommandLineParser;
 struct EitAnnealingArgs {
 	EitAnnealingArgs() : seedSpecified(false) {}
 
-    QString inputMesh, inputCurrents, inputTensions;
+	QString inputMesh, inputCurrents, inputTensions, inputCurrentsOut;
 	QString outputMesh;
 	QString gmeshAddress;
 	float peParam;

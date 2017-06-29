@@ -14,6 +14,7 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
 	const QCommandLineOption outputOpt("output", "Output mesh file name.", "number"); parser.addOption(outputOpt);
 	const QCommandLineOption peparamOpt("peparam", "Partial cost evaluation probability parameter.", "probability"); parser.addOption(peparamOpt);
 	const QCommandLineOption gndOpt("ground", "Ground node.", "number"); parser.addOption(gndOpt);
+	const QCommandLineOption currentsOutOpt("currentsout", "Input removed currents file.", "number"); parser.addOption(currentsOutOpt);
 
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
@@ -45,6 +46,7 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
     params->inputMesh = positionalArguments.at(0);
 	params->inputCurrents = positionalArguments.at(1);
 	params->inputTensions = positionalArguments.at(2);
+	if (parser.isSet(currentsOutOpt)) params->inputCurrentsOut = parser.value(currentsOutOpt);
 
 	if (parser.isSet(gmeshOpt)) params->gmeshAddress = parser.value(gmeshOpt); else params->gmeshAddress = "127.0.0.1:44202";
 	if (parser.isSet(outputOpt)) params->outputMesh = parser.value(outputOpt); else params->outputMesh = "solution.msh";

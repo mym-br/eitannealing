@@ -10,6 +10,7 @@
 #include <Eigen/SparseCholesky>
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
+#include "observations.h"
 
 void saveVals(const char* fname, matrix &mat, bool symm = false) {
 	std::ofstream myfile;
@@ -74,7 +75,8 @@ int main(int argc, char *argv[])
 	std::shared_ptr<problem> input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
-	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
+	const char *currentsfnamecstr = currentsfname.c_str();
+	readings->initObs(&currentsfnamecstr, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();

@@ -76,13 +76,14 @@ int main(int argc, char *argv[])
 
 	bool is2dProblem;
 	std::string meshfname = params.inputMesh.toStdString();
-	std::string currentsfname = params.inputCurrents.toStdString();
+	std::string currentsinfname = params.inputCurrents.toStdString();
+	std::string currentsoutfname = params.inputCurrentsOut.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
 	std::shared_ptr<problem> input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
 	input->setGroundNode(params.ground);
 	input->initProblem(meshfname.c_str());
-	//input->initObs(currentsfname.c_str(), tensionsfname.c_str());
-	readingsComplex->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
+	const char **currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
+	readingsComplex->initObs(currentspair, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();

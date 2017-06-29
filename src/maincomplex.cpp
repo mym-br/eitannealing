@@ -27,7 +27,7 @@
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
 //#include "solution_lb.h"
-//#include "observations.h"
+#include "observations.h"
 #include "random.h"
 //#include "sparseincompletelq.h"
 #include "gradientnormregularisationcomplex.h"
@@ -375,15 +375,18 @@ int main(int argc, char *argv[])
 	param = params.peParam;
 	bool is2dProblem;
 	std::string meshfname = params.inputMesh.toStdString();
-	std::string currentsfname = params.inputCurrents.toStdString();
+	std::string currentsinfname = params.inputCurrents.toStdString();
+	std::string currentsoutfname = params.inputCurrentsOut.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
 	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
 	input->setGroundNode(params.ground);
-	// TODO: read parameter from commanline
+	// TODO: read parameters from commanline
+	input->setCapacitance(80E-12);
 	input->setCurrentFreq(275000);
 	input->initProblem(meshfname.c_str());
 	readings = new observations<std::complex<double>>;
-	readings->initObs(currentsfname.c_str(), tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
+	const char **currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
+	readings->initObs(currentspair, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
@@ -439,6 +442,7 @@ int main(int argc, char *argv[])
 
    delete viewre;
    delete viewim;
+   delete currentspair;
    return 0;
  }
  

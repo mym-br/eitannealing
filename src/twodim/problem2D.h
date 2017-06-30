@@ -65,6 +65,7 @@ private:
 
 public:
 	void initProblem(const char *meshfilename);
+	void setCalibrationCoeffs();
 	void buildNodeCoefficients();
 	int getGenericElectrodesCount() { return (int)gelectrodes.size(); }
 	int getInnerAdjacencyCount() { return (int)innerAdjacency.size(); }

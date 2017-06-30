@@ -35,19 +35,24 @@ void gradientNormRegularisationComplex::buildMatrix()
     regularizationMatrix.reset(out);
 }
 
-gradientNormRegularisationComplex::gradientNormRegularisationComplex(std::shared_ptr<problem> _input) : input(_input)
+gradientNormRegularisationComplex::gradientNormRegularisationComplex(std::shared_ptr<problem> _input, bool _calibrationmode) : calibrationmode(_calibrationmode), input(_input)
 {
 	electrodecoefficients = input->getGenericElectrodesCount();
-    this->buildMatrix();
+	if (!calibrationmode) this->buildMatrix();
 }
 
 void gradientNormRegularisationComplex::initInstance(std::shared_ptr<problem> _input)
 {
-	instance.reset(new gradientNormRegularisationComplex(_input));
+	instance.reset(new gradientNormRegularisationComplex(_input, false));
+}
+
+void gradientNormRegularisationComplex::initCalibrationInstance(std::shared_ptr<problem> _input) {
+	instance.reset(new gradientNormRegularisationComplex(_input, true));
 }
 
 std::complex<double> gradientNormRegularisationComplex::getRegularisation(const std::complex<double> *sol) const
 {
+	if (calibrationmode) return 0.0;
 	return EigenSymmQuadraticL<Complex>(regularizationMatrix->selfadjointView<Eigen::Lower>(),
 		Eigen::VectorXcd::Map(sol + electrodecoefficients, input->numcoefficients - electrodecoefficients));
 }

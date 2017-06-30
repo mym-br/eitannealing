@@ -108,7 +108,7 @@ bool solutioncomplex::compareWith(solutioncomplex &target, double kt, double pro
 	//		target.improve();
 	//}
 
-	for (int i = 0; i < 100 ; i++) {
+	for (int i = 0; i < 10 ; i++) {
 		target.improve();
 	}
 	

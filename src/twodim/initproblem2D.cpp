@@ -179,6 +179,17 @@ void problem2D::fillElementsGenericElectrode() {
 	std::copy(auxAdjacency.begin(), auxAdjacency.end(), innerAdjacency.begin());
 }
 
+void problem2D::setCalibrationCoeffs() {
+	// Set all coeffs to 0
+	for (int i = 0; i < getNodesCount(); i++) node2coefficient[i] = 0;
+	// Electrode coefficients are 1
+	for (auto e : gelectrodes) {
+		node2coefficient[e.baseNode] = 1;
+	}
+	// Update coefficients count
+	numcoefficients = 2;
+}
+
 void problem2D::addToGenericElectrode(int n1, int n2, int n3) {
 	// Boost Lambda for locally-defined functor
 	// STL has no support for pointer to member :(

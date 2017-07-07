@@ -206,15 +206,20 @@ void solutioncomplexcalibration::savePotentials(std::vector<Eigen::VectorXcd> &s
 std::complex<double> *solutioncomplexcalibration::getShuffledSolution(shuffleData *data, const shufflercomplexcalibration &sh) const
 {
 	std::complex<double> *res = solutioncomplexcalibration::copySolution(sol, input);
+	int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
+	double minval, maxval;
+
 	// Real or complex shuffle
 	if (genint(2)) {
+		minval = ncoef == 0 ? mincondint : mincondelec;
+		maxval = ncoef == 0 ? maxcondint : maxcondelec;
+
 		// Real
-		int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
-		double deltamax = (maxcond - mincond);
+		double deltamax = (maxval - minval);
 		int ncoefreal = 2 * ncoef;
 
 		if (sh.shuffleConsts[ncoefreal] == 0) {
-			res[ncoef] = std::complex<double>(mincond + genreal()*deltamax, res[ncoef].imag());
+			res[ncoef] = std::complex<double>(minval + genreal()*deltamax, res[ncoef].imag());
 		}
 		else {
 			std::complex<double> val;
@@ -227,24 +232,22 @@ std::complex<double> *solutioncomplexcalibration::getShuffledSolution(shuffleDat
 				rnd -= 0.5;
 				rnd *= deltamax / 4.0;
 				val += rnd;
-			} while ((val.real() < mincond) || (val.real() > maxcond));
+			} while ((val.real() < minval) || (val.real() > maxval));
 			res[ncoef] = val;
 		}
-		if (data) {
-			data->ncoef = ncoefreal;
-		}
+		if (data) data->ncoef = ncoefreal;
 	}
 	else {
 		// Imaginary
 		double w = 2 * M_PI * input->getCurrentFreq();
-		double wminperm = w*minperm, wmaxperm = w*maxperm;
+		minval = ncoef == 0 ? w*minpermint : w*minpermelec;
+		maxval = ncoef == 0 ? w*maxpermint : w*maxpermelec;
 
-		int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
-		double deltamax = (wmaxperm - wminperm);
+		double deltamax = (maxval - minval);
 		int ncoefimg = 2 * ncoef + 1;
 
 		if (sh.shuffleConsts[ncoefimg] == 0) {
-			res[ncoef] = std::complex<double>(res[ncoef].real(), wminperm + genreal()*deltamax);
+			res[ncoef] = std::complex<double>(res[ncoef].real(), minval + genreal()*deltamax);
 		}
 		else {
 			std::complex<double> val;
@@ -257,12 +260,10 @@ std::complex<double> *solutioncomplexcalibration::getShuffledSolution(shuffleDat
 				rnd -= 0.5;
 				rnd *= deltamax / 4.0;
 				val += std::complex<double>(0, rnd);
-			} while ((val.imag() < wminperm) || (val.imag() > wmaxperm));
+			} while ((val.imag() < minval) || (val.imag() > maxval));
 			res[ncoef] = val;
 		}
-		if (data) {
-			data->ncoef = ncoefimg;
-		}
+		if (data) data->ncoef = ncoefimg;
 	}
 	return res;
 }

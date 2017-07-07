@@ -22,7 +22,7 @@
 #include "graphics.h"
 #include "solvercomplex.h"
 //#include "nodecoefficients.h"
-#include "solutioncomplex.h"
+#include "solutioncomplexcalibration.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
@@ -114,14 +114,14 @@ void workProc()
 	// Simulated annealing
 	double *solre = new double[input->getNumCoefficients()];
 	double *solim = new double[input->getNumCoefficients()];
-	std::unique_ptr<solutioncomplex> current, next;
+	std::unique_ptr<solutioncomplexcalibration> current, next;
 	float kt = 0.05f;
 
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
-	shufflercomplex sh(input);
-	current.reset(new solutioncomplex(input, readings));
+	shufflercomplexcalibration sh(input);
+	current.reset(new solutioncomplexcalibration(input, readings));
 
 	std::cout.flush();
 

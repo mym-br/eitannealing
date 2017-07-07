@@ -349,7 +349,7 @@ double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
 	return res;
 }
 
-void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step) {
+void solution::saveMesh(double *sol, const char *filename, const char *propertyname, std::shared_ptr<problem> input, int step) {
 	std::ofstream myfile;
 	myfile.open(filename);
 
@@ -361,7 +361,7 @@ void solution::saveMesh(double *sol, const char *filename, std::shared_ptr<probl
 	}
 
 	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
-	myfile << "$NodeData\n1\n\"Conductivity\"\n1\n0.0\n3\n" << step << "\n1\n" << input->getNodesCount() << "\n";
+	myfile << "$NodeData\n1\n\"" << propertyname << "\"\n1\n0.0\n3\n" << step << "\n1\n" << input->getNodesCount() << "\n";
 	for (int j = 0; j < input->getNodesCount(); j++) {
 		myfile << (j + 1) << "\t" << sol[input->getNode2Coefficient(j)] << "\n";
 	}

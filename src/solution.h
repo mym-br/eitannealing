@@ -117,7 +117,7 @@ class solution {
 		bool compareWithMaxE2(solution &target, double kt, double e2);
 		solution *shuffle(shuffleData *data, const shuffler &sh) const;
 
-		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);
+		static void saveMesh(double *sol, const char *filename, const char *propertyname, std::shared_ptr<problem> input, int step = 0);
 		static void savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings);
 
 		double getRegularisationValue() const {

@@ -6,8 +6,8 @@ void problem2D::initProblem(const char *meshfilename) {
 	fillNodes();
 	fillElementsGenericElectrode();
 	preparePerimeter();
-	this->electrodeh = 0.0004f;
-	this->totalheight = 0.020f;
+	this->electrodeh = 0.023f;
+	this->totalheight = 0.016f;
 
 	file.close();
 }

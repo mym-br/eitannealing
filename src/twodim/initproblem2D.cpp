@@ -179,15 +179,22 @@ void problem2D::fillElementsGenericElectrode() {
 	std::copy(auxAdjacency.begin(), auxAdjacency.end(), innerAdjacency.begin());
 }
 
-void problem2D::setCalibrationCoeffs() {
+void problem2D::setCalibrationCoeffs(bool individualcoeffs) {
 	// Set all coeffs to 0
 	for (int i = 0; i < getNodesCount(); i++) node2coefficient[i] = 0;
 	// Electrode coefficients are 1
+	int k = 1;
+	std::map<int, int> baseNodeCoeffs;
 	for (auto e : gelectrodes) {
-		node2coefficient[e.baseNode] = 1;
+		if (individualcoeffs) {
+			if (baseNodeCoeffs.find(e.baseNode) == baseNodeCoeffs.end())
+				baseNodeCoeffs.insert(std::pair<int, int>(e.baseNode, k++));
+			node2coefficient[e.baseNode] = baseNodeCoeffs[e.baseNode];
+		}
+		else node2coefficient[e.baseNode] = 1;
 	}
 	// Update coefficients count
-	numcoefficients = 2;
+	numcoefficients = individualcoeffs ? baseNodeCoeffs.size() + 1 : 2;
 }
 
 void problem2D::addToGenericElectrode(int n1, int n2, int n3) {

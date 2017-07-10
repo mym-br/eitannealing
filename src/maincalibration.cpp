@@ -35,6 +35,7 @@
 #include "parameters\parametersparser.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <QStyledItemDelegate>
 
 solutionView *viewre, *viewim, *viewabs, *viewang;
 
@@ -163,9 +164,10 @@ void workProc()
 			totalit++;
 			if (totalit % 100 == 0) {
 				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
+				double w = 2 * M_PI * input->getCurrentFreq();
 				for (int kk = 0; kk < input->getNumCoefficients(); kk++) {
 					solre[kk] = current->getSolution()[kk].real();
-					solim[kk] = current->getSolution()[kk].imag();
+					solim[kk] = current->getSolution()[kk].imag() / w;
 				}
 				viewre->setCurrentSolution(solre);
 				viewim->setCurrentSolution(solim);
@@ -384,7 +386,7 @@ int main(int argc, char *argv[])
 	input->setCapacitance(80E-12);
 	input->setCurrentFreq(275000);
 	input->initProblem(meshfname.c_str());
-	input->setCalibrationCoeffs();
+	input->setCalibrationCoeffs(true);
 	readings = new observations<std::complex<double>>;
 	const char **currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
 	readings->initObs(currentspair, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
@@ -400,6 +402,10 @@ int main(int argc, char *argv[])
 	viewre = new solutionView(input->getNumCoefficients());
 	QTableView list;
 	list.setModel(viewre);
+	class ListViewDelegateRe : public QStyledItemDelegate {
+	protected: QString ListViewDelegateRe::displayText(const QVariant &value, const QLocale &locale) const { return locale.toString(value.toDouble(), 'f', 4); }
+	} *redelegate = new ListViewDelegateRe;
+	list.setItemDelegate(redelegate);
 	list.setWindowTitle("Sol Real");
 	QAction *copyDataAction = new QAction("Copy", &list);
 	TableViewCopyDataPopupMenu::getInstance()->connect(copyDataAction, SIGNAL(triggered()), SLOT(actionFired()));
@@ -410,6 +416,10 @@ int main(int argc, char *argv[])
 	viewim = new solutionView(input->getNumCoefficients());
 	QTableView listim;
 	listim.setModel(viewim);
+	class ListViewDelegateIm : public QStyledItemDelegate {
+	protected: QString ListViewDelegateIm::displayText(const QVariant &value, const QLocale &locale) const { return locale.toString(value.toDouble(), 'e', 4); }
+	} *imdelegate = new ListViewDelegateIm;
+	listim.setItemDelegate(imdelegate);
 	listim.setWindowTitle("Sol Imag");
 	QAction *copyDataActionim = new QAction("Copy", &listim);
 	TableViewCopyDataPopupMenu::getInstance()->connect(copyDataActionim, SIGNAL(triggered()), SLOT(actionFired()));
@@ -418,8 +428,8 @@ int main(int argc, char *argv[])
 	listim.show();
 
 	double w = 2 * M_PI * input->getCurrentFreq();
-	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D>(input), mincond, maxcond);
-	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D>(input), w*minperm, w*maxperm);
+	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D>(input), mincondint, maxcondint);
+	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D>(input), minpermint, maxpermint);
 	// Proccess mesh file name
 	std::string outputMeshRe(params.outputMesh.toStdString()), outputMeshIm(params.outputMesh.toStdString());
 	std::size_t dotfound = params.outputMesh.toStdString().find_last_of(".");
@@ -429,7 +439,7 @@ int main(int argc, char *argv[])
 	gmshviewport graphics_gmshim("eitannealingtest", outputMeshIm.c_str(), "Permittivity", params.gmeshAddress.toStdString().c_str(), input);
 	if (!params.gmeshAddress.isEmpty()) {
 		graphics_gmshre.connect(viewre, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
-		graphics_gmshim.connect(viewre, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
+		graphics_gmshim.connect(viewim, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 	}
 	if (is2dProblem) {
 		graphics.show();

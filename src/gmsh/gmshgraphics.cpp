@@ -1,5 +1,5 @@
 #include "gmshgraphics.h"
-#include "../solution.h"
+#include "../solutionbase.h"
 #include <QDir>
 
 gmshviewport::gmshviewport(const char* name, std::string _outputFname, std::string _propertyName, const char* address, std::shared_ptr<problem> _input) : input(_input), iter(0), outputFname(_outputFname), propertyName(_propertyName) {
@@ -12,7 +12,7 @@ void gmshviewport::solution_updated(const QModelIndex & topLeft, const QModelInd
 		// Get solution pointer
 		double *solution = (double *)topLeft.internalPointer() - topLeft.row();
 		// Save solution file
-		solution::saveMesh(solution, outputFname.c_str(), propertyName.c_str(), input, iter++);
+		solutionbase<double>::saveMesh(solution, outputFname.c_str(), propertyName.c_str(), input, iter++);
 		// Get working path
 		QDir binDir(QDir::currentPath());
 		// ask Gmsh to refresh

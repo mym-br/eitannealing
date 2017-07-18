@@ -41,6 +41,7 @@ class problem {
 	friend class gradientNormRegularisationComplex;
 	friend class solution;
 	friend class solutioncomplex;
+	friend class solutioncomplexcomplete;
 
 	private:
 	int groundNode;
@@ -59,6 +60,7 @@ class problem {
 	double currentFreq;
 	double capacitance;
 	bool isCapacitive;
+	int calibrationMode;
 
 public:
 
@@ -82,11 +84,12 @@ public:
 	void setCurrentFreq(double _currentFreq) { this->currentFreq = _currentFreq; }
 	double getCurrentFreq() { return this->currentFreq; }
 	void setCapacitance(double _capacitance) { this->capacitance = _capacitance; isCapacitive = true; }
+	int getCalibrationMode() { return this->calibrationMode; }
 
 	// Contructor and destructors
 	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1),
 		skeleton(nullptr), coef2KMatrix(nullptr), nodeCoef(nullptr),
-		capacitance(0.0), isCapacitive(false) {};
+		capacitance(0.0), isCapacitive(false), calibrationMode(0) {};
 	virtual ~problem();
 
 	void prepareSkeletonMatrix() {

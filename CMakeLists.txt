@@ -14,14 +14,14 @@ set(eitannealingtest_SRCS
   src/graphics.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  src/maincomplex.cpp
+  src/maincalibration.cpp
   src/problem.cpp
-  src/solution.cpp
+  src/solutionbase.cpp
   src/solver.cpp
   src/mt19937-64/mt19937-64.c
   src/gmsh/gmshgraphics.cpp
   src/parameters/parametersparser.cpp
-   src/threedim/initproblem3D.cpp
+  src/threedim/initproblem3D.cpp
   src/threedim/nodecoeficients3D.cpp
   src/twodim/initproblem2D.cpp
   src/twodim/nodecoeficients2D.cpp

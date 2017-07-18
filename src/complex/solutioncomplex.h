@@ -1,172 +1,95 @@
 /*
- * solutioncomplex.h
- *
- *  Created on: Sep 12, 2010
- *      Author: aksato
- */
+* solutioncomplex.h
+*
+*  Created on: Sep 12, 2010
+*      Author: aksato
+*/
 
-#ifndef SOLUTIONCOMPLEX_H_
-#define SOLUTIONCOMPLEX_H_
+#ifndef SOLUTIONCOMPLEXCALIBRATION_H_
+#define SOLUTIONCOMPLEXCALIBRATION_H_
 
 class solution;
 
 #include "solvercomplex.h"
-//#include "assembleMatrix.h"
-//#include "problemdescription.h"
 #include "problem.h"
+#include "solutionbase.h"
 #include <memory>
 
-/*
- * std::autoptr<solution> current, *next;
- * while(kt > xxx) {
- * 	 while(totalit < xxx && acceptit < xxx) {
- *    next = solution->shuffle()
- *
- *    if(current.compareWith(*next, kt, 0.001)) {
- *    		current = next;
- *    		acceptit++;
- *    }
- *    totalit++;
- * 	}
- * 	kt *= 0.95
- * }
- *
- */
-
-struct shuffleData {
-	int ncoef;
-	bool swap;
-};
-
-struct shufflercomplex {
-	int * shuffleConsts;
-	int * swapshuffleconsts;
-	shufflercomplex(std::shared_ptr<problem> input) {
-		shuffleConsts = new int[input->getNumCoefficients()];
-		swapshuffleconsts = new int[input->getInnerAdjacencyCount()];
-
-		for (int i = 0; i<input->getNumCoefficients(); i++) shuffleConsts[i] = 0;
-		for (int i = 0; i<input->getInnerAdjacencyCount(); i++) swapshuffleconsts[i] = 0;
-	}
-	~shufflercomplex() {
-		delete[] shuffleConsts;
-		delete[] swapshuffleconsts;
-
-	}
-	void addShufflerFeedback(const shuffleData &data, bool pos);
-};
-
-class solutioncomplex {
-	private:
+class solutioncomplex : public solutionbase<std::complex<double>> {
+protected:
+	std::complex<double> *sol;
+private:
+	matrixcomplex *stiffness, *stiffnessorig;
+	SparseIncompleteLLTComplex *precond;
 
 
-			std::complex<double> *sol;
-			matrixcomplex *stiffness, *stiffnessorig;
-			SparseIncompleteLLTComplex *precond;
+	CG_SolverComplex **simulations;
+	void initSimulations();
 
-
-			CG_SolverComplex **simulations;
-			Eigen::VectorXd distance;
-			Eigen::VectorXd maxdist;
-			Eigen::VectorXd mindist;
-			Eigen::VectorXd err;
-			Eigen::VectorXd err_x_dist;
-
-
-			double totalDist;
-			double minTotalDist;
-			double maxTotalDist;
-			int critical;
-			double critErr;
-
-			int totalit;
-
-			void initSimulations();
-			void initSimulations(const solutioncomplex &base);
-			void initErrors();
+	void initSimulations(const solutionbase<std::complex<double>> &base);
+	void initErrors();
 public:
-			double *getShufledSolution();
-			static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input);
-			static std::complex<double> *copySolution(const std::complex<double> *sol, std::shared_ptr<problem> input);
+	Eigen::VectorXcd getSimulationX(int i) const { return simulations[i]->getX(); }
 
-			std::complex<double> *getShuffledSolution(shuffleData *data, const shufflercomplex &sh) const;
+	double *getShufledSolution();
+	static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input);
 
-			static matrixcomplex *getNewStiffness(std::complex<double> *sol, matrixcomplex **stiffnessorig, std::shared_ptr<problem> input) {
-				matrixcomplex *aux = new matrixcomplex;
-				input->assembleProblemMatrix(sol, stiffnessorig);
-				input->addMatrixCapacitances(stiffnessorig);
-				matrixcomplex Afull = (**stiffnessorig) + ((matrixcomplex)((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>()).conjugate();
-				matrixcomplex A_tfull = (**stiffnessorig).conjugate() + ((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>();
-				*aux = A_tfull * Afull;
-				input->postAssembleProblemMatrix<Complex>(&aux);
-				return aux;
-			}
+	virtual std::complex<double> *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
-			// shuffle constructor
-			solutioncomplex(std::complex<double> *sol, const solutioncomplex &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);
-			double regularisation;
-			std::shared_ptr<problem> input;
-			observations<std::complex<double>> *readings;
-			void zeroSumVector(Eigen::VectorXcd &vec);
+	static matrixcomplex *getNewStiffness(std::complex<double> *sol, matrixcomplex **stiffnessorig, std::shared_ptr<problem> input) {
+		matrixcomplex *aux = new matrixcomplex;
+		input->assembleProblemMatrix(sol, stiffnessorig);
+		input->addMatrixCapacitances(stiffnessorig);
+		matrixcomplex Afull = (**stiffnessorig) + ((matrixcomplex)((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>()).conjugate();
+		matrixcomplex A_tfull = (**stiffnessorig).conjugate() + ((matrixcomplex)((**stiffnessorig).selfadjointView<Eigen::Lower>())).triangularView<Eigen::StrictlyUpper>();
+		*aux = A_tfull * Afull;
+		input->postAssembleProblemMatrix<Complex>(&aux);
+		return aux;
+	}
 
-	//public:
 
-		solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem> input, observations<std::complex<double>> *_readings);
-		solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);	// New random solution
-		bool compareWith(solutioncomplex &target, double kt, double prob);
-		bool compareWithMinIt(solutioncomplex &target, double kt, int minit);
-		bool compareWithMaxE2(solutioncomplex &target, double kt, double e2);
-		solutioncomplex *shuffle(shuffleData *data, const shufflercomplex &sh) const;
+	// shuffle constructor
+	solutioncomplex(std::complex<double> *sol, const solutioncomplex &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);
+	//std::shared_ptr<problem> input;
+	//observations<std::complex<double>> *readings;
 
-		static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);
-		static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input, observations<std::complex<double>> *readings);
+	solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem> input, observations<std::complex<double>> *_readings);
+	solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);	// New random solution
+	bool compareWith(solutionbase &target, double kt, double prob);
+	virtual solutioncomplex *shuffle(shuffleData *data, const shuffler &sh) const;
 
-		double getRegularisationValue() const {
-		  return this->regularisation;
-		  
-		}
+	std::complex<double> *getSolution() { return this->sol; }
 
-		void improve();
-
-		double getDEstimate() const {
-			return totalDist;
-		}
-		double getDMax() const {
-			return maxTotalDist;
-		}
-		double getDMin() const {
-			return minTotalDist;
-		}
-
-		std::complex<double> *getSolution() {
-			return this->sol;
-		}
-
-		int getCritical() const {
-			return this->critical;
-		}
-
-		double getCritErr() const {
-			return this->critErr;
-		}
-
-		std::complex<double> getErrorAt(int sim) const {
-			return this->distance[sim];
-		}
-
-		int getTotalIt() const {
-			return this->totalit;
-		}
-		
-		void saturate();
-		
-		void ensureMinIt(unsigned int it);
-		
-		void ensureMaxE2(double e2);
-
-		~solutioncomplex();
-
+	~solutioncomplex();
 };
 
 
-#endif /* SOLUTIONCOMPLEX_H_ */
+class solutioncomplexcalibration : public solutioncomplex {
+public:
+	static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input);
+	std::complex<double> *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
+
+	// shuffle constructor
+	solutioncomplexcalibration(std::complex<double> *sol, const solutioncomplexcalibration &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) : solutioncomplex(sol, base, _input, _readings) {};
+	solutioncomplexcalibration(const std::complex<double> *sol, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) : solutioncomplex(sol, _input, _readings) {};
+	solutioncomplexcalibration(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);	// New random solution
+	solutioncomplexcalibration *shuffle(shuffleData *data, const shuffler &sh) const;
+
+	static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);
+	static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input, observations<std::complex<double>> *readings);
+
+	int getTotalIt() { return 32 * 5; }
+	double getRegularisationValue() const { return 0.0; }
+	~solutioncomplexcalibration() {}
+};
+
+const double mincondint = 0.200;
+const double maxcondint = 0.380;
+const double minpermint = 1.0e-12;
+const double maxpermint = 1.5e-11;
+const double mincondelec = 90.000;
+const double maxcondelec = 10000.000;
+const double minpermelec = 1.0e-9;
+const double maxpermelec = 1.09e-7;
+
+#endif /* SOLUTIONCOMPLEXCALIBRATION_H_ */

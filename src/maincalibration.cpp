@@ -22,7 +22,7 @@
 #include "graphics.h"
 #include "solvercomplex.h"
 //#include "nodecoefficients.h"
-#include "solutioncomplexcalibration.h"
+#include "solutioncomplex.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
@@ -115,13 +115,13 @@ void workProc()
 	// Simulated annealing
 	double *solre = new double[input->getNumCoefficients()];
 	double *solim = new double[input->getNumCoefficients()];
-	std::unique_ptr<solutioncomplexcalibration> current, next;
+	std::unique_ptr<solutionbase<std::complex<double>>> current, next;
 	float kt = 0.05f;
 
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
-	shufflercomplexcalibration sh(input);
+	shuffler sh(input, readings);
 	current.reset(new solutioncomplexcalibration(input, readings));
 
 	std::cout.flush();
@@ -164,6 +164,7 @@ void workProc()
 			totalit++;
 			if (totalit % 100 == 0) {
 				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
+				//std::cout << totalit << ":" << acceptit << ":" << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
 				double w = 2 * M_PI * input->getCurrentFreq();
 				for (int kk = 0; kk < input->getNumCoefficients(); kk++) {
 					solre[kk] = current->getSolution()[kk].real();
@@ -399,6 +400,22 @@ int main(int argc, char *argv[])
 	qRegisterMetaType<QModelIndex>("QModelIndex");
 	qRegisterMetaType<QModelIndex>("QVector<int>");
 
+	double w = 2 * M_PI * input->getCurrentFreq();
+	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D>(input), mincondint, maxcondint);
+	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D>(input), minpermint, maxpermint);
+	// Proccess mesh file name
+	std::string outputMeshRe(params.outputMesh.toStdString()), outputMeshIm(params.outputMesh.toStdString());
+	std::size_t dotfound = params.outputMesh.toStdString().find_last_of(".");
+	outputMeshRe.replace(dotfound, 1, "_re."); outputMeshIm.replace(dotfound, 1, "_im.");
+	// TODO: Proccess gmesh second address
+	gmshviewport graphics_gmshre("eitannealingtest", outputMeshRe.c_str(), "Condutivity", params.gmeshAddress.toStdString().c_str(), input);
+	gmshviewport graphics_gmshim("eitannealingtest", outputMeshIm.c_str(), "Permittivity", params.gmeshAddress.toStdString().c_str(), input);
+	if (is2dProblem) {
+		graphics.show();
+		graphicsim.show();
+		graphicsim.move(graphics.pos() + QPoint(graphics.width()+1, 0));
+	}
+
 	viewre = new solutionView(input->getNumCoefficients());
 	QTableView list;
 	list.setModel(viewre);
@@ -412,6 +429,8 @@ int main(int argc, char *argv[])
 	list.addAction(copyDataAction);
 	list.setContextMenuPolicy(Qt::ActionsContextMenu);
 	list.show();
+	list.resize(QSize(graphics.width(), graphics.height()));
+	list.move(graphics.pos() + QPoint(0, graphics.height() + QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight)+8));
 
 	viewim = new solutionView(input->getNumCoefficients());
 	QTableView listim;
@@ -426,25 +445,15 @@ int main(int argc, char *argv[])
 	listim.addAction(copyDataActionim);
 	listim.setContextMenuPolicy(Qt::ActionsContextMenu);
 	listim.show();
+	listim.resize(QSize(graphics.width(), graphics.height()));
+	listim.move(graphicsim.pos() + QPoint(0, graphics.height() + QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight) + 8));
 
-	double w = 2 * M_PI * input->getCurrentFreq();
-	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D>(input), mincondint, maxcondint);
-	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D>(input), minpermint, maxpermint);
-	// Proccess mesh file name
-	std::string outputMeshRe(params.outputMesh.toStdString()), outputMeshIm(params.outputMesh.toStdString());
-	std::size_t dotfound = params.outputMesh.toStdString().find_last_of(".");
-	outputMeshRe.replace(dotfound, 1, "_re."); outputMeshIm.replace(dotfound, 1, "_im.");
-	// TODO: Proccess gmesh second address
-	gmshviewport graphics_gmshre("eitannealingtest", outputMeshRe.c_str(), "Condutivity", params.gmeshAddress.toStdString().c_str(), input);
-	gmshviewport graphics_gmshim("eitannealingtest", outputMeshIm.c_str(), "Permittivity", params.gmeshAddress.toStdString().c_str(), input);
 	if (!params.gmeshAddress.isEmpty()) {
 		graphics_gmshre.connect(viewre, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 		graphics_gmshim.connect(viewim, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 	}
 	if (is2dProblem) {
-		graphics.show();
 		graphics.connect(viewre, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
-		graphicsim.show();
 		graphicsim.connect(viewim, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 	}
 

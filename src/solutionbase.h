@@ -38,6 +38,8 @@ struct shuffler {
 
 template <class T>
 class solutionbase {
+	friend class solution;
+	friend class solutioncomplex;
 protected:
 	//T* sol;
 	//Eigen::SparseMatrix<T, Eigen::ColMajor> *stiffness, *stiffnessorig;
@@ -48,11 +50,11 @@ protected:
 	Eigen::VectorXd err;
 	Eigen::VectorXd err_x_dist;
 
+	double totalDist;
 	double minTotalDist;
 	double maxTotalDist;
 	int critical;
 	double critErr;
-
 	int totalit;
 
 	//virtual void initSimulations() = 0;
@@ -78,9 +80,9 @@ protected:
 	//	return res;
 	//}
 
-	static T *copySolution(const std::complex<double> *sol, std::shared_ptr<problem> input)
+	static T *copySolution(const T *sol, std::shared_ptr<problem> input)
 	{
-		std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
+		T *res = new T[input->getNumCoefficients()];
 
 		for (int i = 0; i<input->getNumCoefficients(); i++)
 			res[i] = sol[i];
@@ -102,7 +104,7 @@ protected:
 		for (int i = 0; i < vec.size(); i++) vec[i] -= avg;
 	}
 
-	solutionbase(const std::complex<double> *sigma, std::shared_ptr<problem> _input, observations<T> *_readings) :
+	solutionbase(const T *sigma, std::shared_ptr<problem> _input, observations<T> *_readings) :
 		//sol(solutionbase::copySolution(sigma, _input)),
 		input(_input), readings(_readings),
 		distance(_readings->getNObs()), maxdist(_readings->getNObs()), mindist(_readings->getNObs()), err(_readings->getNObs()), err_x_dist(_readings->getNObs()) {};
@@ -110,7 +112,7 @@ protected:
 		//sol(solutionbase::getNewRandomSolution(_input, _readings)),
 		input(_input), readings(_readings),
 		distance(_readings->getNObs()), maxdist(_readings->getNObs()), mindist(_readings->getNObs()), err(_readings->getNObs()), err_x_dist(_readings->getNObs()) {};
-	solutionbase(std::complex<double> *sigma, const solutionbase &base, std::shared_ptr<problem> _input, observations<T> *_readings) :
+	solutionbase(T *sigma, const solutionbase &base, std::shared_ptr<problem> _input, observations<T> *_readings) :
 		//sol(sigma),
 		input(_input), readings(_readings),
 		distance(_readings->getNObs()), maxdist(_readings->getNObs()), mindist(_readings->getNObs()), err(_readings->getNObs()), err_x_dist(_readings->getNObs()) {};
@@ -124,10 +126,11 @@ protected:
 	//solutionbase(double *sigma, const solutionbase &base, observations<double> *_readings) :
 	//	//sol(sigma),
 	//	distance(_readings->getNObs()), maxdist(_readings->getNObs()), mindist(_readings->getNObs()), err(_readings->getNObs()), err_x_dist(_readings->getNObs()) {};
-	
+	virtual void improve() {}
+	virtual void ensureMinIt(unsigned int it) {}
+	virtual void ensureMaxE2(double e2) {}
 
 public:
-	double totalDist;
 	virtual Eigen::Matrix<T, Eigen::Dynamic, 1> getSimulationX(int i) const = 0;
 
 	virtual bool compareWith(solutionbase &target, double kt, double prob) = 0;

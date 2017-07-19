@@ -21,13 +21,6 @@
 #define min(x,y) ((x)<(y)?(x):(y))
 #endif
 
-void solution::zeroSumVector(Eigen::VectorXd &vec) {
-	double avg = 0;
-	for (int i = 0; i < vec.size(); i++) avg += vec[i];
-	avg /= input->getGenericElectrodesCount();
-	for (int i = 0; i < vec.size(); i++) vec[i] -= avg;
-}
-
 void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
@@ -66,7 +59,7 @@ void solution::improve()
 	critErr = err[critical];
 }
 
-bool solution::compareWith(solution &target, double kt, double prob)
+bool solution::compareWith(solutionbase &target, double kt, double prob)
 {
 	double delta, expdelta;
 	// Ensure errors are within required margin
@@ -116,7 +109,7 @@ bool solution::compareWith(solution &target, double kt, double prob)
 }
 
 
-bool solution::compareWithMinIt(solution &target, double kt,  int minit)
+bool solution::compareWithMinIt(solutionbase &target, double kt, int minit)
 {
 	double delta, expdelta;
 	// Ensure errors are within required margin
@@ -131,7 +124,7 @@ bool solution::compareWithMinIt(solution &target, double kt,  int minit)
 	return false;
 }
 
-bool solution::compareWithMaxE2(solution &target, double kt,  double e2)
+bool solution::compareWithMaxE2(solutionbase &target, double kt, double e2)
 {
 	double delta, expdelta;
 	// Ensure errors are within required margin
@@ -152,12 +145,7 @@ solution::solution(const double *sigma, std::shared_ptr<problem> _input, observa
 				stiffness(solution::getNewStiffness(sol, _input)),
 				precond(new SparseIncompleteLLT(*stiffness)),
 				simulations(new CG_Solver *[_readings->getNObs()]),
-				distance(_readings->getNObs()),
-				maxdist(_readings->getNObs()),
-				mindist(_readings->getNObs()),
-				err(_readings->getNObs()),
-				err_x_dist(_readings->getNObs()),
-				input(_input), readings(_readings)
+				solutionbase(sigma, _input, _readings)
 {
 	this->initSimulations();
 	this->initErrors();
@@ -170,12 +158,7 @@ solution::solution(std::shared_ptr<problem> _input, observations<double> *_readi
 		stiffness(solution::getNewStiffness(sol,  _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
 		simulations(new CG_Solver *[_readings->getNObs()]),
-		distance(_readings->getNObs()),
-		maxdist(_readings->getNObs()),
-		mindist(_readings->getNObs()),
-		err(_readings->getNObs()),
-		err_x_dist(_readings->getNObs()),
-		input(_input), readings(_readings)
+		solutionbase(_input, _readings)
 {
 	this->initSimulations();
 	this->initErrors();
@@ -187,12 +170,7 @@ solution::solution(double *sigma, const solution &base, std::shared_ptr<problem>
 		stiffness(solution::getNewStiffness(sol, _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
 		simulations(new CG_Solver *[_readings->getNObs()]),
-		distance(_readings->getNObs()),
-		maxdist(_readings->getNObs()),
-		mindist(_readings->getNObs()),
-		err(_readings->getNObs()),
-		err_x_dist(_readings->getNObs()),
-		input(_input), readings(_readings)
+		solutionbase(sigma, base, _input, _readings)
 {
 	this->initSimulations(base);
 	this->initErrors();
@@ -275,9 +253,13 @@ void solution::initErrors()
 
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
+		double distancei = distance[i];
+		double erri = err[i];
 		maxdist[i] = distance[i] + err[i];
 		mindist[i] = max(distance[i] - err[i],0);
 		err_x_dist[i] = maxdist[i]*err[i];
+		
+
 	}
 	totalDist = distance.norm()+regularisation;
 	minTotalDist = mindist.norm()+regularisation;
@@ -295,15 +277,15 @@ void solution::initErrors()
 }
 
 
-double *solution::copySolution(const double *sol, std::shared_ptr<problem> input)
-{
-	double *res = new double[input->getNumCoefficients()];
-
-	for (int i = 0; i<input->getNumCoefficients(); i++)
-		res[i] = sol[i];
-
-	return res;
-}
+//double *solution::copySolution(const double *sol, std::shared_ptr<problem> input)
+//{
+//	double *res = new double[input->getNumCoefficients()];
+//
+//	for (int i = 0; i<input->getNumCoefficients(); i++)
+//		res[i] = sol[i];
+//
+//	return res;
+//}
 
 double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
 {
@@ -348,53 +330,53 @@ double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
 
 	return res;
 }
-
-void solution::saveMesh(double *sol, const char *filename, const char *propertyname, std::shared_ptr<problem> input, int step) {
-	std::ofstream myfile;
-	myfile.open(filename);
-
-	std::ifstream inputfile(input->getMeshFilename());
-	for (int i = 0; inputfile.eof() != true; i++) {
-		std::string line;
-		std::getline(inputfile, line);
-		myfile << line << '\n';
-	}
-
-	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
-	myfile << "$NodeData\n1\n\"" << propertyname << "\"\n1\n0.0\n3\n" << step << "\n1\n" << input->getNodesCount() << "\n";
-	for (int j = 0; j < input->getNodesCount(); j++) {
-		myfile << (j + 1) << "\t" << sol[input->getNode2Coefficient(j)] << "\n";
-	}
-	myfile << "$EndNodeData\n";
-	myfile.flush();
-	myfile.close();
-}
-
-void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings) {
-	std::ofstream myfile;
-	myfile.open(filename);
-
-	std::ifstream inputfile(input->getMeshFilename());
-	for (int i = 0; inputfile.eof() != true; i++) {
-		std::string line;
-		std::getline(inputfile, line);
-		myfile << line << '\n';
-	}
-
-	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
-	for (int patterno = 0; patterno < sols.size(); patterno++) {
-		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
-		for (int j = 0; j < input->getNodesCount(); j++) 
-			myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
-		myfile << "$EndNodeData\n";
-	}
-	myfile.flush();
-	myfile.close();
-}
+//
+//void solution::saveMesh(double *sol, const char *filename, const char *propertyname, std::shared_ptr<problem> input, int step) {
+//	std::ofstream myfile;
+//	myfile.open(filename);
+//
+//	std::ifstream inputfile(input->getMeshFilename());
+//	for (int i = 0; inputfile.eof() != true; i++) {
+//		std::string line;
+//		std::getline(inputfile, line);
+//		myfile << line << '\n';
+//	}
+//
+//	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
+//	myfile << "$NodeData\n1\n\"" << propertyname << "\"\n1\n0.0\n3\n" << step << "\n1\n" << input->getNodesCount() << "\n";
+//	for (int j = 0; j < input->getNodesCount(); j++) {
+//		myfile << (j + 1) << "\t" << sol[input->getNode2Coefficient(j)] << "\n";
+//	}
+//	myfile << "$EndNodeData\n";
+//	myfile.flush();
+//	myfile.close();
+//}
+//
+//void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings) {
+//	std::ofstream myfile;
+//	myfile.open(filename);
+//
+//	std::ifstream inputfile(input->getMeshFilename());
+//	for (int i = 0; inputfile.eof() != true; i++) {
+//		std::string line;
+//		std::getline(inputfile, line);
+//		myfile << line << '\n';
+//	}
+//
+//	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
+//	for (int patterno = 0; patterno < sols.size(); patterno++) {
+//		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
+//		for (int j = 0; j < input->getNodesCount(); j++) 
+//			myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+//		myfile << "$EndNodeData\n";
+//	}
+//	myfile.flush();
+//	myfile.close();
+//}
 
 double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) const
 {
-	double *res = solution::copySolution(sol, input);
+	double *res = solutionbase<double>::copySolution(sol, input);
 	// head or tails
 	if(genint(2)) { // Normal
 		int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
@@ -460,20 +442,20 @@ double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) con
 	return res;
 }
 
-void shuffler::addShufflerFeedback(const shuffleData &data, bool pos)
-{
-	if(pos) { // positive feedback
-		if(data.swap)
-			this->swapshuffleconsts[data.ncoef] /= 2;
-		else
-			this->shuffleConsts[data.ncoef] /= 2;
-	} else {
-		if(data.swap)
-			this->swapshuffleconsts[data.ncoef]++;
-		else
-			this->shuffleConsts[data.ncoef]++;
-	}
-}
+//void shuffler::addShufflerFeedback(const shuffleData &data, bool pos)
+//{
+//	if(pos) { // positive feedback
+//		if(data.swap)
+//			this->swapshuffleconsts[data.ncoef] /= 2;
+//		else
+//			this->shuffleConsts[data.ncoef] /= 2;
+//	} else {
+//		if(data.swap)
+//			this->swapshuffleconsts[data.ncoef]++;
+//		else
+//			this->shuffleConsts[data.ncoef]++;
+//	}
+//}
 
 solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
 {

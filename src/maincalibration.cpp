@@ -23,6 +23,7 @@
 #include "solvercomplex.h"
 //#include "nodecoefficients.h"
 #include "solutioncomplex.h"
+#include "solution.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
@@ -30,6 +31,7 @@
 #include "observations.h"
 #include "random.h"
 //#include "sparseincompletelq.h"
+#include "gradientnormregularisation.h"
 #include "gradientnormregularisationcomplex.h"
 #include "gmsh\gmshgraphics.h"
 #include "parameters\parametersparser.h"
@@ -50,8 +52,9 @@ float *currentSolution;
 float param;
 
 std::shared_ptr<problem> input;
-observations<std::complex<double>> *readings;
-
+observations<std::complex<double>> *readingsComplex;
+observations<double> *readingsScalar;
+bool isComplexProblem;
 unsigned long seed;
 
 void workProc()
@@ -115,14 +118,23 @@ void workProc()
 	// Simulated annealing
 	double *solre = new double[input->getNumCoefficients()];
 	double *solim = new double[input->getNumCoefficients()];
-	std::unique_ptr<solutionbase<std::complex<double>>> current, next;
+	std::unique_ptr<solutionbase<std::complex<double>>> currentComplex, nextComplex;
+	std::unique_ptr<solutionbase<double>> currentScalar, nextScalar;
 	float kt = 0.05f;
 
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
-	shuffler sh(input, readings);
-	current.reset(new solutioncomplexcalibration(input, readings));
+	std::unique_ptr<shuffler> sh;
+	//sh = isComplexProblem ? std::unique_ptr<shuffler>(new shuffler(input, readingsComplex)) : new std::unique_ptr<shuffler>(shuffler(input, readingsScalar));
+	if (isComplexProblem) {
+		sh.reset(new shuffler(input, readingsComplex));
+		currentComplex.reset(new solutioncomplexcalibration(input, readingsComplex));
+	}
+	else {
+		sh.reset(new shuffler(input, readingsScalar));
+		currentScalar.reset(new solution(input, readingsScalar));
+	}
 
 	std::cout.flush();
 
@@ -141,37 +153,47 @@ void workProc()
 		iterations = 0;
 		while (totalit<15000 && acceptit < 3000) {
 
-			next.reset(current->shuffle(&sdata, sh));
-			//next.reset(new solutioncomplex(input));
+			isComplexProblem ? nextComplex.reset(currentComplex->shuffle(&sdata, *sh)) : nextScalar.reset(currentScalar->shuffle(&sdata, *sh));
+			//next.reset(current->shuffle(&sdata, sh));
 			bool decision;
-			decision = current->compareWith(*next, kt, 1 - param);
+			decision = isComplexProblem ? currentComplex->compareWith(*nextComplex, kt, 1 - param) : currentScalar->compareWith(*nextScalar, kt, 1 - param);
 			if (decision) {
-				iterations += current->getTotalIt();
+				iterations += isComplexProblem ? currentComplex->getTotalIt() : currentScalar->getTotalIt();
 				solutions++;
-				sh.addShufflerFeedback(sdata, true);
-				current = std::move(next);
+				sh->addShufflerFeedback(sdata, true);
+				if (isComplexProblem) currentComplex = std::move(nextComplex); else currentScalar = std::move(nextScalar);
 				acceptit++;
 			}
 			else {
-				iterations += next->getTotalIt();
+				iterations += isComplexProblem ? nextComplex->getTotalIt() : nextScalar->getTotalIt();
 				solutions++;
-				sh.addShufflerFeedback(sdata, false);
+				sh->addShufflerFeedback(sdata, false);
 			}
-			e += current->getDEstimate();
-			r += current->getRegularisationValue();
-			sqe += current->getDEstimate()*current->getDEstimate();
+			if (isComplexProblem) {
+				e += currentComplex->getDEstimate();
+				r += currentComplex->getRegularisationValue();
+				sqe += currentComplex->getDEstimate()*currentComplex->getDEstimate();
+			}
+			else {
+				e += currentScalar->getDEstimate();
+				r += currentScalar->getRegularisationValue();
+				sqe += currentScalar->getDEstimate()*currentScalar->getDEstimate();
+			}
 
 			totalit++;
 			if (totalit % 100 == 0) {
 				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
 				//std::cout << totalit << ":" << acceptit << ":" << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
 				double w = 2 * M_PI * input->getCurrentFreq();
-				for (int kk = 0; kk < input->getNumCoefficients(); kk++) {
-					solre[kk] = current->getSolution()[kk].real();
-					solim[kk] = current->getSolution()[kk].imag() / w;
+				if (isComplexProblem) {
+					for (int kk = 0; kk < input->getNumCoefficients(); kk++) {
+						solre[kk] = currentComplex->getSolution()[kk].real();
+						solim[kk] = currentComplex->getSolution()[kk].imag() / w;
+					}
+					viewre->setCurrentSolution(solre);
+					viewim->setCurrentSolution(solim);
 				}
-				viewre->setCurrentSolution(solre);
-				viewim->setCurrentSolution(solim);
+				else viewre->setCurrentSolution(currentScalar->getSolution());
 			}
 		}
 		double eav = e / solutions;
@@ -179,7 +201,8 @@ void workProc()
 		double sige = sqrt(sqe / solutions - eav*eav);
 		//solution probe(current->getSolution());
 		//probe.saturate();
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations) / (readings->getNObs()*solutions) << ":" << seed << std::endl;
+		int nObs = isComplexProblem ? readingsComplex->getNObs() : readingsScalar->getNObs();
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations) / (nObs*solutions) << ":" << seed << std::endl;
 		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		std::cout << it << ":" << current->getSolution()[it] << std::endl;
@@ -197,14 +220,15 @@ void workProc()
 
 
 		kt *= 0.9f;
-		double variation = fabs(prevE - current->getDEstimate()) / prevE;
+		double variation = isComplexProblem ? fabs(prevE - currentComplex->getDEstimate()) / prevE : fabs(prevE - currentScalar->getDEstimate()) / prevE;
 		//std::cout << "totalit:" << iterations << std::endl;
 		//std::cout << "variation: " << variation << std::endl;
-		if ((fabs(prevE - current->getDEstimate()) / prevE) < 2.0e-15)
+		//if ((fabs(prevE - current->getDEstimate()) / prevE) < 2.0e-15)
+		if ((variation) < 2.0e-15)
 			no_avance_count++;
 		else
 			no_avance_count = 0;
-		prevE = current->getDEstimate();
+		prevE = isComplexProblem ? currentComplex->getDEstimate() : currentScalar->getDEstimate();
 
 	}
 	//probe.saturate();
@@ -376,7 +400,7 @@ int main(int argc, char *argv[])
 	else seed = params.getSeed();
 	init_genrand64(seed);
 	param = params.peParam;
-	bool is2dProblem;
+	bool is2dProblem; isComplexProblem = false;
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsinfname = params.inputCurrents.toStdString();
 	std::string currentsoutfname = params.inputCurrentsOut.toStdString();
@@ -384,17 +408,28 @@ int main(int argc, char *argv[])
 	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
 	input->setGroundNode(params.ground);
 	// TODO: read parameters from commanline
-	input->setCapacitance(80E-12);
-	input->setCurrentFreq(275000);
+	//input->setCapacitance(80E-12);
+	//input->setCurrentFreq(275000);
 	input->initProblem(meshfname.c_str());
-	input->setCalibrationCoeffs(true);
-	readings = new observations<std::complex<double>>;
-	const char **currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
-	readings->initObs(currentspair, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
+	//input->setCalibrationCoeffs(true);
+	const char **currentspair;
+	if (isComplexProblem) {
+		readingsComplex = new observations<std::complex<double>>;
+		currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
+		readingsComplex->initObs(currentspair, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
+	}
+	else {
+		readingsScalar = new observations<double>;
+		const char *currentsfnamecstr = currentsinfname.c_str();
+		readingsScalar->initObs(&currentsfnamecstr, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
+	}
+	
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
 
+	gradientNormRegularisation::initInstance(input);
+	gradientNormRegularisationComplex::initInstance(input);
 	gradientNormRegularisationComplex::initCalibrationInstance(input);
 
 	qRegisterMetaType<QModelIndex>("QModelIndex");
@@ -412,8 +447,10 @@ int main(int argc, char *argv[])
 	gmshviewport graphics_gmshim("eitannealingtest", outputMeshIm.c_str(), "Permittivity", params.gmeshAddress.toStdString().c_str(), input);
 	if (is2dProblem) {
 		graphics.show();
-		graphicsim.show();
-		graphicsim.move(graphics.pos() + QPoint(graphics.width()+1, 0));
+		if (isComplexProblem) {
+			graphicsim.show();
+			graphicsim.move(graphics.pos() + QPoint(graphics.width() + 1, 0));
+		}
 	}
 
 	viewre = new solutionView(input->getNumCoefficients());
@@ -432,35 +469,37 @@ int main(int argc, char *argv[])
 	list.resize(QSize(graphics.width(), graphics.height()));
 	list.move(graphics.pos() + QPoint(0, graphics.height() + QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight)+8));
 
-	viewim = new solutionView(input->getNumCoefficients());
-	QTableView listim;
-	listim.setModel(viewim);
-	class ListViewDelegateIm : public QStyledItemDelegate {
-	protected: QString ListViewDelegateIm::displayText(const QVariant &value, const QLocale &locale) const { return locale.toString(value.toDouble(), 'e', 4); }
-	} *imdelegate = new ListViewDelegateIm;
-	listim.setItemDelegate(imdelegate);
-	listim.setWindowTitle("Sol Imag");
-	QAction *copyDataActionim = new QAction("Copy", &listim);
-	TableViewCopyDataPopupMenu::getInstance()->connect(copyDataActionim, SIGNAL(triggered()), SLOT(actionFired()));
-	listim.addAction(copyDataActionim);
-	listim.setContextMenuPolicy(Qt::ActionsContextMenu);
-	listim.show();
-	listim.resize(QSize(graphics.width(), graphics.height()));
-	listim.move(graphicsim.pos() + QPoint(0, graphics.height() + QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight) + 8));
+	if (isComplexProblem) {
+		viewim = new solutionView(input->getNumCoefficients());
+		QTableView listim;
+		listim.setModel(viewim);
+		class ListViewDelegateIm : public QStyledItemDelegate {
+		protected: QString ListViewDelegateIm::displayText(const QVariant &value, const QLocale &locale) const { return locale.toString(value.toDouble(), 'e', 4); }
+		} *imdelegate = new ListViewDelegateIm;
+		listim.setItemDelegate(imdelegate);
+		listim.setWindowTitle("Sol Imag");
+		QAction *copyDataActionim = new QAction("Copy", &listim);
+		TableViewCopyDataPopupMenu::getInstance()->connect(copyDataActionim, SIGNAL(triggered()), SLOT(actionFired()));
+		listim.addAction(copyDataActionim);
+		listim.setContextMenuPolicy(Qt::ActionsContextMenu);
+		listim.show();
+		listim.resize(QSize(graphics.width(), graphics.height()));
+		listim.move(graphicsim.pos() + QPoint(0, graphics.height() + QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight) + 8));
+	}
 
 	if (!params.gmeshAddress.isEmpty()) {
 		graphics_gmshre.connect(viewre, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
-		graphics_gmshim.connect(viewim, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
+		if (isComplexProblem) graphics_gmshim.connect(viewim, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 	}
 	if (is2dProblem) {
 		graphics.connect(viewre, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
-		graphicsim.connect(viewim, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
+		if (isComplexProblem)  graphicsim.connect(viewim, SIGNAL(dataChanged(QModelIndex, QModelIndex)), SLOT(solution_updated(QModelIndex, QModelIndex)));
 	}
 
 	double *sol = new double[input->getNumCoefficients()];
 	for (int i = 0; i<input->getNumCoefficients(); i++) sol[i] = 1.0;
 	viewre->setCurrentSolution(sol);
-	viewim->setCurrentSolution(sol);
+	if (isComplexProblem) viewim->setCurrentSolution(sol);
 	delete[] sol;
 	std::thread worker(workProc);
 
@@ -468,7 +507,7 @@ int main(int argc, char *argv[])
 	worker.join();
 
 	delete viewre;
-	delete viewim;
+	if (isComplexProblem) delete viewim;
 	delete currentspair;
 	return 0;
 }

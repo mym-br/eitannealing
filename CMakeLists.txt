@@ -14,8 +14,9 @@ set(eitannealingtest_SRCS
   src/graphics.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  src/maincalibration.cpp
+  src/main.cpp
   src/problem.cpp
+  src/solution.cpp
   src/solutionbase.cpp
   src/solver.cpp
   src/mt19937-64/mt19937-64.c

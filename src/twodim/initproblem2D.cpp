@@ -196,7 +196,7 @@ void problem2D::setCalibrationCoeffs(bool individualcoeffs) {
 	// Update coefficients count
 	numcoefficients = individualcoeffs ? baseNodeCoeffs.size() + 1 : 2;
 	// Set calibration mode
-	calibrationMode = individualcoeffs ? 1 : 2;
+	calibrationMode = individualcoeffs ? 2 : 1;
 }
 
 void problem2D::addToGenericElectrode(int n1, int n2, int n3) {

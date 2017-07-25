@@ -5,6 +5,7 @@
 #include "problem.h"
 #include "random.h"
 #include <memory>
+#include <algorithm>
 
 struct shuffleData {
 	int ncoef;
@@ -57,28 +58,63 @@ protected:
 	double critErr;
 	int totalit;
 
-	//virtual void initSimulations() = 0;
-	//virtual void initSimulations(const solutionbase &base) = 0;
-	//virtual void initErrors() = 0;
-	//virtual T *getShuffledSolution(shuffleData *data, const shuffler &sh) const = 0;
+	static double calcNewShuffledValue(int ncoef, double curVal, shuffleData *data, const shuffler &sh, double minval, double maxval) {
+		double val;
+		if (sh.shuffleConsts[ncoef] == 0) {
+			val = minval + genreal()*(maxval - minval);
+		}
+		else {
+			do {
+				val = curVal;
+				double rnd = 0;
+				for (int i = 0; i < sh.shuffleConsts[ncoef]; i++)
+					rnd += genreal();
+				rnd /= sh.shuffleConsts[ncoef];
+				rnd -= 0.5;
+				rnd *= (maxval - minval);
+				val += rnd;
+			} while ((val < minval) || (val > maxval));
+		}
+		if (data) {
+			data->swap = false;
+			data->ncoef = ncoef;
+		}
+		return val;
+	}
 
-	//static double *getNewRandomSolution(std::shared_ptr<problem> input, observations<double> *readings)
-	//{
-	//	double *res = new double[input->getNumCoefficients()];
-	//	for (int i = 0; i<input->getNumCoefficients(); i++) res[i] = mincond + genreal()*(maxcond - mincond);
-	//	return res;
-	//}
+	static std::pair<double, double> calcNewSwappedValue(int ncoef, int &node1, int &node2, double v1, double v2, shuffleData *data, const shuffler &sh, double minval, double maxval) {
+		// Order nodes
+		if (v1 > v2) {
+			int aux = node1;
+			node1 = node2;
+			node2 = aux;
+		}
+		double a = std::max(std::min(v1 - minval, maxval - v2), std::min(maxval - v1, v2 - minval));
 
-	//static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input, observations<std::complex<double>> *readings)
-	//{
-	//	std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
-	//	double w = 2 * M_PI * input->getCurrentFreq();
-	//	double wminperm = w*minperm, wmaxperm = w*maxperm;
-	//	for (int i = 0; i < input->getNumCoefficients(); i++)
-	//		res[i] = std::complex<double>(mincond + genreal()*(maxcond - mincond), wminperm + genreal()*(wmaxperm - wminperm));
+		std::pair<double, double> newVals(v1, v2);
+		double delta;
+		do {
+			if (sh.swapshuffleconsts[ncoef] == 0) {
+				delta = a*(genreal() * 2 - 1);
+			}
+			else {
+				double rnd = 0;
+				for (int i = 0; i < sh.swapshuffleconsts[ncoef]; i++)
+					rnd += genreal();
+				rnd /= sh.swapshuffleconsts[ncoef];
+				rnd -= 0.5;
+				delta = a*rnd;
+			}
+			newVals.first = v1 - delta;
+			newVals.second = v2 + delta;
+		} while ((v1 < minval) || (v2 < minval) || (v1 > maxval) || (v2 > maxval));
+		if (data) {
+			data->swap = true;
+			data->ncoef = ncoef;
+		}
 
-	//	return res;
-	//}
+		return newVals;
+	}
 
 	static T *copySolution(const T *sol, std::shared_ptr<problem> input)
 	{

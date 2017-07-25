@@ -5,13 +5,14 @@ class QCommandLineParser;
 #include<QString>
 
 struct EitAnnealingArgs {
-	EitAnnealingArgs() : seedSpecified(false) {}
+	EitAnnealingArgs() : seedSpecified(false), calibrationMode(0) {}
 
 	QString inputMesh, inputCurrents, inputTensions, inputCurrentsOut;
 	QString outputMesh;
 	QString gmeshAddress;
 	float peParam;
 	int ground;
+	int calibrationMode;
 
 	bool isSeedSpecified() { return seedSpecified; }
 	unsigned long getSeed() { return seed; }

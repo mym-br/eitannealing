@@ -15,6 +15,7 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
 	const QCommandLineOption peparamOpt("peparam", "Partial cost evaluation probability parameter.", "probability"); parser.addOption(peparamOpt);
 	const QCommandLineOption gndOpt("ground", "Ground node.", "number"); parser.addOption(gndOpt);
 	const QCommandLineOption currentsOutOpt("currentsout", "Input removed currents file.", "number"); parser.addOption(currentsOutOpt);
+	const QCommandLineOption calibrationOpt("calibration", "Calibration mode: 1 - single coefficient for electrodes; 2 - individual coefficients for electrodes.", "number"); parser.addOption(calibrationOpt);
 
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
@@ -47,12 +48,12 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
 	params->inputCurrents = positionalArguments.at(1);
 	params->inputTensions = positionalArguments.at(2);
 	if (parser.isSet(currentsOutOpt)) params->inputCurrentsOut = parser.value(currentsOutOpt);
-
 	if (parser.isSet(gmeshOpt)) params->gmeshAddress = parser.value(gmeshOpt); else params->gmeshAddress = "127.0.0.1:44202";
 	if (parser.isSet(outputOpt)) params->outputMesh = parser.value(outputOpt); else params->outputMesh = "solution.msh";
 	if (parser.isSet(seedOpt)) params->setSeed(parser.value(seedOpt).toULong());
 	if (parser.isSet(peparamOpt)) params->peParam = parser.value(peparamOpt).toFloat(); else params->peParam = 0.875f;
 	if (parser.isSet(gndOpt)) params->ground = parser.value(gndOpt).toInt(); else params->ground = -1;
+	if (parser.isSet(calibrationOpt)) params->calibrationMode = parser.value(calibrationOpt).toInt();
 
     return CommandLineOk;
 }

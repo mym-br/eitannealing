@@ -129,7 +129,8 @@ void workProc()
 	//sh = isComplexProblem ? std::unique_ptr<shuffler>(new shuffler(input, readingsComplex)) : new std::unique_ptr<shuffler>(shuffler(input, readingsScalar));
 	if (isComplexProblem) {
 		sh.reset(new shuffler(input, readingsComplex));
-		currentComplex.reset(new solutioncomplexcalibration(input, readingsComplex));
+		if (input->getCalibrationMode()) currentComplex.reset(new solutioncomplexcalibration(input, readingsComplex));
+		else currentComplex.reset(new solutioncomplex(input, readingsComplex));
 	}
 	else {
 		sh.reset(new shuffler(input, readingsScalar));
@@ -183,7 +184,7 @@ void workProc()
 			totalit++;
 			if (totalit % 100 == 0) {
 				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
-				//std::cout << totalit << ":" << acceptit << ":" << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
+				//std::cout << totalit << ":" << acceptit << ":" << (isComplexProblem ? currentComplex->getDEstimate() : currentScalar->getDEstimate()) << ":" << (isComplexProblem ? currentComplex->getRegularisationValue() : currentScalar->getRegularisationValue()) << std::endl;
 				double w = 2 * M_PI * input->getCurrentFreq();
 				if (isComplexProblem) {
 					for (int kk = 0; kk < input->getNumCoefficients(); kk++) {
@@ -400,19 +401,25 @@ int main(int argc, char *argv[])
 	else seed = params.getSeed();
 	init_genrand64(seed);
 	param = params.peParam;
-	bool is2dProblem; isComplexProblem = false;
+	bool is2dProblem;
 	std::string meshfname = params.inputMesh.toStdString();
 	std::string currentsinfname = params.inputCurrents.toStdString();
 	std::string currentsoutfname = params.inputCurrentsOut.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
 	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
 	input->setGroundNode(params.ground);
-	// TODO: read parameters from commanline
-	//input->setCapacitance(80E-12);
-	//input->setCurrentFreq(275000);
+	isComplexProblem = !currentsoutfname.empty();
+	if (isComplexProblem) {
+		// TODO: read parameters from commanline
+		input->setCapacitance(80E-12);
+		input->setCurrentFreq(275000);
+	}
 	input->initProblem(meshfname.c_str());
-	//input->setCalibrationCoeffs(true);
+	if (params.calibrationMode) {
+		input->setCalibrationCoeffs(params.calibrationMode == 2);
+	}
 	const char **currentspair;
+	
 	if (isComplexProblem) {
 		readingsComplex = new observations<std::complex<double>>;
 		currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
@@ -469,9 +476,9 @@ int main(int argc, char *argv[])
 	list.resize(QSize(graphics.width(), graphics.height()));
 	list.move(graphics.pos() + QPoint(0, graphics.height() + QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight)+8));
 
+	QTableView listim;
 	if (isComplexProblem) {
 		viewim = new solutionView(input->getNumCoefficients());
-		QTableView listim;
 		listim.setModel(viewim);
 		class ListViewDelegateIm : public QStyledItemDelegate {
 		protected: QString ListViewDelegateIm::displayText(const QVariant &value, const QLocale &locale) const { return locale.toString(value.toDouble(), 'e', 4); }

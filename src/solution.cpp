@@ -140,12 +140,13 @@ bool solution::compareWithMaxE2(solutionbase &target, double kt, double e2)
 }
 
 
-solution::solution(const double *sigma, std::shared_ptr<problem> _input, observations<double> *_readings) :
-				sol(solution::copySolution(sigma, _input)),
-				stiffness(solution::getNewStiffness(sol, _input)),
-				precond(new SparseIncompleteLLT(*stiffness)),
-				simulations(new CG_Solver *[_readings->getNObs()]),
-				solutionbase(sigma, _input, _readings)
+solution::solution(const double *sigma, std::shared_ptr<problem> _input, observations<double> *_readings, int _fixedCoeffs) :
+		sol(solution::copySolution(sigma, _input)),
+		stiffness(solution::getNewStiffness(sol, _input)),
+		precond(new SparseIncompleteLLT(*stiffness)),
+		simulations(new CG_Solver *[_readings->getNObs()]),
+		fixedCoeffs(_fixedCoeffs),
+		solutionbase(sigma, _input, _readings)
 {
 	this->initSimulations();
 	this->initErrors();
@@ -153,11 +154,12 @@ solution::solution(const double *sigma, std::shared_ptr<problem> _input, observa
 
 
 // New random solution
-solution::solution(std::shared_ptr<problem> _input, observations<double> *_readings) :
-		sol(solution::getNewRandomSolution(_input)),
+solution::solution(std::shared_ptr<problem> _input, observations<double> *_readings, std::vector<double> &electrodesCoeffs) :
+		sol(solution::getNewRandomSolution(_input, electrodesCoeffs)),
 		stiffness(solution::getNewStiffness(sol,  _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
 		simulations(new CG_Solver *[_readings->getNObs()]),
+		fixedCoeffs(electrodesCoeffs.size()),
 		solutionbase(_input, _readings)
 {
 	this->initSimulations();
@@ -165,11 +167,12 @@ solution::solution(std::shared_ptr<problem> _input, observations<double> *_readi
 }
 
 // New randomly modified solution
-solution::solution(double *sigma, const solution &base, std::shared_ptr<problem> _input, observations<double> *_readings) :
+solution::solution(double *sigma, const solution &base, std::shared_ptr<problem> _input, observations<double> *_readings, int _fixedCoeffs) :
 		sol(sigma),
 		stiffness(solution::getNewStiffness(sol, _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
 		simulations(new CG_Solver *[_readings->getNObs()]),
+		fixedCoeffs(_fixedCoeffs),
 		solutionbase(sigma, base, _input, _readings)
 {
 	this->initSimulations(base);
@@ -287,7 +290,7 @@ void solution::initErrors()
 //	return res;
 //}
 
-double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
+double *solution::getNewRandomSolution(std::shared_ptr<problem> input, std::vector<double> &electrodesCoeffs)
 {
 	double *res = new double[input->getNumCoefficients()];
 	int i = 0;
@@ -325,7 +328,9 @@ double *solution::getNewRandomSolution(std::shared_ptr<problem> input)
 	res[i++] = 0.122205;
 	res[i++] = 0.119641;
 	res[i++] = 0.35731;*/
-	for (i = 0; i<input->getNumCoefficients(); i++)
+	for (i = 0; i < electrodesCoeffs.size(); i++)
+		res[i] = electrodesCoeffs[i];
+	for (; i<input->getNumCoefficients(); i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
 	return res;
@@ -379,7 +384,7 @@ double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) con
 	double *res = solutionbase<double>::copySolution(sol, input);
 	// head or tails
 	if(genint(2)) { // Normal
-		int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
+		int ncoef = fixedCoeffs + genint(input->getNumCoefficients() - fixedCoeffs);	// Lower values fixed;
 
 		if(sh.shuffleConsts[ncoef]==0) {
 			res[ncoef] = mincond+genreal()*(maxcond-mincond);
@@ -462,7 +467,7 @@ solution *solution::shuffle(shuffleData *data, const shuffler &sh) const
 	double *sigma = getShuffledSolution(data, sh);
 	solution *res;
 	try {
-		res = new solution(sigma, *this, input, readings);
+		res = new solution(sigma, *this, input, readings, fixedCoeffs);
 	} catch(...) {
 		for(int i=0;i<65;i++)
 			std::cout << i << ":" << sigma[i] << std::endl;

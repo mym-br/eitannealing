@@ -48,11 +48,12 @@ bool solutioncomplex::compareWith(solutionbase &target, double kt, double prob)
 	return false;
 }
 
-solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) :
+solutioncomplex::solutioncomplex(const std::complex<double> *sigma, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, int _fixedCoeffs) :
 solutionbase(sigma, _input, _readings),
 sol(solutionbase::copySolution(sigma, _input)),
 stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 precond(new SparseIncompleteLLTComplex(*stiffness)),
+fixedCoeffs(_fixedCoeffs),
 simulations(new CG_SolverComplex *[_readings->getNObs()])
 //input(_input), readings(_readings)
 {
@@ -62,11 +63,12 @@ simulations(new CG_SolverComplex *[_readings->getNObs()])
 
 
 // New random solution
-solutioncomplex::solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) :
+solutioncomplex::solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, std::vector<std::complex<double>> &electrodesCoeffs) :
 solutionbase(_input, _readings),
-sol(solutioncomplex::getNewRandomSolution(_input)),
+sol(solutioncomplex::getNewRandomSolution(_input, electrodesCoeffs)),
 stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 precond(new SparseIncompleteLLTComplex(*stiffness)),
+fixedCoeffs(electrodesCoeffs.size()),
 simulations(new CG_SolverComplex *[_readings->getNObs()])
 //input(_input), readings(_readings)
 {
@@ -75,11 +77,12 @@ simulations(new CG_SolverComplex *[_readings->getNObs()])
 }
 
 // New randomly modified solution
-solutioncomplex::solutioncomplex(std::complex<double> *sigma, const solutioncomplex &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) :
+solutioncomplex::solutioncomplex(std::complex<double> *sigma, const solutioncomplex &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, int _fixedCoeffs) :
 solutionbase(sigma, base, _input, _readings),
 sol(sigma),
 stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
 precond(new SparseIncompleteLLTComplex(*stiffness)),
+fixedCoeffs(_fixedCoeffs),
 simulations(new CG_SolverComplex *[_readings->getNObs()])
 //input(_input), readings(_readings)
 {
@@ -88,8 +91,8 @@ simulations(new CG_SolverComplex *[_readings->getNObs()])
 }
 
 // New random solution
-solutioncomplexcalibration::solutioncomplexcalibration(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) :
-solutioncomplex(_input, _readings) {}
+solutioncomplexcalibration::solutioncomplexcalibration(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, std::vector<std::complex<double>> &electrodesCoeffs) :
+solutioncomplex(_input, _readings, electrodesCoeffs) {}
 
 void solutioncomplex::initSimulations(const solutionbase<std::complex<double>> &base)
 {
@@ -143,14 +146,17 @@ void solutioncomplex::initErrors()
 //	return res;
 //}
 
-std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<problem> input)
+std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<problem> input, std::vector<std::complex<double>> &electrodesCoeffs)
 {
 	if (input->getCalibrationMode() != 0) return solutioncomplexcalibration::getNewRandomSolution(input);
 	std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
 	int i = 0;
 	double w = 2 * M_PI * input->getCurrentFreq();
 	double wminperm = w*minperm, wmaxperm = w*maxperm;
-	for (i = 0; i < input->getNumCoefficients(); i++)
+	for (i = 0; i < electrodesCoeffs.size(); i++)
+		res[i] = std::complex<double>(electrodesCoeffs[i].real(), w*electrodesCoeffs[i].imag());
+	std::complex<double> val  = std::complex<double>(mincond + genreal()*(maxcond - mincond), wminperm + genreal()*(wmaxperm - wminperm)); 
+	for (; i < input->getNumCoefficients(); i++)
 		res[i] = std::complex<double>(mincond + genreal()*(maxcond - mincond), wminperm + genreal()*(wmaxperm - wminperm));
 
 	return res;
@@ -172,16 +178,18 @@ std::complex<double> *solutioncomplexcalibration::getNewRandomSolution(std::shar
 
 std::complex<double> *solutioncomplex::getShuffledSolution(shuffleData *data, const shuffler &sh) const {
 	std::complex<double> *res = solutionbase::copySolution(sol, input);
-	int ncoef = genint(input->getNumCoefficients());	// Lower values fixed;
-	int ncoefidx = 2 * ncoef;
 
 	// Real or complex shuffle
 	if (genint(2)) { // Real
 		// head or tails
 		if (genint(2)) { // Normal
+			int ncoef = fixedCoeffs + genint(input->getNumCoefficients() - fixedCoeffs);	// Lower values fixed;
+			int ncoefidx = 2 * ncoef;
 			res[ncoef] = std::complex<double>(solutionbase::calcNewShuffledValue(ncoefidx, res[ncoef].real(), data, sh, mincond, maxcond), res[ncoef].imag());
 		}
 		else { // swap
+			int ncoef = genint(input->getInnerAdjacencyCount());	// Lower values fixed;
+			int ncoefidx = 2 * ncoef;
 			int node1, node2;
 			node1 = input->node2coefficient[input->innerAdjacency[ncoef].first];
 			node2 = input->node2coefficient[input->innerAdjacency[ncoef].second];
@@ -196,21 +204,24 @@ std::complex<double> *solutioncomplex::getShuffledSolution(shuffleData *data, co
 	// Imaginary
 	double w = 2 * M_PI * input->getCurrentFreq();
 	double wminperm = w*minperm, wmaxperm = w*maxperm;
+	// head or tails
 	if (genint(2)) { // Normal
-		// head or tails
-		if (genint(2)) { // Normal
-			res[ncoef] = std::complex<double>(res[ncoef].real(), solutionbase::calcNewShuffledValue(ncoefidx, res[ncoef].imag(), data, sh, wminperm, wmaxperm));
-		}
-		else { // swap
-			int node1, node2;
-			node1 = input->node2coefficient[input->innerAdjacency[ncoef].first];
-			node2 = input->node2coefficient[input->innerAdjacency[ncoef].second];
-
-			std::pair<double, double> vals = solutionbase::calcNewSwappedValue(ncoefidx, node1, node2, res[node1].imag(), res[node2].imag(), data, sh, wminperm, wmaxperm);
-			res[node1] = std::complex<double>(res[node1].real(), vals.first);
-			res[node2] = std::complex<double>(res[node1].real(), vals.second);
-		}
+		int ncoef = fixedCoeffs + genint(input->getNumCoefficients() - fixedCoeffs);	// Lower values fixed;
+		int ncoefidx = 2 * ncoef;
+		res[ncoef] = std::complex<double>(res[ncoef].real(), solutionbase::calcNewShuffledValue(ncoefidx, res[ncoef].imag(), data, sh, wminperm, wmaxperm));
 	}
+	else { // swap
+		int ncoef = genint(input->getInnerAdjacencyCount());	// Lower values fixed;
+		int ncoefidx = 2 * ncoef;
+		int node1, node2;
+		node1 = input->node2coefficient[input->innerAdjacency[ncoef].first];
+		node2 = input->node2coefficient[input->innerAdjacency[ncoef].second];
+
+		std::pair<double, double> vals = solutionbase::calcNewSwappedValue(ncoefidx, node1, node2, res[node1].imag(), res[node2].imag(), data, sh, wminperm, wmaxperm);
+		res[node1] = std::complex<double>(res[node1].real(), vals.first);
+		res[node2] = std::complex<double>(res[node1].real(), vals.second);
+	}
+	
 	return res;
 }
 
@@ -306,7 +317,7 @@ solutioncomplex *solutioncomplex::shuffle(shuffleData *data, const shuffler &sh)
 	std::complex<double> *sigma = getShuffledSolution(data, sh);
 	solutioncomplex *res;
 	try {
-		res = new solutioncomplex(sigma, *this, input, readings);
+		res = new solutioncomplex(sigma, *this, input, readings, fixedCoeffs);
 	}
 	catch (...) {
 		for (int i = 0; i<65; i++)
@@ -314,6 +325,37 @@ solutioncomplex *solutioncomplex::shuffle(shuffleData *data, const shuffler &sh)
 		exit(0);
 	}
 	return res;
+}
+
+void solutioncomplex::savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input, observations<std::complex<double>> *readings) {
+	std::string refname(filename), imfname(filename), absfname(filename), angfname(filename);
+	std::size_t dotfound = refname.find_last_of(".");
+	refname.replace(dotfound, 1, "_re."); imfname.replace(dotfound, 1, "_im."); absfname.replace(dotfound, 1, "_abs."); angfname.replace(dotfound, 1, "_ang.");
+	std::ofstream myfilereal(refname), myfileimag(imfname), myfileabs(absfname), myfileang(angfname);
+
+	std::ifstream inputfile(input->getMeshFilename());
+	for (int i = 0; inputfile.eof() != true; i++) {
+		std::string line;
+		std::getline(inputfile, line);
+		myfilereal << line << '\n'; myfileimag << line << '\n';  myfileabs << line << '\n';  myfileang << line << '\n';
+	}
+
+	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
+	for (int patterno = 0; patterno < sols.size(); patterno++) {
+		myfilereal << "$NodeData\n1\n\"Real Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
+		myfileimag << "$NodeData\n1\n\"Imaginary Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
+		myfileabs << "$NodeData\n1\n\"Magnitude Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
+		myfileang << "$NodeData\n1\n\"Phase Angle Eletric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
+		for (int j = 0; j < input->getNodesCount(); j++) {
+			myfilereal << (j + 1) << "\t" << sols[patterno][j].real() << "\n";
+			myfileimag << (j + 1) << "\t" << sols[patterno][j].imag() << "\n";
+			myfileabs << (j + 1) << "\t" << std::abs(sols[patterno][j]) << "\n";
+			myfileang << (j + 1) << "\t" << std::arg(sols[patterno][j]) << "\n";
+		}
+		myfilereal << "$EndNodeData\n"; myfileimag << "$EndNodeData\n"; myfileabs << "$EndNodeData\n"; myfileang << "$EndNodeData\n";
+	}
+	myfilereal.flush(); myfileimag.flush(); myfileabs.flush(); myfileang.flush();
+	myfilereal.close(); myfileimag.close(); myfileabs.close(); myfileang.close();
 }
 
 solutioncomplexcalibration *solutioncomplexcalibration::shuffle(shuffleData *data, const shuffler &sh) const

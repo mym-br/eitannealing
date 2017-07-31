@@ -181,8 +181,10 @@ private:
 	void initSimulations(const solution &base);
 	void initErrors();
 
+	int fixedCoeffs;
+
 	double *getShufledSolution();
-	static double *getNewRandomSolution(std::shared_ptr<problem> input);
+	static double *getNewRandomSolution(std::shared_ptr<problem> input, std::vector<double> &electrodesCoeffs);
 	//static double *copySolution(const double *sol, std::shared_ptr<problem> input);
 
 	double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
@@ -195,11 +197,11 @@ private:
 	}
 
 	// shuffle constructor
-	solution(double *sol, const solution &base, std::shared_ptr<problem> _input, observations<double> *_readings);
+	solution(double *sol, const solution &base, std::shared_ptr<problem> _input, observations<double> *_readings, int _fixedCoeffs);
 
 public:
-	solution(const double *sol, std::shared_ptr<problem> input, observations<double> *_readings);
-	solution(std::shared_ptr<problem> _input, observations<double> *_readings);	// New random solution
+	solution(const double *sol, std::shared_ptr<problem> input, observations<double> *_readings, int _fixedCoeffs);
+	solution(std::shared_ptr<problem> _input, observations<double> *_readings, std::vector<double> &electrodesCoeffs);	// New random solution
 	bool compareWith(solutionbase &target, double kt, double prob);
 	bool compareWithMinIt(solutionbase &target, double kt, int minit);
 	bool compareWithMaxE2(solutionbase &target, double kt, double e2);

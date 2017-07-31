@@ -68,7 +68,7 @@ public:
 
 	// Virtual functions
 	virtual void initProblem(const char *meshfilename) = 0;
-	virtual void setCalibrationCoeffs(bool individualcoeffs = false) = 0;
+	virtual void setCalibrationMode(bool individualcoeffs = false) = 0;
 	virtual void buildNodeCoefficients() = 0;
 	virtual int getGenericElectrodesCount() = 0;
 	virtual int getNodesCount() { return nodeCount; }

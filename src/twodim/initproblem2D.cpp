@@ -179,7 +179,7 @@ void problem2D::fillElementsGenericElectrode() {
 	std::copy(auxAdjacency.begin(), auxAdjacency.end(), innerAdjacency.begin());
 }
 
-void problem2D::setCalibrationCoeffs(bool individualcoeffs) {
+void problem2D::setCalibrationMode(bool individualcoeffs) {
 	// Set all coeffs to 0
 	for (int i = 0; i < getNodesCount(); i++) node2coefficient[i] = 0;
 	// Electrode coefficients are 1

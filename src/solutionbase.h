@@ -105,14 +105,15 @@ protected:
 				rnd -= 0.5;
 				delta = a*rnd;
 			}
-			newVals.first = v1 - delta;
-			newVals.second = v2 + delta;
+			v1 = v1 - delta;
+			v2 = v2 + delta;
 		} while ((v1 < minval) || (v2 < minval) || (v1 > maxval) || (v2 > maxval));
 		if (data) {
 			data->swap = true;
 			data->ncoef = ncoef;
 		}
-
+		newVals.first = v1;
+		newVals.second = v2;
 		return newVals;
 	}
 

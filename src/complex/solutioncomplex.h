@@ -28,11 +28,13 @@ private:
 
 	void initSimulations(const solutionbase<std::complex<double>> &base);
 	void initErrors();
+
+	int fixedCoeffs;
 public:
 	Eigen::VectorXcd getSimulationX(int i) const { return simulations[i]->getX(); }
 
 	double *getShufledSolution();
-	static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input);
+	static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input, std::vector<std::complex<double>> &electrodesCoeffs);
 
 	virtual std::complex<double> *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
@@ -49,14 +51,16 @@ public:
 
 
 	// shuffle constructor
-	solutioncomplex(std::complex<double> *sol, const solutioncomplex &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);
+	solutioncomplex(std::complex<double> *sol, const solutioncomplex &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, int _fixedCoeffs);
 	//std::shared_ptr<problem> input;
 	//observations<std::complex<double>> *readings;
 
-	solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem> input, observations<std::complex<double>> *_readings);
-	solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);	// New random solution
+	solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem> input, observations<std::complex<double>> *_readings, int _fixedCoeffs);
+	solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, std::vector<std::complex<double>> &electrodesCoeffs);	// New random solution
 	bool compareWith(solutionbase &target, double kt, double prob);
 	virtual solutioncomplex *shuffle(shuffleData *data, const shuffler &sh) const;
+
+	static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input, observations<std::complex<double>> *readings);
 
 	std::complex<double> *getSolution() { return this->sol; }
 
@@ -70,13 +74,13 @@ public:
 	std::complex<double> *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
 	// shuffle constructor
-	solutioncomplexcalibration(std::complex<double> *sol, const solutioncomplexcalibration &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) : solutioncomplex(sol, base, _input, _readings) {};
-	solutioncomplexcalibration(const std::complex<double> *sol, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) : solutioncomplex(sol, _input, _readings) {};
-	solutioncomplexcalibration(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings);	// New random solution
+	solutioncomplexcalibration(std::complex<double> *sol, const solutioncomplexcalibration &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) : solutioncomplex(sol, base, _input, _readings, 0) {};
+	solutioncomplexcalibration(const std::complex<double> *sol, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) : solutioncomplex(sol, _input, _readings, 0) {};
+	solutioncomplexcalibration(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, std::vector<std::complex<double>> &electrodesCoeffs);	// New random solution
 	solutioncomplexcalibration *shuffle(shuffleData *data, const shuffler &sh) const;
 
 	static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);
-	static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input, observations<std::complex<double>> *readings);
+	//static void savePotentials(std::vector<Eigen::VectorXcd> &sols, const char *filename, std::shared_ptr<problem> input, observations<std::complex<double>> *readings);
 
 	int getTotalIt() { return 32 * 5; }
 	double getRegularisationValue() const { return 0.0; }
@@ -87,8 +91,8 @@ const double mincondint = 0.200;
 const double maxcondint = 0.380;
 const double minpermint = 1.0e-12;
 const double maxpermint = 1.5e-11;
-const double mincondelec = 90.000;
-const double maxcondelec = 10000.000;
+const double mincondelec = 0.380;
+const double maxcondelec = 5000.000;
 const double minpermelec = 1.0e-9;
 const double maxpermelec = 1.09e-7;
 

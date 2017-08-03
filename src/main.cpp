@@ -477,9 +477,12 @@ int main(int argc, char *argv[])
 	qRegisterMetaType<QModelIndex>("QModelIndex");
 	qRegisterMetaType<QModelIndex>("QVector<int>");
 
-	double w = 2 * M_PI * input->getCurrentFreq();
-	viewportcomplex graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D>(input), mincondint, maxcondint);
-	viewportcomplex graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D>(input), minpermint, maxpermint);
+	double minvalre, maxvalre, minvalim, maxvalim;
+	minvalre = input->getCalibrationMode() != 0 ? mincondint : mincond; maxvalre = input->getCalibrationMode() != 0 ? maxcondint : maxcond;
+	minvalim = input->getCalibrationMode() != 0 ? minpermint : minperm; maxvalim = input->getCalibrationMode() != 0 ? maxpermint : maxperm;
+
+	viewport graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D>(input), minvalre, maxvalre);
+	viewport graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D>(input), minvalim, maxvalim);
 	// Proccess mesh file name
 	std::string outputMeshRe(params.outputMesh.toStdString()), outputMeshIm(params.outputMesh.toStdString());
 	std::size_t dotfound = params.outputMesh.toStdString().find_last_of(".");

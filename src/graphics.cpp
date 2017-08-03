@@ -27,7 +27,8 @@ QPoint translateCoordinate(float x, float y)
 	return QPoint((int)(1800*x+0.5)+300, 300 - (int)(1800*y+.5));
 }
 
-viewport::viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input) : scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32), input(_input)
+viewport::viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input, double mincond, double maxcond) :
+scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32), input(_input), minval(mincond), maxval(maxcond)
 {
 	this->setWindowTitle(title);
 	this->setFixedSize(width, height+scale.height());
@@ -36,13 +37,13 @@ viewport::viewport(int width, int height, const char *title, std::shared_ptr<pro
 	this->scale.fill(qRgb(255, 255, 255));
 	
 	QLinearGradient color(20,0,this->width()-20,0);
-	
-	color.setColorAt(0, getColorForLevel(mincond));	
+
+	color.setColorAt(0, getColorForLevel(minval));
 	for(double t=0.125f; t < 1.0f; t+= 0.125f) {
-	    double level = maxcond*t + (1-t)*mincond;
+	    double level = maxval*t + (1-t)*minval;
 	    color.setColorAt(t, getColorForLevel(level));	
 	}
-	color.setColorAt(1, getColorForLevel(maxcond));
+	color.setColorAt(1, getColorForLevel(maxval));
 	QPainter painter(&scale);
 	painter.setBrush(color);
 	//painter.setPen(Qt::NoPen);
@@ -51,7 +52,7 @@ viewport::viewport(int width, int height, const char *title, std::shared_ptr<pro
 	for(int i = 0; i <= 4; i++) {
 	  int x = (int)((scale.width()-40)*((float)i/4)+0.5f)+20;
 	  double level = (float)i/4;
-	  level = maxcond*level + (1-level)*mincond;
+	  level = maxval*level + (1-level)*minval;
 	  painter.drawLine(x,40,x,45);
 	  painter.drawText(x-25, 45, 51, 20, Qt::AlignHCenter | Qt::AlignTop, QString::number(level));
 	  
@@ -62,9 +63,9 @@ viewport::viewport(int width, int height, const char *title, std::shared_ptr<pro
 
 QColor viewport::getColorForLevel(double level)
 {
-	if(level > maxcond) level=maxcond;
-	if(level < mincond) level=mincond;
-	double fval = ((level-mincond)/(maxcond-mincond));
+	if (level > maxval) level=maxval;
+	if (level < minval) level=minval;
+	double fval = ((level-minval)/(maxval-minval));
 	fval = std::pow(fval, 1.8f)*255;
 	int val = (int)fval;
 	return QColor(val, val, val);

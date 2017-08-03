@@ -36,7 +36,7 @@ Q_OBJECT
 class viewport : public QWidget {
 Q_OBJECT
 	public:
-		viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input);
+		viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input, double mincond, double maxcond);
 	    QImage &getBuffer() {
 		    return this->paintbuff;
 	    }
@@ -51,29 +51,7 @@ Q_OBJECT
 	      // override default paint event
 	      void paintEvent ( QPaintEvent * event );
 		  std::shared_ptr<problem2D> input;
-};
-
-class viewportcomplex : public QWidget {
-	Q_OBJECT
-public:
-	viewportcomplex(int width, int height, const char *title, std::shared_ptr<problem2D> _input, double mincond, double maxcond);
-	QImage &getBuffer() {
-		return this->paintbuff;
-	}
-
-	public slots:
-	void solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight);
-protected:
-	QImage paintbuff;
-	QImage scale;
-	QBrush getBrushForElement(double *solution, int n1, int n2, int n3);
-	QColor getColorForLevel(double level);
-	// override default paint event
-	void paintEvent(QPaintEvent * event);
-	std::shared_ptr<problem2D> input;
-private:
-	QPoint translateCoordinate(float x, float y);
-	double minval, maxval;
+		  double minval, maxval;
 };
 
 class TableViewCopyDataPopupMenu : public QObject{

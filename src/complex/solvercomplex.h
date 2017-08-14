@@ -43,6 +43,7 @@ class CG_SolverComplex {
 		std::complex<double> rmod, rmod_1;
 		
 		matrixcomplex::ConstSelfAdjointViewReturnType<Eigen::Lower>::Type A;
+		matrixcomplex Afull;
 		const Eigen::VectorXcd &b;
 		Eigen::VectorXcd x;		
 		Eigen::VectorXcd p;		
@@ -86,6 +87,7 @@ class CG_SolverComplex {
 
 
 		void init();
+		void init(matrixcomplex &A_H);
 
 		//void saveVals(const char* fname, matrixcomplex &mat);
 		//void saveVals(const char* fname, const Eigen::VectorXcd &vec);
@@ -115,8 +117,10 @@ class CG_SolverComplex {
 		}
 
 		CG_SolverComplex(matrixcomplex &A, Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &precond);
+		CG_SolverComplex(matrixcomplex &A, matrixcomplex &A_H, Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &precond);
 		CG_SolverComplex(matrixcomplex &A, Eigen::VectorXcd &b, const Eigen::VectorXcd &x0, const SparseIncompleteLLTComplex &precond);
 		void do_iteration();
+		void do_iteration(matrixcomplex &A_H);
 		
 		const Eigen::VectorXcd &getX() const {
 			return this->x;

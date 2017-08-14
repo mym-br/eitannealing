@@ -6,13 +6,14 @@
  */
 
 #include "incomplete_choleskycomplex.h"
+#include <iostream>
 
 // TODO: Now EIGEN3 has a built-in sparse incomplete Cholesky
 
-SparseIncompleteLLTComplex::SparseIncompleteLLTComplex(const matrixcomplex& matrix) :
+SparseIncompleteLLTComplex::SparseIncompleteLLTComplex(const matrixcomplex& matrix, bool init) :
 		m_matrix(matrix), lInfNormCalc(false)
 {
-	m_matrix = Eigen::SimplicialLLT<matrixcomplex, Eigen::Lower, Eigen::NaturalOrdering< matrixcomplex::StorageIndex >>(matrix).matrixL();
+	if(init) m_matrix = Eigen::SimplicialLLT<matrixcomplex, Eigen::Lower, Eigen::NaturalOrdering< matrixcomplex::StorageIndex >>(matrix).matrixL();
 }
 
 /** Computes b = L^-T L^-1 b */
@@ -24,6 +25,19 @@ bool SparseIncompleteLLTComplex::solveInPlace(Eigen::VectorXcd &b)  const
   m_matrix.triangularView<Eigen::Lower>().transpose().conjugate().solveInPlace(b);
 
   return true;
+}
+
+bool SparseIncompleteLLTComplex::solveInPlace2(Eigen::VectorXcd &b) const
+{
+	const int size = m_matrix.rows();
+	assert(size == b.rows());
+	CholMatrixTypeComplex m_matrixh = m_matrix.conjugate();
+	m_matrixh.triangularView<Eigen::Lower>().solveInPlace(b); // b <- w
+	m_matrixh.triangularView<Eigen::Lower>().transpose().conjugate().solveInPlace(b); // b <- z
+	m_matrix.triangularView<Eigen::Lower>().solveInPlace(b); // b <- y
+	m_matrix.triangularView<Eigen::Lower>().transpose().conjugate().solveInPlace(b); // b <- x
+
+	return true;
 }
 
 /** Computes b = L^-T L^-1 b */
@@ -88,4 +102,52 @@ void SparseIncompleteLLTComplex::multInPlace(Eigen::VectorXcd &b) const
 void SparseIncompleteLLTComplex::halfMultInPlace(Eigen::VectorXcd &b) const
 {
 	b = this->m_matrix.transpose()*b;
+}
+
+SparseIncompleteLLTComplex2::SparseIncompleteLLTComplex2(const CholMatrixTypeComplex& matrix) : SparseIncompleteLLTComplex(matrix, false) {
+	int col = 0;
+	
+	for (; col<m_matrix.cols(); col++) {
+	//for (; col<2; col++) {
+		matrixcomplex::InnerIterator it(m_matrix, col);
+		int *outer = m_matrix.outerIndexPtr();
+		Complex *data = m_matrix.valuePtr();
+		// 1st element is the diagonal one. FIXME: complex exception condition?
+		//if (it.value()<0)
+			//throw std::exception();
+		Complex isqrtDiagonal = Complex(1,0) / std::sqrt(it.value());
+		Complex itValueBackup = it.value();
+		// Multiply the whole column
+		Eigen::Map<Eigen::VectorXcd>(data + outer[col], outer[col + 1] - outer[col]) *= isqrtDiagonal;
+		// This is not unlike a sparse vector-vector multiplication
+		while (++it) {
+			matrixcomplex::InnerIterator source(it);
+			matrixcomplex::InnerIterator target(m_matrix, it.row());
+			while (target && source) {
+				// Sweep and subtract on coincident rows
+				//	This should be relatively quick, as both target and source have very few
+				//		non-zero entries
+				if (target.row() == source.row()) {
+					target.valueRef() -= source.value()*std::conj(it.value());
+					//std::cout << "(" << target.row() + 1 << ", " << target.col() + 1 << ") -= (" << source.row() + 1 << ", " << source.col() + 1 << ")*(" << it.row() + 1 << ", " << it.col() + 1 << ") = " << target.value() << std::endl;
+					++target; ++source;
+				}
+				while (target && target.row()<source.row()) ++target;
+				while (source && source.row()<target.row()) ++source;
+			}
+		}
+	}
+}
+
+bool SparseIncompleteLLTComplex2::solveInPlace2(Eigen::VectorXcd &b) const
+{
+	const int size = m_matrix.rows();
+	assert(size == b.rows());
+	CholMatrixTypeComplex m_matrixh = m_matrix.conjugate();
+	m_matrixh.triangularView<Eigen::Lower>().solveInPlace(b); // b <- w
+	m_matrixh.triangularView<Eigen::Lower>().transpose().solveInPlace(b); // b <- z
+	m_matrix.triangularView<Eigen::Lower>().solveInPlace(b); // b <- y
+	m_matrix.triangularView<Eigen::Lower>().transpose().solveInPlace(b); // b <- x
+
+	return true;
 }

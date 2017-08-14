@@ -30,7 +30,6 @@ set(eitannealingtest_SRCS
   src/complex/solvercomplex.cpp
   src/complex/solutioncomplex.cpp
   src/complex/gradientnormregularisationcomplex.cpp
-  src/complex/graphicscomplex.cpp
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})

@@ -66,7 +66,7 @@ void CG_SolverComplex::init()
 
 
 	// Now do the first 3 iterations
-
+	it = 0;
 	x += gamma*p;
 	r = r - gamma*q; //saveVals("rnorm.txt", r.norm());
 	z = r;
@@ -90,7 +90,7 @@ void CG_SolverComplex::init()
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = std::complex<double>(1.0, 0.0) / gamma + beta / gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
-
+	it++;
 	/* ########## LANCZOS
 	leta = vt.norm();
 	v_1 = v;
@@ -100,7 +100,8 @@ void CG_SolverComplex::init()
 	vt -= lalpha*v + leta*v_1;
 	alpha_[1] = lalpha;
 	eta_[1] = leta;*/
-
+	
+	if (getResidueSquaredNorm() < 1e-19) return;
 	x += gamma*p;	// 2...
 	r = r - gamma*q; //saveVals("rnorm.txt", r.norm());
 	z = r;
@@ -128,6 +129,7 @@ void CG_SolverComplex::init()
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = std::complex<double>(1.0, 0.0) / gamma + beta / gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
+	it++;
 	/* ########## LANCZOS
 	leta = vt.norm();
 	v_1 = v;
@@ -138,6 +140,7 @@ void CG_SolverComplex::init()
 	alpha_[2] = lalpha;
 	eta_[2] = leta;*/
 
+	if (getResidueSquaredNorm() < 1e-19) return;
 	x += gamma*p;	// ...and 3!
 	r = r - gamma*q; //saveVals("rnorm.txt", r.norm());
 	z = r;
@@ -166,7 +169,7 @@ void CG_SolverComplex::init()
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = std::complex<double>(1.0, 0.0) / gamma + beta / gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
-	it = 3;
+	it++;
 	/* ########## LANCZOS
 	leta = vt.norm();
 	v_1 = v;
@@ -191,7 +194,7 @@ void CG_SolverComplex::init(matrixcomplex &A_H)
 {
 	r.resize(Afull.rows()); //saveVals("Aprint.txt", Afull); saveVals("Atprint.txt", A_H); saveVals("bprint.txt", b);
 	beta = 0;
-	r = b - A_H*(Afull*x); //saveVals("rnorm.txt", r.norm(), false);
+	r = b - A_H*(Afull*x); //saveVals("rnorm2.txt", r.norm(), false);
 	//p = r;
 
 	z = r;
@@ -218,7 +221,7 @@ void CG_SolverComplex::init(matrixcomplex &A_H)
 	// Now do the first 3 iterations
 
 	x += gamma*p;
-	r = r - gamma*q; //saveVals("rnorm.txt", r.norm());
+	r = r - gamma*q; //saveVals("rnorm2.txt", r.norm());
 	z = r;
 	precond.solveInPlace2(z);
 	rmod_1 = rmod;
@@ -252,7 +255,7 @@ void CG_SolverComplex::init(matrixcomplex &A_H)
 	eta_[1] = leta;*/
 
 	x += gamma*p;	// 2...
-	r = r - gamma*q; //saveVals("rnorm.txt", r.norm());
+	r = r - gamma*q; //saveVals("rnorm2.txt", r.norm());
 	z = r;
 	precond.solveInPlace2(z);
 	rmod_1 = rmod;
@@ -289,7 +292,7 @@ void CG_SolverComplex::init(matrixcomplex &A_H)
 	eta_[2] = leta;*/
 
 	x += gamma*p;	// ...and 3!
-	r = r - gamma*q; //saveVals("rnorm.txt", r.norm());
+	r = r - gamma*q; //saveVals("rnorm2.txt", r.norm());
 	z = r;
 	precond.solveInPlace2(z);
 	rmod_1 = rmod;
@@ -341,10 +344,10 @@ void CG_SolverComplex::do_iteration(matrixcomplex &A_H) {
 
 	x += gamma*p;
 	if ((it % 500) == 0) {
-		r = b - A_H*(Afull*x); //saveVals("rnorm.txt", r.norm());
+		r = b - A_H*(Afull*x); //saveVals("rnorm2.txt", r.norm());
 	}
 	else {
-		r = r - gamma*q; //saveVals("rnorm.txt", r.norm());
+		r = r - gamma*q; //saveVals("rnorm2.txt", r.norm());
 	}
 	z = r;
 	precond.solveInPlace2(z);

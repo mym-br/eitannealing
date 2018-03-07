@@ -87,12 +87,13 @@ public:
 	~solutioncomplexcalibration() {}
 };
 
-const double mincondint = 0.200;
-const double maxcondint = 0.380;
-const double minpermint = 1.0e-12;
-const double maxpermint = 1.5e-11;
+const double mincondint = 0.005;
+const double maxcondint = 1.000;
+const double minpermint = 1.0e-14;
+const double maxpermint = 1.0e-10;
 const double mincondelec = 0.380;
-const double maxcondelec = 5000.000;
+//const double maxcondelec = 5000.000;
+const double maxcondelec = 11000.000;
 const double minpermelec = 1.0e-9;
 const double maxpermelec = 1.09e-7;
 

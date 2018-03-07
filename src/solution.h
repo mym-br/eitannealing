@@ -215,6 +215,8 @@ public:
 	Eigen::VectorXd getSimulationX(int i) const { return simulations[i]->getX(); }
 	double *getSolution() { return this->sol; }
 
+	static void savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings);
+
 	~solution();
 };
 

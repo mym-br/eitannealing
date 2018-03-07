@@ -59,6 +59,9 @@ problem3D::gmeshElement problem3D::getNextElement() {
 	return element;
 }
 
+void problem3D::setCalibrationMode(bool individualcoeffs) {
+}
+
 void problem3D::addToGenericElectrode(triangularElement base, int eletrodeTag, std::set<int> &baseNodes) {
 	// Attempt to get existing electrode
 	if (gelectrodes.find(eletrodeTag) == gelectrodes.end()) {

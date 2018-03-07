@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 
 		SparseIncompleteLLT precond(*m);
 		matrix L = precond.matrixL();
-		saveVals("L.txt", L);
+		//saveVals("L.txt", L);
 		CG_Solver solver(*m, currents, precond);
 		for (int i = 0; i < 100; i++) solver.do_iteration();
 		
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 		//myfile.open("tensions" + std::to_string(patterno+1) + ".txt");
 		//for (int i = 0; i < x.size(); i++) myfile << x.coeff(i) << std::endl;
 		//myfile.close();
-		saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
+		//saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
 
 		solutions.push_back(x);
 		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << std::endl;

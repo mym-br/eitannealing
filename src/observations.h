@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <memory>
+#include <string>
 #include "problem.h"
 #include "basematrix.h"
 
@@ -16,6 +17,7 @@ template <typename _Scalar>
 class observations {
 private:
 	int nobs;
+	std::string mesh_file;
 	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *tensions;
 	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *currents;
 	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> currentVals;
@@ -29,7 +31,7 @@ public:
 	int getNObs() { return nobs; }
 	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getTensions() { return tensions; }
 	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getCurrents() { return currents; }
-	const char* getMeshFilename() { return filename; }
+	const char* getMeshFilename() { return mesh_file; }
 	_Scalar getCurrentVal(int i) { return currentVals[i]; }
 	int getCurrentsCount() { return (int)currentVals.size(); }
 
@@ -40,9 +42,9 @@ template<>
 void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
 	std::ifstream file;
 	std::ifstream filec;
-
+  mesh_file = filename;
 	filec.open(*filecurrents);
-	file.open(filename);
+	file.open(mesh_file);
 
 	int n = electrodesCount; // TODO: read number of measurements from file
 	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());

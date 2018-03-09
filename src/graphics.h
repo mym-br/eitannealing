@@ -15,7 +15,7 @@
 #include <QAbstractTableModel>
 #include <QMutex>
 #include <memory>
-#include "twodim\problem2D.h"
+#include "twodim/problem2D.h"
 //class problem2D;
 
 class solutionView : public QAbstractListModel {
@@ -30,7 +30,7 @@ Q_OBJECT
 		int rowCount( const QModelIndex & parent = QModelIndex() ) const;
 		QVariant  data( const QModelIndex & index, int role = Qt::DisplayRole ) const;
 		QVariant  headerData ( int section, Qt::Orientation  orientation, int role = Qt::DisplayRole ) const;
-		void setCurrentSolution(const double *newsol);	
+		void setCurrentSolution(const double *newsol);
 };
 
 class viewport : public QWidget {
@@ -40,7 +40,7 @@ Q_OBJECT
 	    QImage &getBuffer() {
 		    return this->paintbuff;
 	    }
-	      
+
       public slots:
 		void solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight);
 	protected:
@@ -63,7 +63,7 @@ Q_OBJECT
       public:
 	    static TableViewCopyDataPopupMenu *getInstance();
       public slots:
-	    void actionFired();  
+	    void actionFired();
 };
 
 #endif /* GRAPHICS_H_ */

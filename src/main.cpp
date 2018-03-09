@@ -33,8 +33,8 @@
 //#include "sparseincompletelq.h"
 #include "gradientnormregularisation.h"
 #include "gradientnormregularisationcomplex.h"
-#include "gmsh\gmshgraphics.h"
-#include "parameters\parametersparser.h"
+#include "gmsh/gmshgraphics.h"
+#include "parameters/parametersparser.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <QStyledItemDelegate>
@@ -454,7 +454,7 @@ int main(int argc, char *argv[])
 		input->setCalibrationMode(params.calibrationMode == 2);
 	}
 	const char **currentspair;
-	
+
 	if (isComplexProblem) {
 		readingsComplex = new observations<std::complex<double>>;
 		currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
@@ -465,7 +465,7 @@ int main(int argc, char *argv[])
 		const char *currentsfnamecstr = currentsinfname.c_str();
 		readingsScalar->initObs(&currentsfnamecstr, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	}
-	
+
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
@@ -556,5 +556,3 @@ int main(int argc, char *argv[])
 	delete currentspair;
 	return 0;
 }
-
-

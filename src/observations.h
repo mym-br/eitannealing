@@ -8,6 +8,7 @@
 #define OBSERVATIONS_H_
 
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <string>
 #include "problem.h"

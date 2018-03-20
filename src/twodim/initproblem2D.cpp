@@ -101,6 +101,19 @@ void problem2D::fillElementsGenericElectrode() {
 			elements.push_back(temp);
 			break;
 
+		case 10001: // multilayered electrode middle layer
+			if (!outerRingNodes.count(na))
+				gelectrodesNonBaseNodes.insert(na);
+			if (!outerRingNodes.count(nb))
+				gelectrodesNonBaseNodes.insert(nb);
+			if (!outerRingNodes.count(nc))
+				gelectrodesNonBaseNodes.insert(nc);
+			temp.a = na;
+			temp.b = nb;
+			temp.c = nc;
+			elements.push_back(temp);
+			break;
+
 		case 10000:	// electrode
 			// For this to work, electrodes bust be the last
 			//	entity declared
@@ -108,31 +121,23 @@ void problem2D::fillElementsGenericElectrode() {
 			//	should be present in outterRingNodes)
 			int baseNode = -1;
 			int e1, e2;
-			if (outerRingNodes.count(na) == 0 && innerNodes.count(na) == 0) {
+			if (outerRingNodes.count(na) == 0 && gelectrodesNonBaseNodes.count(na) == 0) {
 				baseNode = na;
 				e1 = nb;
 				e2 = nc;
 			}
-			else if (outerRingNodes.count(nb) == 0 && innerNodes.count(nb) == 0) {
+			else if (outerRingNodes.count(nb) == 0 && gelectrodesNonBaseNodes.count(nb) == 0) {
 				baseNode = nb;
 				e1 = na;
 				e2 = nc;
 			}
-			else if (outerRingNodes.count(nc) == 0 && innerNodes.count(nc) == 0) {
+			else if (outerRingNodes.count(nc) == 0 && gelectrodesNonBaseNodes.count(nc) == 0) {
 				baseNode = nc;
 				e1 = na;
 				e2 = nb;
 			}
 			addToGenericElectrode(baseNode, e1, e2);
 			break;
-		}
-	}
-
-	// Determine dual layer coeff count
-	for (auto e : gelectrodes) {
-		for (auto p : e.nodesPairs) {
-			gelectrodesNonBaseNodes.insert(p.first);
-			gelectrodesNonBaseNodes.insert(p.second);
 		}
 	}
 
@@ -155,7 +160,6 @@ void problem2D::fillElementsGenericElectrode() {
 
 	// Inner coefficients
 	for (auto i : innerNodes) {
-		if (gelectrodesNonBaseNodes.find(i) != gelectrodesNonBaseNodes.end()) continue;
 		node2coefficient[i] = condIndex++;
 	}
 

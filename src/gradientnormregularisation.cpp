@@ -96,7 +96,7 @@ void gradientNormRegularisation::buildMatrix()
 
 gradientNormRegularisation::gradientNormRegularisation(std::shared_ptr<problem> _input) : input(_input)
 {
-	electrodecoefficients = input->getGenericElectrodesCount();
+	electrodecoefficients = input->getGenericElectrodesCoeffCount();
     this->buildMatrix();
 }
 

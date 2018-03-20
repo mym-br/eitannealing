@@ -9,7 +9,7 @@ void problem2D::initProblem(const char *meshfilename) {
 	//this->electrodeh = 0.023f;
 	//this->totalheight = 0.016f;
 	this->electrodeh = 0.0004f;
-	this->totalheight = 0.020f;
+	this->totalheight = 0.080f;
 
 	file.close();
 }
@@ -108,17 +108,17 @@ void problem2D::fillElementsGenericElectrode() {
 			//	should be present in outterRingNodes)
 			int baseNode = -1;
 			int e1, e2;
-			if (outerRingNodes.count(na) == 0) {
+			if (outerRingNodes.count(na) == 0 && innerNodes.count(na) == 0) {
 				baseNode = na;
 				e1 = nb;
 				e2 = nc;
 			}
-			else if (outerRingNodes.count(nb) == 0) {
+			else if (outerRingNodes.count(nb) == 0 && innerNodes.count(nb) == 0) {
 				baseNode = nb;
 				e1 = na;
 				e2 = nc;
 			}
-			else if (outerRingNodes.count(nc) == 0) {
+			else if (outerRingNodes.count(nc) == 0 && innerNodes.count(nc) == 0) {
 				baseNode = nc;
 				e1 = na;
 				e2 = nb;
@@ -128,11 +128,22 @@ void problem2D::fillElementsGenericElectrode() {
 		}
 	}
 
+	// Determine dual layer coeff count
+	for (auto e : gelectrodes) {
+		for (auto p : e.nodesPairs) {
+			gelectrodesNonBaseNodes.insert(p.first);
+			gelectrodesNonBaseNodes.insert(p.second);
+		}
+	}
+
 	// Prepare node <-> condindex map
 	int condIndex = 0;
 	// Electrode coefficients
 	for (auto e : gelectrodes) {
 		node2coefficient[e.baseNode] = condIndex++;
+	}
+	for (auto e : gelectrodesNonBaseNodes) {
+		node2coefficient[e] = condIndex++;
 	}
 
 	// Outter ring coefficient
@@ -144,6 +155,7 @@ void problem2D::fillElementsGenericElectrode() {
 
 	// Inner coefficients
 	for (auto i : innerNodes) {
+		if (gelectrodesNonBaseNodes.find(i) != gelectrodesNonBaseNodes.end()) continue;
 		node2coefficient[i] = condIndex++;
 	}
 

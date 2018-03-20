@@ -71,6 +71,7 @@ public:
 	virtual void setCalibrationMode(bool individualcoeffs = false) = 0;
 	virtual void buildNodeCoefficients() = 0;
 	virtual int getGenericElectrodesCount() = 0;
+	virtual int getGenericElectrodesCoeffCount() = 0;
 	virtual int getNodesCount() { return nodeCount; }
 	virtual int getInnerAdjacencyCount() = 0;
 
@@ -185,7 +186,8 @@ public:
 };
 
 const double mincond = 0.005;
-const double maxcond = 0.3815;
+//const double maxcond = 0.3815;
+const double maxcond = 30.0;
 const double minperm = 0.000000000070922044418976;//0.00000005;
 const double maxperm = 0.0000000070922044418976;// 0.05;
 

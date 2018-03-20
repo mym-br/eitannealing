@@ -90,6 +90,7 @@ public:
 	void buildNodeCoefficients();
 	int getGenericElectrodesCount() { return (int)gelectrodes.size(); }
 	int getInnerAdjacencyCount() { return (int)innerAdjacency.size(); }
+	int getGenericElectrodesCoeffCount() { return (int)gelectrodes.size(); };
 	problem3D(const char *meshfilename) : problem(meshfilename) {};
 	~problem3D(){};
 };

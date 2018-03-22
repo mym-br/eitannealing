@@ -20,7 +20,6 @@ bool SparseIncompleteLQ::solveInPlaceT(Eigen::VectorXd& b) const
   return true;
 }
 
-
 SparseIncompleteLQ::SparseIncompleteLQ(
   const Eigen::SparseMatrix<double, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor >& A, unsigned int iq, unsigned int il):
       m_matrix(A.cols(), A.cols())
@@ -37,9 +36,9 @@ SparseIncompleteLQ::SparseIncompleteLQ(
     // building L vector
     std::map<int, double> buildingL;
     std::vector<element> buildingSL;
-    
+
     this->m_matrix.startFill(il*A.cols());
-    
+
     // first step: extract first rows
     QRows.resize(A.rows());
     for(int col=0;col<A.cols();col++) {
@@ -65,11 +64,11 @@ SparseIncompleteLQ::SparseIncompleteLQ(
       for(auto& e:buildingSL) {
 	// At most iq complexity
 	for(auto& q:QColumns[e.first]) {
-	    buildingQ[q.first] -= e.second*q.second;	  
+	    buildingQ[q.first] -= e.second*q.second;
 	}
 	//std::cout << e.second << "[" << e.first << "] ";
 	this->m_matrix.fill(e.first,col) = e.second;
-	
+
       }
       // Extract largest elements from Q
       buildingSQ.resize(std::min(iq,(unsigned int)buildingQ.size()));
@@ -79,7 +78,7 @@ SparseIncompleteLQ::SparseIncompleteLQ(
       // Normalize it (add norm to output matrix!) and update rows
       double normq = 0;
       for(auto& q:buildingSQ){
-	normq += q.second * q.second;	
+	normq += q.second * q.second;
       }
       normq = sqrt(normq);
       this->m_matrix.fill(col, col) = normq;
@@ -94,9 +93,9 @@ SparseIncompleteLQ::SparseIncompleteLQ(
       //std::cout << std::endl;
       // And add it to built columns
       QColumns.push_back(buildingSQ);
-      
+
     }
     this->m_matrix.endFill();
-    
-    
+
+
 }

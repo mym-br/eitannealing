@@ -1,6 +1,6 @@
  project(eitannealingtests)
 cmake_minimum_required(VERSION 3.1.3)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules) 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Threads REQUIRED)
@@ -9,12 +9,12 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} src src/complex)
 
-set(eitannealingtest_SRCS 
-  src/gradientnormregularisation.cpp 
+set(eitannealingtest_SRCS
+  src/gradientnormregularisation.cpp
   src/graphics.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  src/main.cpp
+  tests/test_incomplete_lq.cpp
   src/problem.cpp
   src/solution.cpp
   src/solutionbase.cpp

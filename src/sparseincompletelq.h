@@ -4,16 +4,16 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-class SparseIncompleteLQ
+template class SparseIncompleteLQ<typename scalar>
 {
   public:
-    typedef double Scalar;
+    typedef scalar Scalar;
 
     typedef Eigen::SparseMatrix<Scalar, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor > BaseMatrixType;
   // FIXME: This is actually a QR decomposition!
   protected:
     typedef Eigen::SparseMatrix<Scalar, Eigen::UpperTriangular | Eigen::ColMajor> LMatrixType;
-  
+
     LMatrixType m_matrix;
 
   public:
@@ -23,10 +23,10 @@ class SparseIncompleteLQ
 
     bool solveInPlace(Eigen::VectorXd &b) const;
     bool solveInPlaceT(Eigen::VectorXd &b) const;
-    
+
     void multInPlace(Eigen::VectorXd &b) const;
 
-  
+
     SparseIncompleteLQ(const BaseMatrixType& matrix, unsigned int iq, unsigned int il);
 };
 

@@ -116,7 +116,7 @@ public:
 		for (int i = 0; i<getNodesCount(); ++i) {
 			for (nodeCoefficients *aux = nodeCoef[i]; aux != NULL; aux = aux->next) {
 				if (aux->node < i) continue; // skip upper triangular
-				// Find index 
+				// Find index
 				matrix::StorageIndex row = (matrix::StorageIndex)(&skeleton->coeffRef(aux->node, i) - base);
 				tripletList.push_back(Eigen::Triplet<Scalar>(row, aux->condIndex, aux->coefficient));
 			}
@@ -132,8 +132,8 @@ public:
 		Eigen::SparseMatrix<_Scalar, Eigen::ColMajor> *m = new Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>(skeleton->rows(), skeleton->cols());
 		m->reserve(skeleton->nonZeros());
 		// Now byte-copy outer and inner vectors from skeleton
-		memcpy(m->outerIndexPtr(), skeleton->outerIndexPtr(), (m->rows() + 1)*sizeof(Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::StorageIndex));
-		memcpy(m->innerIndexPtr(), skeleton->innerIndexPtr(), m->nonZeros()*sizeof(Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::StorageIndex));
+		memcpy(m->outerIndexPtr(), skeleton->outerIndexPtr(), (m->rows() + 1)*sizeof(typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::StorageIndex));
+		memcpy(m->innerIndexPtr(), skeleton->innerIndexPtr(), m->nonZeros()*sizeof(typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::StorageIndex));
 
 		// Final coefficient vector is the Sparse x Dense product of coef2KMatrix times coefficients
 		Eigen::Map<Eigen::Matrix<_Scalar, Eigen::Dynamic, 1>>(m->valuePtr(), m->nonZeros()).noalias() = (*coef2KMatrix)*Eigen::Map<Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> >(cond, numcoefficients);

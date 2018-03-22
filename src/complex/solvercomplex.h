@@ -41,12 +41,12 @@ class CG_SolverComplex {
 		int lastRefresh;
 		bool refresh_at_next;
 		std::complex<double> rmod, rmod_1;
-		
+
 		matrixcomplex::ConstSelfAdjointViewReturnType<Eigen::Lower>::Type A;
 		matrixcomplex Afull;
 		const Eigen::VectorXcd &b;
-		Eigen::VectorXcd x;		
-		Eigen::VectorXcd p;		
+		Eigen::VectorXcd x;
+		Eigen::VectorXcd p;
 		Eigen::VectorXcd r;
 		Eigen::VectorXcd q;
 
@@ -54,8 +54,8 @@ class CG_SolverComplex {
 		const SparseIncompleteLLTComplex &precond;
 		Eigen::VectorXcd z;
 
-		
-		
+
+
 
 		/* Lanczos
 		Eigen::VectorXd v;
@@ -79,11 +79,11 @@ class CG_SolverComplex {
 		//double merr;
 		double r0norm;
 		double r0norm2;
-		
+
 
 		circularbuff<double,8> eta_;
 		circularbuff<double,8> alpha_;
-		
+
 
 
 		void init();
@@ -95,19 +95,19 @@ class CG_SolverComplex {
 		//void saveVals(const char* fname, double val, bool app = true);
 
 	public:
-	
+
 		void setrefresh() {
-			this->refresh_at_next = true;			
+			this->refresh_at_next = true;
 		}
-		
+
 		int getIteration() const {
 			return this->it;
 		}
-		
+
 		double getResidueSquaredNorm() const {
 			return this->r.norm()*this->r.norm();
 		}
-		
+
 		double getErrorl2Estimate() const {
 			if(it>2) {
 				//double errit = this->err[it - 1];
@@ -116,12 +116,12 @@ class CG_SolverComplex {
 			} else return 0;
 		}
 
-		CG_SolverComplex(matrixcomplex &A, Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &precond);
-		CG_SolverComplex(matrixcomplex &A, matrixcomplex &A_H, Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &precond);
-		CG_SolverComplex(matrixcomplex &A, Eigen::VectorXcd &b, const Eigen::VectorXcd &x0, const SparseIncompleteLLTComplex &precond);
+		CG_SolverComplex(matrixcomplex &A, const Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &precond);
+		CG_SolverComplex(matrixcomplex &A, matrixcomplex &A_H, const Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &precond);
+		CG_SolverComplex(matrixcomplex &A, const Eigen::VectorXcd &b, const Eigen::VectorXcd &x0, const SparseIncompleteLLTComplex &precond);
 		void do_iteration();
 		void do_iteration(matrixcomplex &A_H);
-		
+
 		const Eigen::VectorXcd &getX() const {
 			return this->x;
 		}
@@ -135,11 +135,11 @@ class CG_SolverComplex {
 		const Eigen::VectorXcd &getR() const {
 			return this->r;
 		}
-		
+
 		const SparseIncompleteLLTComplex &getPrecond() {
 			return this->precond;
 		}
-		
+
 		double getLastE2() const {
 			return getResidueSquaredNorm() / r0norm2;
 		}

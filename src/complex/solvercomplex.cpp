@@ -10,16 +10,16 @@
 //#include "nodecoefficients.h"
 #include <fstream>
 
-CG_SolverComplex::CG_SolverComplex(matrixcomplex &_A, Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &pre) :
+CG_SolverComplex::CG_SolverComplex(matrixcomplex &_A, const Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &pre) :
 	A(_A),
-	b(b), 
-	x(Eigen::VectorXd::Zero(_A.rows())), 
-	precond(pre)	
+	b(b),
+	x(Eigen::VectorXd::Zero(_A.rows())),
+	precond(pre)
 {
 	this->init();
 }
 
-CG_SolverComplex::CG_SolverComplex(matrixcomplex &_A, matrixcomplex &A_H, Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &pre) :
+CG_SolverComplex::CG_SolverComplex(matrixcomplex &_A,  matrixcomplex &A_H, const Eigen::VectorXcd &b, const SparseIncompleteLLTComplex &pre) :
 	A(_A),
 	Afull(_A),
 	b(b),
@@ -29,14 +29,14 @@ CG_SolverComplex::CG_SolverComplex(matrixcomplex &_A, matrixcomplex &A_H, Eigen:
 	this->init(A_H);
 }
 
-CG_SolverComplex::CG_SolverComplex(matrixcomplex &A_, Eigen::VectorXcd &b, const Eigen::VectorXcd &x0, const SparseIncompleteLLTComplex &pre) :
+CG_SolverComplex::CG_SolverComplex(matrixcomplex &A_, const Eigen::VectorXcd &b, const Eigen::VectorXcd &x0, const SparseIncompleteLLTComplex &pre) :
 	A(A_), b(b), x(x0),
 	// Precond!
 	precond(pre)  {
 	this->init();
 }
 
-// Setup and calculate the 1st iteraction	
+// Setup and calculate the 1st iteraction
 void CG_SolverComplex::init()
 {
 	r.resize(A.rows()); // matrixcomplex Aprint = A.matrix(); saveVals("Aprint.txt", Aprint); saveVals("bprint.txt", b);
@@ -474,7 +474,7 @@ void CG_SolverComplex::do_iteration() {
 	//err[it - 1] = (w[it - 2] * w[it - 2] + wt[it - 1] * wt[it - 1] - wt[it - 2] * wt[it - 2]).real();
 	err[it - 1] = (std::conj(w[it - 2]) * w[it - 2] + std::conj(wt[it - 1]) * wt[it - 1] - std::conj(wt[it - 2]) * wt[it - 2]).real();
 
-	
+
 	//std::cout << it << ":"  << x.squaredNorm() << std::endl;
 }
 //

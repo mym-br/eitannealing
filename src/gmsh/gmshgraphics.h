@@ -11,7 +11,7 @@
 #include <QObject>
 #include <memory>
 #include "../problem.h"
-#include "onelab.h"
+#include <onelab.h>
 #include<QModelIndex>
 
 class gmshviewport : public QObject {

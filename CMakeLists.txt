@@ -1,13 +1,27 @@
- project(eitannealingtests)
+project(eitannealingtest)
 cmake_minimum_required(VERSION 3.1.3)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Threads REQUIRED)
 
+if(NOT DEFINED GMSH_INCLUDE_DIR)
+if(NOT DEFINED DO_NOT_USE_NATIVE_GMSH)
+    find_path(GMSH_INCLUDE_DIR NAMES onelab.h PATH_SUFFIXES gmsh)
+    if (GMSH_INCLUDE_DIR)
+        message(STATUS "LibGmsh includes found at ${GMSH_INCLUDE_DIR}.")
+    else()
+        message(STATUS "LibGmsh includes not found, falling back to redist.")
+        set(GMSH_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/gmsh) 
+    endif()
+else()
+    set(GMSH_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/gmsh) 
+endif()
+endif()
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
-include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} src src/complex)
+include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIR} src src/complex)
 
 set(eitannealingtest_SRCS
   src/gradientnormregularisation.cpp

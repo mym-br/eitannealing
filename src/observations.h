@@ -40,7 +40,7 @@ public:
 };
 
 template<>
-void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
+inline void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
 	std::ifstream file;
 	std::ifstream filec;
   mesh_file = filename;
@@ -92,7 +92,7 @@ void observations<double>::initObs(const char **filecurrents, const char* filena
 };
 
 template<>
-void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
+inline void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
 	std::ifstream file;
 	std::ifstream filecin, filecout;
 

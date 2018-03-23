@@ -2,6 +2,9 @@
 #include "../src/incomplete_lq_builder.h"
 
 int main(int argc, char **argv) {
-  std::cout << "ok!\n";
+  if(argc!=1) {
+    std::cerr << "Parameters must be mesh file name\n";
+    return 1;
+  }
   return 0;
 }

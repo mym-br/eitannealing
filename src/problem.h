@@ -64,7 +64,7 @@ class problem {
 
 public:
 
-	static std::shared_ptr<problem> createNewProblem(const char *meshfilename, bool &is2D);
+	static std::shared_ptr<problem> createNewProblem(const char *meshfilename, bool is2D);
 
 	// Virtual functions
 	virtual void initProblem(const char *meshfilename) = 0;

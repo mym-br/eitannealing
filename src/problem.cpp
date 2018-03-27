@@ -7,7 +7,7 @@
 
 #define TETRAHEDRON_TYPE 4
 
-std::shared_ptr<problem> problem::createNewProblem(const char *meshfilename, bool &is2D) {
+std::shared_ptr<problem> problem::createNewProblem(const char *meshfilename, bool is2D) {
 	std::ifstream file;
 	file.open(meshfilename);
 

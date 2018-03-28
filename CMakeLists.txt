@@ -54,5 +54,5 @@ endif()
 set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
 add_executable(eitannealingtest ${eitannealingtest_SRCS})
-set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 11)
+set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
 target_link_libraries(eitannealingtest ${libs} ${ADDITIONAL_LIBRARIES})

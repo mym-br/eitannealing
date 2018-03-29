@@ -34,15 +34,19 @@ template<class scalar> class SparseIncompleteQRBuilder
 
     public:
         SparseIncompleteQRBuilder(){};
-
-        Eigen::SparseMatrix<scalar, Eigen::ColMajor>
-        buldRMatrix(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &a, unsigned long nr, unsigned long nq)
+        // This works for a generic "columnMajorStorage" concept.
+        // This concept must implement the methods:
+        //  iterateOverColumn(unsigned long i, std::function<void(unsigned long, scalar)> &f) const
+        //    applies f to each nonzero element of a's i-th column, passing its row number and value.
+        // Unsigned long rows() and unsigned long cols()
+        template <class columnMajorStorage> Eigen::SparseMatrix<scalar, Eigen::ColMajor>
+        buildRMatrixFromColStorage(const columnMajorStorage &a, unsigned long nr, unsigned long nq)
         {
                 unsigned long m = a.rows();
                 unsigned long n = a.cols();
                 Eigen::SparseMatrix<scalar, Eigen::ColMajor> RMatrix(n, n);
-                struct _calc_q_cols_size { 
-                    unsigned long mr; _calc_q_cols_size(unsigned long n):mr(n){}; 
+                struct _calc_q_cols_size {
+                    unsigned long mr; _calc_q_cols_size(unsigned long n):mr(n){};
                     typedef unsigned long value_type;
                     value_type operator[](unsigned long i) const { return (i+1)>mr?mr:(i+1); }
                 };
@@ -51,7 +55,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                 qcols.resize(n);
                 for(auto &x : this->qcols) {
                     x.clear();
-                    x.reserve(nq); 
+                    x.reserve(nq);
                 }
                 qrows.resize(m);
                 for(auto &x : this->qrows) {
@@ -61,15 +65,14 @@ template<class scalar> class SparseIncompleteQRBuilder
                 for(unsigned long j = 0; j<n ; j++) {
                     // Calc the current L vector, product of i-th row of a
                     //  and the previous q matrix
-                    buildingR.clear();           
+                    buildingR.clear();
                     buildingQ.clear();  // As long as we'll be iterating over A[:j] column, initialize next Q vector
                     // The following should have ~O(nq^2) complexity
-                    for(typename Eigen::SparseMatrix<scalar>::InnerIterator it(a,j); it; ++it) {
-                        buildingQ[it.index()] = it.value(); // Used on the 2nd step
-                        for(auto [k, v] : qrows[it.index()]) {
-                            buildingR[k] += v * it.value();
-                        }
-                    }
+                    a.iterateOverColumn(j,[this](unsigned long i, scalar v){
+                        this->buildingQ[i] = v;
+                        for(auto [qj, qv] : qrows[i])
+                            this->buildingR[qj] += v * qv;
+                    });
                     auto cmp_larger_abs_coef = [](const i_c &a, i_c const &b) {return std::abs(a.second) > std::abs(b.second);};
                     // Get nr *largest* elements, notice the reversed comparator above
                     fillWithNSmallest(selectedR, buildingR, nr, cmp_larger_abs_coef);
@@ -93,8 +96,20 @@ template<class scalar> class SparseIncompleteQRBuilder
                 RMatrix.makeCompressed();
                 return RMatrix;
         };
-
-
+        struct columnMajorStorageAdaptor {
+            const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m;
+            columnMajorStorageAdaptor(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m):m(m){}
+            void iterateOverColumn(unsigned long j, std::function<void(unsigned long, scalar)> &&f) const {
+                for(typename Eigen::SparseMatrix<scalar>::InnerIterator it(m, j); it; ++it) 
+                    f(it.index(), it.value());
+            }
+            unsigned long rows() const { return m.rows(); }
+            unsigned long cols() const { return m.cols(); }
+        };
+        Eigen::SparseMatrix<scalar, Eigen::ColMajor>
+        buildRMatrix(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &a, unsigned long nr, unsigned long nq) {
+            return buildRMatrixFromColStorage(columnMajorStorageAdaptor(a), nr, nq);
+        }
 };
 
 #endif  // INCOMPLETE_LQ_BUILDER_H_

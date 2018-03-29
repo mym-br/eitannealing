@@ -86,10 +86,21 @@ template<class scalar> class SparseIncompleteQRBuilder
                     }
                     // Get ql largest elements, same procedure as for L above
                     fillWithNSmallest(selectedQ, buildingQ, nq, cmp_larger_abs_coef);
+                    // Renormalize
+                    double qnorm2 = 0;
+                    for(auto [i, v] : selectedQ) {
+                        // should just optimize to v*v on non-complex scalars
+                        qnorm2 += std::real(std::conj(v)*v);
+                    }
+                    double qnorm = std::sqrt(qnorm);
+                    double inorm = 1/qnorm;
+                    // Final element of R is the norm
+                    RMatrix.insert(j,j) = qnorm;
                     // Now update q storage
                     for(auto [i, v] : selectedQ) {
-                        qrows[i].push_back(std::pair(j, v));
-                        qcols[j].push_back(std::pair(i, v));
+                        double nv = v*inorm;
+                        qrows[i].push_back(std::pair(j, nv));
+                        qcols[j].push_back(std::pair(i, nv));
                     }
                 }
                 // Finish

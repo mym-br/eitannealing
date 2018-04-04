@@ -295,14 +295,14 @@ void workProc()
 
 void setSol(float *sol);
 
-#include <time.h>
+/*#include <time.h>
 
 double get_time()
 {
     struct timespec t;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t);
     return ((double)t.tv_sec + (double)t.tv_nsec*1e-9)*1000;
-}
+}*/
 
 int main(int argc, char *argv[])
  {

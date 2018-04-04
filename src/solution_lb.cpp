@@ -154,7 +154,7 @@ bool solution_lb::compareWith(solution_lb &target, float kt, float prob)
 }
 
 
-solution_lb::solution_lb(const float *sigma):
+solution_lb::solution_lb(const double *sigma):
 				sol(solution_lb::copySolution(sigma)),
 				simulations(new LB_Solver *[nobs]),
 				distance(nobs),
@@ -171,7 +171,7 @@ solution_lb::solution_lb(const float *sigma):
 }
 
 // New randomly modified solution
-solution_lb::solution_lb(float *sigma, const solution_lb &base):
+solution_lb::solution_lb(double *sigma, const solution_lb &base):
                 sol(sigma),
                 simulations(new LB_Solver *[nobs]),
                 distance(nobs),
@@ -212,16 +212,16 @@ void solution_lb::initSimulations()
 	this->totalit = 0;
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), 
-                        Eigen::VectorXd(tensions[0].end(31)), *precond,  100, 0.0001);
+                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].tail(32)), 
+                        Eigen::VectorXd(tensions[0].tail(31)), *precond,  100, 0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
 	for(i=1;i<nobs;i++)
 	{
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].end(31)), 
-			Eigen::VectorXd(tensions[i].end(31)), *precond, a);
+                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].tail(31)), 
+			Eigen::VectorXd(tensions[i].tail(31)), *precond, a);
 		simulations[i]->do_iteration();
 		this->totalit += simulations[i]->getIteration();
 	}
@@ -235,8 +235,8 @@ void solution_lb::initSimulations(const solution_lb &base)
         const LB_Solver_EG_Estimate *baseEVSolver = dynamic_cast<const LB_Solver_EG_Estimate *>(base.simulations[0]);
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(31)), 
-                        Eigen::VectorXd(tensions[0].end(31)), *precond, 
+                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].tail(31)), 
+                        Eigen::VectorXd(tensions[0].tail(31)), *precond, 
                         baseEVSolver->getX(),
 			baseEVSolver->getEvector(), 100, 0.0001);
         double a = solver->getLeastEvEst();
@@ -245,8 +245,8 @@ void solution_lb::initSimulations(const solution_lb &base)
         for(i=1;i<nobs;i++)
         {
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].end(31)), 
-                        Eigen::VectorXd(tensions[i].end(31)), *precond, a,
+                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].tail(31)), 
+                        Eigen::VectorXd(tensions[i].tail(31)), *precond, a,
 					       base.simulations[i]->getX());
 
                 simulations[i]->do_iteration();
@@ -286,9 +286,9 @@ void solution_lb::initErrors()
 }
 
 
-float *solution_lb::copySolution(const float *sol)
+double *solution_lb::copySolution(const double *sol)
 {
-	float *res = new float[numcoefficients];
+	double *res = new double[numcoefficients];
 
 	for(int i=0;i<numcoefficients;i++)
 		res[i] = sol[i];
@@ -296,9 +296,9 @@ float *solution_lb::copySolution(const float *sol)
 	return res;
 }
 
-float *solution_lb::getNewRandomSolution()
+double *solution_lb::getNewRandomSolution()
 {
-	float *res = new float[numcoefficients];
+	double *res = new double[numcoefficients];
 	int i = 0;
 #ifdef USE_PREVIOUS_DATA
         for(;i<sizeof(base)/sizeof(*base);i++)
@@ -310,9 +310,9 @@ float *solution_lb::getNewRandomSolution()
 	return res;
 }
 
-float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) const
+double *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) const
 {
-	float *res = solution_lb::copySolution(sol);
+	double *res = solution_lb::copySolution(sol);
 	// head or tails
 	if(genint(2)) { // Normal
 #ifndef USE_PREVIOUS_DATA
@@ -388,7 +388,7 @@ float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) c
 
 solution_lb *solution_lb::shuffle(shuffleData *data, const shuffler &sh) const
 {
-	float* sigma = getShuffledSolution(data, sh);
+	double* sigma = getShuffledSolution(data, sh);
 	solution_lb *res;
 	try {
 		res = new solution_lb(sigma, *this);

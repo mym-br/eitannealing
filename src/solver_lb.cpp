@@ -8,7 +8,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::Vec
     it = 0;
     // 0
     r = -_Aic->transpose()*Phi;
-    rc = J.end(_Acc->rows()) - *_Acc*Phi;      
+    rc = J.tail(_Acc->rows()) - *_Acc*Phi;      
     init();  
 }
 
@@ -18,7 +18,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::Vec
     it = 0;
     // 0
     r = -_Aic->transpose()*Phi;
-    rc = J.end(_Acc->rows()) - *_Acc*Phi;      
+    rc = J.tail(_Acc->rows()) - *_Acc*Phi;      
     //std::cout << "Before:" << sqrt(r.squaredNorm()+rc.squaredNorm()); 
     Eigen::VectorXd xaux(x0);
     //precond.solveInPlace(xaux);
@@ -36,7 +36,8 @@ void LB_Solver::init()
     p = r/delta; pc = rc/delta;
     
     // S = (ACi)T*p
-    s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
+    s.noalias() = Aii.transpose()*p;
+    s.noalias() += Aic.transpose()*pc;
     precond.solveInPlaceT(s);
 	ATJhatNorm2 = s.squaredNorm();
     gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
@@ -46,17 +47,19 @@ void LB_Solver::init()
 	// *** Gauss
     g=0;
     
-    // 1
-    w = q;
-    fit = delta;
+        // 1
+        w = q;
+        fit = delta;
     
 	qaux = q;
-    precond.solveInPlace(qaux); // q  <- q*C^-1
-    r = Aii*qaux.lazy(); rc = Aic*qaux.lazy();
+        precond.solveInPlace(qaux); // q  <- q*C^-1
+        r.noalias() = Aii*qaux;
+        rc.noalias() = Aic*qaux;
 	r -= gamma_ip*p; rc -= gamma_ip*pc;
-    delta = sqrt(r.squaredNorm()+rc.squaredNorm());
+        delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 	p = r/delta; pc = rc/delta;
-	s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
+	s.noalias() = Aii.transpose()*p;
+        s.noalias() += Aic.transpose()*pc;
 	precond.solveInPlaceT(s);
 	s -= delta*q;
 	    // *** Gauss, as next value for gamma will be pertinent to iteration 2!
@@ -85,11 +88,13 @@ void LB_Solver::do_iteration()
 {
     qaux = q;
     precond.solveInPlace(qaux); // q  <- q*C^-1
-    r = Aii*qaux.lazy(); rc = Aic*qaux.lazy();
+    r.noalias() = Aii*qaux;
+    rc.noalias() = Aic*qaux;
 	r -= gamma_ip*p; rc -= gamma_ip*pc;
     delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 	p = r/delta; pc = rc/delta;
-    s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
+    s.noalias() = Aii.transpose()*p;
+    s.noalias() += Aic.transpose()*pc;
     precond.solveInPlaceT(s);
 	s -= delta*q;
         // *** Gauss, as next value for gamma will be pertinent to next iteration!

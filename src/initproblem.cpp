@@ -214,8 +214,8 @@ void fillElementsGenericElectrode() {
 		bool ncok = (outerRingNodes.find(e.c)==outerRingNodes.end());
 
 		if(naok && nbok) insertAdjNodePair(e.a, e.b);
-		if(nbok && ncok) insertAdjNodePair(e.a, e.b);
 		if(nbok && ncok) insertAdjNodePair(e.b, e.c);
+		if(ncok && naok) insertAdjNodePair(e.a, e.c);
 	}
 
 	innerAdjacency.resize(auxAdjacency.size());

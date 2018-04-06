@@ -11,7 +11,7 @@ class intCoef {
     int numcoefficients;
     
   public:
-    intCoef(const problem &problem);    
+    intCoef(problem &problem);    
     double getInt(double *coefficients) const;
 };
 

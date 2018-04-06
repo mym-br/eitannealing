@@ -36,6 +36,7 @@ struct nodeCoefficients {
 };
 
 class problem {
+        // FIXME: Rework this interface?
 	friend class gradientNormRegularisation;
 	friend class gradientNormRegularisation_old;
 	friend class gradientNormRegularisationComplex;
@@ -85,6 +86,7 @@ public:
 	double getCurrentFreq() { return this->currentFreq; }
 	void setCapacitance(double _capacitance) { this->capacitance = _capacitance; isCapacitive = true; }
 	int getCalibrationMode() { return this->calibrationMode; }
+	std::pair<int, int> getAdjacency(int index) { return this->innerAdjacency[index]; }
 
 	// Contructor and destructors
 	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1),

@@ -12,7 +12,7 @@ class solution_lb;
 
 #include "solution.h"
 #include "solver_lb.h"
-#include "problemdescription.h"
+#include "problem.h"
 #include <memory>
 
 
@@ -42,6 +42,9 @@ class solution_lb {
 			matrix *Aii, *Acc;
 			matrix2 *Aic; 
 			std::unique_ptr<LB_Solver::Preconditioner> precond;
+                        std::shared_ptr<problem> p;
+                        // FIXME: o should be const!
+                        observations<double> &o;
 
 			LB_Solver **simulations;
 			Eigen::VectorXd distance;
@@ -67,8 +70,8 @@ class solution_lb {
 			void initErrors();
 
 			double *getShufledSolution();
-			static double *getNewRandomSolution();
-			static double *copySolution(const double *sol);
+			static double *getNewRandomSolution(int size);
+			static double *copySolution(const double *sol, unsigned int size);
 
 			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
@@ -79,8 +82,8 @@ class solution_lb {
 
 	public:
 
-		solution_lb(const double *sol);
-		solution_lb();	// New random solution
+		solution_lb(std::shared_ptr<problem> p, observations<double> &o, const double *sol);
+		solution_lb(std::shared_ptr<problem> p, observations<double> &o);	// New random solution
 		bool compareWith(solution_lb &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
 		//bool compareWithMaxE2(solution &target, float kt, double e2);

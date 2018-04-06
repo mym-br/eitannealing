@@ -232,20 +232,6 @@ LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *
 }
 
 // FIXME: Use new implementation
-void assembleProblemElectrodeIdentityMatrix(double *cond, matrix2 **Kic, problem &p)
-{
-        int iiLimit = p.getNodesCount()-p.getGenericElectrodesCount();      
-        matrix2 *out = new matrix2(p.getGenericElectrodesCount()-1,  p.getNodesCount()-1);
-        double val;
-        for (int i=iiLimit; i< p.getNodesCount()-1; ++i) {
-              out->insert(i-iiLimit, i) = totalheight*mincond/2;
-        }
-        out->makeCompressed();
-
-        *Kic = out;
-}
-
-// FIXME: Use new implementation
 void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc, problem &p)
 {
       int iiLimit = p.getNodesCount()-p.getGenericElectrodesCount();

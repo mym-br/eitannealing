@@ -25,6 +25,7 @@ include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCL
 
 set(eitannealingtest_SRCS
   src/gradientnormregularisation.cpp
+  src/intcoef.cpp
   src/graphics.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp

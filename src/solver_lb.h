@@ -10,6 +10,7 @@
 
 #include "solver.h"
 #include <memory>
+#include "problem.h"
 
 // FIXME: IS Col-Major faster than Row-Major?
 
@@ -97,7 +98,6 @@ class LB_Solver_EG_Estimate : public LB_Solver
     }
 };
 
-void assembleProblemElectrodeIdentityMatrix(double *cond, matrix2 **Kic, int numElect);
-void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc,int numElect);
+void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc, problem &p);
 
 #endif  // SOLVER_LB_H_

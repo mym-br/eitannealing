@@ -15,6 +15,7 @@ class solution;
 //#include "problemdescription.h"
 #include "problem.h"
 #include "solutionbase.h"
+#include "intcoef.h"
 #include <memory>
 
 /*
@@ -195,6 +196,8 @@ private:
 		input->postAssembleProblemMatrix(&aux);
 		return aux;
 	}
+	// IntCoef regularization
+	std::shared_ptr<intCoef> intcoef;
 
 	// shuffle constructor
 	solution(double *sol, const solution &base, std::shared_ptr<problem> _input, observations<double> *_readings, int _fixedCoeffs);

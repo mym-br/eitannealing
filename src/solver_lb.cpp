@@ -8,7 +8,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::Vec
     it = 0;
     // 0
     r = -_Aic->transpose()*Phi;
-    rc = J.tail(_Acc->rows()) - *_Acc*Phi;      
+    rc = J.tail(_Acc->rows()) - _Acc->selfadjointView<Eigen::Lower>()*Phi;
     init();  
 }
 
@@ -18,7 +18,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::Vec
     it = 0;
     // 0
     r = -_Aic->transpose()*Phi;
-    rc = J.tail(_Acc->rows()) - *_Acc*Phi;      
+    rc = J.tail(_Acc->rows()) - _Acc->selfadjointView<Eigen::Lower>()*Phi;
     //std::cout << "Before:" << sqrt(r.squaredNorm()+rc.squaredNorm()); 
     Eigen::VectorXd xaux(x0);
     //precond.solveInPlace(xaux);
@@ -36,7 +36,7 @@ void LB_Solver::init()
     p = r/delta; pc = rc/delta;
     
     // S = (ACi)T*p
-    s.noalias() = Aii.transpose()*p;
+    s.noalias() = Aii*p;	// Aii^T = Aii
     s.noalias() += Aic.transpose()*pc;
     precond.solveInPlaceT(s);
 	ATJhatNorm2 = s.squaredNorm();
@@ -58,7 +58,7 @@ void LB_Solver::init()
 	r -= gamma_ip*p; rc -= gamma_ip*pc;
         delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 	p = r/delta; pc = rc/delta;
-	s.noalias() = Aii.transpose()*p;
+	s.noalias() = Aii*p; 	// Aii^T = Aii
         s.noalias() += Aic.transpose()*pc;
 	precond.solveInPlaceT(s);
 	s -= delta*q;
@@ -93,7 +93,7 @@ void LB_Solver::do_iteration()
 	r -= gamma_ip*p; rc -= gamma_ip*pc;
     delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 	p = r/delta; pc = rc/delta;
-    s.noalias() = Aii.transpose()*p;
+    s.noalias() = Aii*p; 	// Aii^T = Aii
     s.noalias() += Aic.transpose()*pc;
     precond.solveInPlaceT(s);
 	s -= delta*q;

@@ -22,7 +22,7 @@ class LB_Solver {
 	protected:
                 int it;
                 
-                const matrix &Aii;
+				matrix::ConstSelfAdjointViewReturnType<Eigen::Lower>::Type Aii;
                 const matrix2 &Aic;
                 const Preconditioner       &precond;
                 

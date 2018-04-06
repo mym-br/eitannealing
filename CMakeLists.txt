@@ -37,6 +37,8 @@ set(eitannealingtest_SRCS
   src/gmsh/gmshgraphics.cpp
   src/parameters/parametersparser.cpp
   src/threedim/initproblem3D.cpp
+  src/solver_lb.cpp
+  src/solution_lb.cpp
   src/threedim/nodecoeficients3D.cpp
   src/twodim/initproblem2D.cpp
   src/twodim/nodecoeficients2D.cpp

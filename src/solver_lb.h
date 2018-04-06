@@ -22,7 +22,7 @@ class LB_Solver {
 	protected:
                 int it;
                 
-                const matrix &Aii;
+				matrix::ConstSelfAdjointViewReturnType<Eigen::Lower>::Type Aii;
                 const matrix2 &Aic;
                 const Preconditioner       &precond;
                 
@@ -82,8 +82,6 @@ class LB_Solver {
 
 class LB_Solver_EG_Estimate : public LB_Solver
 {
-  typedef Eigen::SparseMatrix<double, Eigen::UpperTriangular> UMatrix;
-  
   double ev;
   Eigen::VectorXd evec;
   
@@ -99,7 +97,7 @@ class LB_Solver_EG_Estimate : public LB_Solver
     }
 };
 
-void assembleProblemElectrodeIdentityMatrix(float *cond, matrix2 **Kic, int numElect);
-void assembleProblemMatrix_lb(float *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc,int numElect);
+void assembleProblemElectrodeIdentityMatrix(double *cond, matrix2 **Kic, int numElect);
+void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc,int numElect);
 
 #endif  // SOLVER_LB_H_

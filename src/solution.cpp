@@ -12,6 +12,7 @@
 #include <iostream>
 //#include <boost/numeric/interval.hpp>
 #include "gradientnormregularisation.h"
+#include "intcoef.h"
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -146,7 +147,8 @@ solution::solution(const double *sigma, std::shared_ptr<problem> _input, observa
 		precond(new SparseIncompleteLLT(*stiffness)),
 		simulations(new CG_Solver *[_readings->getNObs()]),
 		fixedCoeffs(_fixedCoeffs),
-		solutionbase(sigma, _input, _readings)
+		solutionbase(sigma, _input, _readings),
+		intcoef(new intCoef(*_input))
 {
 	this->initSimulations();
 	this->initErrors();
@@ -160,7 +162,8 @@ solution::solution(std::shared_ptr<problem> _input, observations<double> *_readi
 		precond(new SparseIncompleteLLT(*stiffness)),
 		simulations(new CG_Solver *[_readings->getNObs()]),
 		fixedCoeffs(electrodesCoeffs.size()),
-		solutionbase(_input, _readings)
+		solutionbase(_input, _readings),
+		intcoef(new intCoef(*_input))
 {
 	this->initSimulations();
 	this->initErrors();
@@ -173,7 +176,8 @@ solution::solution(double *sigma, const solution &base, std::shared_ptr<problem>
 		precond(new SparseIncompleteLLT(*stiffness)),
 		simulations(new CG_Solver *[_readings->getNObs()]),
 		fixedCoeffs(_fixedCoeffs),
-		solutionbase(sigma, base, _input, _readings)
+		solutionbase(sigma, base, _input, _readings),
+		intcoef(base.intcoef)
 {
 	this->initSimulations(base);
 	this->initErrors();
@@ -239,7 +243,8 @@ void solution::initSimulations()
 void solution::initErrors()
 {
 	// Calc regularisation value
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30;
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30
+				-intcoef->getInt(this->sol)*240;
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!

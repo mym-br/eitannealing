@@ -38,7 +38,7 @@ class solution_lb {
 	protected:
 
 
-			float *sol;
+			double *sol;
 			matrix *Aii, *Acc;
 			matrix2 *Aic; 
 			std::unique_ptr<LB_Solver::Preconditioner> precond;
@@ -66,20 +66,20 @@ class solution_lb {
 			void initSimulations(const solution_lb &base);
 			void initErrors();
 
-			float *getShufledSolution();
-			static float *getNewRandomSolution();
-			static float *copySolution(const float *sol);
+			double *getShufledSolution();
+			static double *getNewRandomSolution();
+			static double *copySolution(const double *sol);
 
-			float *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
+			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
 			
 			// shuffle constructor
-			solution_lb(float *sol, const solution_lb &base);
+			solution_lb(double *sol, const solution_lb &base);
 
 
 	public:
 
-		solution_lb(const float *sol);
+		solution_lb(const double *sol);
 		solution_lb();	// New random solution
 		bool compareWith(solution_lb &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
@@ -98,7 +98,7 @@ class solution_lb {
 			return minTotalDist;
 		}
 
-		float *getSolution() {
+		double *getSolution() {
 			return this->sol;
 		}
 

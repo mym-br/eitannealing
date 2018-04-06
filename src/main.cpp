@@ -376,7 +376,6 @@ void setSol(float *sol);
 #ifdef WIN32
 #include <windows.h>
 #else
-#include <time.h>
 #endif
 
 double get_time()
@@ -402,13 +401,14 @@ unsigned long getSeed() {
 	gettimeofday(&tv1, (struct timezone*)0);
 	return (unsigned long)(tv1.tv_sec*1.E3 + tv1.tv_usec);
 #endif
-}
 
 int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
 	QApplication::setApplicationName("EIT Annealing Test");
 	QApplication::setApplicationVersion("0.1");
+	 intCoef::initInstance();
+	 
 
 	// --> Parse command line arguments
 	QCommandLineParser parser;

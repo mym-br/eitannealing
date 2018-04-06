@@ -19,7 +19,7 @@ class viewport;
 class problem2D : public problem {
 	friend class viewport;
 	friend class viewportcomplex;
-
+public:
 	struct node {
 		double x, y;
 	};
@@ -33,7 +33,7 @@ class problem2D : public problem {
 		int baseNode;
 		std::vector<std::pair<int, int> > nodesPairs;
 	};
-
+protected:
 	struct elementCoefficients {
 		double aa, bb, cc, ab, ac, bc;
 		inline elementCoefficients operator *=(const double x) {
@@ -71,6 +71,9 @@ public:
 	int getInnerAdjacencyCount() { return (int)innerAdjacency.size(); }
 	problem2D(const char *meshfilename) : problem(meshfilename) {};
 	~problem2D(){};
+        // FIXME: add a better interface to this
+        const std::vector<node> getNodes() const { return nodes; }
+        const std::vector<triangularElement> getElements() const { return elements; }
 };
 
 #endif // PROBLEM2D_H_

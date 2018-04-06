@@ -1,6 +1,5 @@
 #include "solver_lb.h"
-#include "nodecoefficients.h"
-#include "problemdescription.h"
+#include "problem.h"
 
 LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a):
     Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(true), x0(Eigen::VectorXd::Zero(_Aii->rows()))
@@ -8,7 +7,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::Vec
     it = 0;
     // 0
     r = -_Aic->transpose()*Phi;
-    rc = J.end(_Acc->rows()) - *_Acc*Phi;      
+    rc = J.tail(_Acc->rows()) - _Acc->selfadjointView<Eigen::Lower>()*Phi;
     init();  
 }
 
@@ -18,7 +17,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::Vec
     it = 0;
     // 0
     r = -_Aic->transpose()*Phi;
-    rc = J.end(_Acc->rows()) - *_Acc*Phi;      
+    rc = J.tail(_Acc->rows()) - _Acc->selfadjointView<Eigen::Lower>()*Phi;
     //std::cout << "Before:" << sqrt(r.squaredNorm()+rc.squaredNorm()); 
     Eigen::VectorXd xaux(x0);
     //precond.solveInPlace(xaux);
@@ -36,7 +35,8 @@ void LB_Solver::init()
     p = r/delta; pc = rc/delta;
     
     // S = (ACi)T*p
-    s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
+    s.noalias() = Aii*p;	// Aii^T = Aii
+    s.noalias() += Aic.transpose()*pc;
     precond.solveInPlaceT(s);
 	ATJhatNorm2 = s.squaredNorm();
     gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
@@ -46,17 +46,19 @@ void LB_Solver::init()
 	// *** Gauss
     g=0;
     
-    // 1
-    w = q;
-    fit = delta;
+        // 1
+        w = q;
+        fit = delta;
     
 	qaux = q;
-    precond.solveInPlace(qaux); // q  <- q*C^-1
-    r = Aii*qaux.lazy(); rc = Aic*qaux.lazy();
+        precond.solveInPlace(qaux); // q  <- q*C^-1
+        r.noalias() = Aii*qaux;
+        rc.noalias() = Aic*qaux;
 	r -= gamma_ip*p; rc -= gamma_ip*pc;
-    delta = sqrt(r.squaredNorm()+rc.squaredNorm());
+        delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 	p = r/delta; pc = rc/delta;
-	s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
+	s.noalias() = Aii*p; 	// Aii^T = Aii
+        s.noalias() += Aic.transpose()*pc;
 	precond.solveInPlaceT(s);
 	s -= delta*q;
 	    // *** Gauss, as next value for gamma will be pertinent to iteration 2!
@@ -85,11 +87,13 @@ void LB_Solver::do_iteration()
 {
     qaux = q;
     precond.solveInPlace(qaux); // q  <- q*C^-1
-    r = Aii*qaux.lazy(); rc = Aic*qaux.lazy();
+    r.noalias() = Aii*qaux;
+    rc.noalias() = Aic*qaux;
 	r -= gamma_ip*p; rc -= gamma_ip*pc;
     delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 	p = r/delta; pc = rc/delta;
-    s = Aii.transpose()*p.lazy(); s += Aic.transpose()*pc.lazy();
+    s.noalias() = Aii*p; 	// Aii^T = Aii
+    s.noalias() += Aic.transpose()*pc;
     precond.solveInPlaceT(s);
 	s -= delta*q;
         // *** Gauss, as next value for gamma will be pertinent to next iteration!
@@ -142,29 +146,29 @@ double LB_Solver::getMinErrorl2Estimate() const
 LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix2* Aic, matrix* Acc, const Eigen::VectorXd& J, const Eigen::VectorXd& Phi, const Preconditioner& precond, int n, float e): 
         LB_Solver(Aii, Aic, Acc, J, Phi, precond, 0)
 {
-      UMatrix U(n,n);
+      Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
       // Alpha and beta must be stored in order to recalculate dt
       std::vector<double> AlphaVector;    
       std::vector<double> BetaVector;
       AlphaVector.push_back(alpha);
       BetaVector.push_back(beta);
-      U.startFill(2*n-1);
-      U.fill(0,0) = phi;
+      U.reserve(2*n-1);
+      U.insert(0,0) = phi;
       for(int i=1;i<n;i++) {
         this->do_iteration();
         AlphaVector.push_back(alpha);
         BetaVector.push_back(beta);      
-        U.fill(i-1,i) = psi_im;
-        U.fill(i,i) = phi;
+        U.insert(i-1,i) = psi_im;
+        U.insert(i,i) = phi;
       }
-      U.endFill();
+      U.makeCompressed();
       // Now calc eigenvalue     
       double oev=0;
       ev = 1.0;
       evec = Eigen::VectorXd::Constant(n,1/sqrt(n));
       while(fabs(oev-ev)/ev > e) {
-        U.transpose().solveTriangularInPlace(evec);
-        U.solveTriangularInPlace(evec);
+        U.triangularView<Eigen::Upper>().transpose().solveInPlace(evec);
+        U.triangularView<Eigen::Upper>().solveInPlace(evec);
         oev = ev;
         ev = 1/evec.norm(); 
         evec *= ev;
@@ -186,29 +190,29 @@ LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix2* Aic, matrix* 
 LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, const Eigen::VectorXd &x0, const Eigen::VectorXd &egHint, int n, float e):
  LB_Solver(Aii, Aic, Acc, J, Phi, precond, 0, x0)
 {
-    UMatrix U(n,n);
+      Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
       // Alpha and beta must be stored in order to recalculate dt
       std::vector<double> AlphaVector;    
       std::vector<double> BetaVector;
       AlphaVector.push_back(alpha);
       BetaVector.push_back(beta);
-      U.startFill(2*n-1);
-      U.fill(0,0) = phi;
+      U.reserve(2*n-1);
+      U.insert(0,0) = phi;
       for(int i=1;i<n;i++) {
         this->do_iteration();
         AlphaVector.push_back(alpha);
         BetaVector.push_back(beta);      
-        U.fill(i-1,i) = psi_im;
-        U.fill(i,i) = phi;
+        U.insert(i-1,i) = psi_im;
+        U.insert(i,i) = phi;
       }
-      U.endFill();
+      U.makeCompressed();
       // Now calc eigenvalue     
       double oev=0;
       ev = 1.0;
       evec = egHint;
       while(fabs(oev-ev)/ev > e) {
-        U.transpose().solveTriangularInPlace(evec);
-        U.solveTriangularInPlace(evec);
+        U.triangularView<Eigen::Upper>().transpose().solveInPlace(evec);
+        U.triangularView<Eigen::Upper>().solveInPlace(evec);
         oev = ev;
         ev = 1/evec.norm(); 
         evec *= ev;
@@ -227,31 +231,31 @@ LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *
     
 }
 
-
-void assembleProblemElectrodeIdentityMatrix(float *cond, matrix2 **Kic, int numElect)
+// FIXME: Use new implementation
+void assembleProblemElectrodeIdentityMatrix(double *cond, matrix2 **Kic, problem &p)
 {
-        int iiLimit = nodes.size()-numElect;      
-        matrix2 *out = new matrix2(numElect-1, nodes.size()-1);
+        int iiLimit = p.getNodesCount()-p.getGenericElectrodesCount();      
+        matrix2 *out = new matrix2(p.getGenericElectrodesCount()-1,  p.getNodesCount()-1);
         double val;
-        out->startFill(numElect-1); // estimate of the number of nonzeros (optional)
-        for (int i=iiLimit; i<nodes.size()-1; ++i) {
-              out->fill(i-iiLimit, i) = totalheight*mincond/2;
+        for (int i=iiLimit; i< p.getNodesCount()-1; ++i) {
+              out->insert(i-iiLimit, i) = totalheight*mincond/2;
         }
-        out->endFill();
+        out->makeCompressed();
 
         *Kic = out;
 }
 
-void assembleProblemMatrix_lb(float *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc, int numElect)
+// FIXME: Use new implementation
+void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc, problem &p)
 {
-      int iiLimit = nodes.size()-numElect;
+      int iiLimit = p.getNodesCount()-p.getGenericElectrodesCount();
 
         matrix *out = new matrix(iiLimit, iiLimit);
         double val;
-        out->startFill(); // estimate of the number of nonzeros (optional)
+        out->reserve(7*iiLimit); // estimate of the number of nonzeros (optional)
         int i;
         for (i=0; i<iiLimit; ++i) {
-                nodeCoefficients *aux = nodeCoef[i];
+                nodeCoefficients *aux = p.getNodeCoefficients()[i];
                 while(aux) { // Col-major storage
                         while(aux->node < i) aux = aux->next; // skip upper triangular
                         int row = aux->node;
@@ -261,19 +265,18 @@ void assembleProblemMatrix_lb(float *cond, matrix **Kii, matrix2 **Kic, matrix *
                                 val += aux->coefficient*cond[aux->condIndex];
                                 aux = aux->next;
                         }
-                        out->fill(row,i) = val;
+                        out->insert(row,i) = val;
                 }
         }
-        out->endFill();
+        out->makeCompressed();
         *Kii = out;
-        // Now Kii and Kic
-        matrix *out2 = new matrix(numElect-1, numElect-1);
+        // Now Kcc and Kic
+        matrix *out2 = new matrix(p.getGenericElectrodesCount()-1, p.getGenericElectrodesCount()-1);
         // Row major! Built as the transpose
-        matrix2 *outLeft = new matrix2(numElect-1, iiLimit);
-        out2->startFill();
-        outLeft->startFill();
-        for (; i<nodes.size()-1; ++i) {
-                nodeCoefficients *aux = nodeCoef[i];
+        matrix2 *outLeft = new matrix2(p.getGenericElectrodesCount()-1, iiLimit);
+        out2->reserve((p.getGenericElectrodesCount()-1)*4);        
+        for (; i<p.getNodesCount()-1; ++i) {
+                nodeCoefficients *aux =  p.getNodeCoefficients()[i];
                 while(aux) { // Col-major storage in Kcc, row major in Kic
                         while(aux->node > iiLimit && aux->node < i) aux = aux->next; // skip small upper triangular section at the bottom left
                         int row = aux->node;
@@ -283,13 +286,13 @@ void assembleProblemMatrix_lb(float *cond, matrix **Kii, matrix2 **Kic, matrix *
                                 aux = aux->next;
                         }
                         if(row<iiLimit)
-                          outLeft->fill(i-iiLimit,row) = val; // As noted previously, outLeft is filled sideways row-wise
+                          outLeft->insert(i-iiLimit,row) = val; // As noted previously, outLeft is filled sideways row-wise
                         else 
-                          out2->fill(row-iiLimit,i-iiLimit) = val;
+                          out2->insert(row-iiLimit,i-iiLimit) = val;
                 }
         }
-        out->endFill();
-        outLeft->endFill();
+        out->makeCompressed();
+        outLeft->makeCompressed();
         *Kcc = out2;
         *Kic = outLeft;        
 }

@@ -97,7 +97,6 @@ class LB_Solver_EG_Estimate : public LB_Solver
     }
 };
 
-void assembleProblemElectrodeIdentityMatrix(double *cond, matrix2 **Kic, int numElect);
 void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc,int numElect);
 
 #endif  // SOLVER_LB_H_

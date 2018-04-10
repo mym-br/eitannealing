@@ -1,5 +1,6 @@
 #include <QCommandLineParser>
 #include "parametersparser.h"
+#include "problem.h"
 
 CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealingArgs *params, QString *errorMessage)
 {
@@ -8,6 +9,9 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
     parser.addPositionalArgument("mesh","Input mesh file.");
 	parser.addPositionalArgument("currents", "Input injected currents file.");
 	parser.addPositionalArgument("tensions", "Input tension measurements file.");
+	parser.addPositionalArgument("regularisation", "Weight for gradient norm regularisation.");
+	parser.addPositionalArgument("electrodevar", "Weight for electrode variance penalization.");
+	parser.addPositionalArgument("kt", "Initial temperature.");
 	
 	const QCommandLineOption gmeshOpt("gmesh", "Address for gmesh socket communication.", "address"); parser.addOption(gmeshOpt);
 	const QCommandLineOption seedOpt("seed", "Seed for the random number generator.", "number"); parser.addOption(seedOpt);
@@ -36,17 +40,20 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, EitAnnealing
         *errorMessage = "No argument specified.";
         return CommandLineError;
     }
-	if (positionalArguments.size() < 3) {
+	if (positionalArguments.size() < 6) {
 		*errorMessage = "Too few arguments.";
 		return CommandLineError;
 	}
-    if (positionalArguments.size() > 3) {
+    if (positionalArguments.size() > 6) {
         *errorMessage = "Too many arguments specified.";
         return CommandLineError;
     }
     params->inputMesh = positionalArguments.at(0);
 	params->inputCurrents = positionalArguments.at(1);
 	params->inputTensions = positionalArguments.at(2);
+	params->regularizationFactor = positionalArguments.at(3).toDouble();
+	params->electrodevar = positionalArguments.at(4).toDouble();
+	params->kt = positionalArguments.at(5).toDouble();
 	if (parser.isSet(currentsOutOpt)) params->inputCurrentsOut = parser.value(currentsOutOpt);
 	if (parser.isSet(gmeshOpt)) params->gmeshAddress = parser.value(gmeshOpt); else params->gmeshAddress = "127.0.0.1:44202";
 	if (parser.isSet(outputOpt)) params->outputMesh = parser.value(outputOpt); else params->outputMesh = "solution.msh";

@@ -136,6 +136,30 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 {
       {		// Redraw on the buffer
 	    double *solution = (double *)topLeft.internalPointer() - topLeft.row();
+
+		maxval = *std::max_element(solution + input->getGenericElectrodesCoeffCount(), solution + input->getNumCoefficients());
+		minval = *std::min_element(solution + input->getGenericElectrodesCoeffCount(), solution + input->getNumCoefficients());
+		this->scale.fill(qRgb(255, 255, 255));
+		QLinearGradient color(20, 0, this->width() - 20, 0);
+		color.setColorAt(0, getColorForLevel(minval));
+		for (double t = 0.125f; t < 1.0f; t += 0.125f) {
+			double level = maxval*t + (1 - t)*minval;
+			color.setColorAt(t, getColorForLevel(level));
+		}
+		color.setColorAt(1, getColorForLevel(maxval));
+		QPainter painterScale(&scale);
+		painterScale.setBrush(color);
+		//painter.setPen(Qt::NoPen);
+		painterScale.drawRect(20, 10, scale.width() - 40, 30);
+		painterScale.setPen(Qt::SolidLine);
+		for (int i = 0; i <= 4; i++) {
+			int x = (int)((scale.width() - 40)*((float)i / 4) + 0.5f) + 20;
+			double level = (float)i / 4;
+			level = maxval*level + (1 - level)*minval;
+			painterScale.drawLine(x, 40, x, 45);
+			painterScale.drawText(x - 25, 45, 51, 20, Qt::AlignHCenter | Qt::AlignTop, QString::number(level,'g',2));
+		}
+
 	    int i;
 	    QPainter painter(&this->paintbuff);
 	    painter.setRenderHint(QPainter::Antialiasing);

@@ -12,6 +12,7 @@
 #include <iostream>
 //#include <boost/numeric/interval.hpp>
 #include "gradientnormregularisation.h"
+#include <numeric>
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -239,7 +240,21 @@ void solution::initSimulations()
 void solution::initErrors()
 {
 	// Calc regularisation value
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30;
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*input->regularizationFactor;
+	// Calc electrode contact condutivity variance
+	//for (int i = 0; i < input->getGenericElectrodesCount(); i++) { std::cout << this->sol[i] << " "; std::cout << std::endl; }
+	if (std::abs(input->electrodevar) > 1e-6) {
+		double sum = std::accumulate(this->sol, this->sol + input->getGenericElectrodesCount(), 0.0);
+		double mean = sum / input->getGenericElectrodesCount();
+		std::vector<double> diff(input->getGenericElectrodesCount());
+		std::transform(this->sol, this->sol + input->getGenericElectrodesCount(), diff.begin(), [mean](double x) { return x - mean; });
+		double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+		double var = sq_sum / input->getGenericElectrodesCount();
+		this->elecvariance = var*input->electrodevar;
+		this->regularisation += this->elecvariance;
+	}
+	else 
+		this->elecvariance = 0;
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!

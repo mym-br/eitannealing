@@ -56,6 +56,7 @@ observations<std::complex<double>> *readingsComplex;
 observations<double> *readingsScalar;
 bool isComplexProblem;
 unsigned long seed;
+float kt;
 
 void workProc()
 {
@@ -120,7 +121,6 @@ void workProc()
 	double *solim = new double[input->getNumCoefficients()];
 	std::unique_ptr<solutionbase<std::complex<double>>> currentComplex, nextComplex;
 	std::unique_ptr<solutionbase<double>> currentScalar, nextScalar;
-	float kt = 0.05f;
 
 	int totalit;
 	int acceptit;
@@ -167,7 +167,7 @@ void workProc()
 	}
 	else {
 		std::vector<double> electrodesCoeffs;
-		//for (int j = 0; j < 32; j++) electrodesCoeffs.push_back(10.0);
+		//for (int j = 0; j < 32; j++) electrodesCoeffs.push_back(0.002);
 		sh.reset(new shuffler(input, readingsScalar));
 		currentScalar.reset(new solution(input, readingsScalar, electrodesCoeffs));
 	}
@@ -178,12 +178,13 @@ void workProc()
 	int solutions;
 	double e;
 	double r;
+	double v;
 	double sqe;
 	iterations = 0;
 	int no_avance_count = 0;
 	double prevE = 10000000000.0;
 	while (kt > 0.00000000005 && no_avance_count < 3) {
-		e = sqe = r = 0;
+		e = sqe = r = 0; v = 0;
 		totalit = acceptit = 0;
 		solutions = 0;
 		iterations = 0;
@@ -213,7 +214,8 @@ void workProc()
 			}
 			else {
 				e += currentScalar->getDEstimate();
-				r += currentScalar->getRegularisationValue();
+				r += currentScalar->getRegularisationValue() - currentScalar->getElectrodeVariance();
+				v += currentScalar->getElectrodeVariance();
 				sqe += currentScalar->getDEstimate()*currentScalar->getDEstimate();
 			}
 
@@ -235,11 +237,12 @@ void workProc()
 		}
 		double eav = e / solutions;
 		double rav = r / solutions;
+		double vav = v / solutions;
 		double sige = sqrt(sqe / solutions - eav*eav);
 		//solution probe(current->getSolution());
 		//probe.saturate();
 		int nObs = isComplexProblem ? readingsComplex->getNObs() : readingsScalar->getNObs();
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations) / (nObs*solutions) << ":" << seed << std::endl;
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << vav << ":" << ((float)iterations) / (nObs*solutions) << ":" << seed << std::endl;
 		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		std::cout << it << ":" << current->getSolution()[it] << std::endl;
@@ -444,6 +447,9 @@ int main(int argc, char *argv[])
 	std::string tensionsfname = params.inputTensions.toStdString();
 	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
 	input->setGroundNode(params.ground);
+	kt = params.kt;
+	input->electrodevar = params.electrodevar;
+	input->regularizationFactor = params.regularizationFactor;
 	isComplexProblem = !currentsoutfname.empty();
 	if (isComplexProblem) {
 		// TODO: read parameters from commanline

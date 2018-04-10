@@ -183,11 +183,13 @@ public:
 		#endif
 		return current;
 	}
+
+	double electrodevar, regularizationFactor;
 };
 
-const double mincond = 0.005;
+const double mincond = 0.001;
 //const double maxcond = 0.3815;
-const double maxcond = 30.0;
+const double maxcond = 0.3;
 const double minperm = 0.000000000070922044418976;//0.00000005;
 const double maxperm = 0.0000000070922044418976;// 0.05;
 

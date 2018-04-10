@@ -72,8 +72,8 @@ void problem2D::fillElementsGenericElectrode() {
 		nc--;
 		switch (id) {
 		case 1001:	// external ring
-			//case 2001:
-			//case 3001:
+			case 2001:
+			case 3001:
 			innerNodes.erase(na);
 			innerNodes.erase(nb);
 			innerNodes.erase(nc);
@@ -86,8 +86,8 @@ void problem2D::fillElementsGenericElectrode() {
 			elements.push_back(temp);
 			break;
 
-		case 2001:
-		case 3001:	// internal elements
+		//case 2001:
+		//case 3001:	// internal elements
 		case 4001:
 			if (!outerRingNodes.count(na))
 				innerNodes.insert(na);

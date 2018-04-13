@@ -18,22 +18,10 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "observations.h"
+#include "nodecoefficients.h"
 class solution;
 
-#define TETRAHEDRON_TYPE 4
-
-struct nodeCoefficients {
-	int node;
-	int condIndex;
-	double coefficient;
-	nodeCoefficients *next;
-
-	nodeCoefficients(int node, int index, double coefficient) :
-		node(node), condIndex(index), coefficient(coefficient), next(NULL) {}
-
-	nodeCoefficients(int node, int index, double coefficient, nodeCoefficients *next) :
-		node(node), condIndex(index), coefficient(coefficient), next(next) {}
-};
+//#define TETRAHEDRON_TYPE 4
 
 class problem {
 	friend class gradientNormRegularisation;

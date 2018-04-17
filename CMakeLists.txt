@@ -4,10 +4,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_mod
 find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Threads REQUIRED)
+find_package(CUDA QUIET REQUIRED)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
-include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} src src/complex)
+include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src src/complex)
 
 set(eitannealingtest_SRCS 
   src/gradientnormregularisation.cpp 
@@ -37,8 +38,6 @@ set(eitannealingtest_SRCS
   src/cuda/vector.cpp
   src/cuda/vector.cu
   src/cuda/utils.cpp
-  src/cuda/model.cpp
-  src/cuda/stiffness.cpp
   src/cuda/color.cpp
   src/cuda/analysis.cpp
   src/cuda/solver-pcg.cu
@@ -48,7 +47,7 @@ set(eitannealingtest_SRCS
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})
-set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
 if(WIN32)
     set(ADDITIONAL_LIBRARIES wsock32)
 endif()

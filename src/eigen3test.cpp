@@ -11,10 +11,7 @@
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
 #include "observations.h"
-//#include "cuda/matrix-cpjds.h"
-//#include "cuda/settings.h"
-//#include "cuda/solver-pcg.h"
-//#include "cuda/HighResClock.h"
+#include "cuda/HighResClock.h"
 #include "cuda/solvercuda.h"
 
 numType * buildMeshStiffness(matrix &mat, int m, int n) {
@@ -28,34 +25,6 @@ numType * buildMeshStiffness(matrix &mat, int m, int n) {
 	return  stiffnessData;
 }
 
-//void saveVals(const char* fname, numType *mat, int m, int n) {
-//	std::ofstream myfile;
-//	myfile.open(fname, std::ios::binary);
-//	for (int i = 0; i < n; i++) {
-//		for (int j = 0; j < m; j++) {
-//			double valre = mat[i *n + j];
-//			double valim = 0.0;
-//			myfile.write((char*)&valre, sizeof(double));
-//			myfile.write((char*)&valim, sizeof(double));
-//		}
-//	}
-//	myfile.close();
-//}
-
-//void saveVals(const char* fname, std::vector<numType> &mat, int m, int n) {
-//	std::ofstream myfile;
-//	myfile.open(fname, std::ios::binary);
-//	for (int i = 0; i < n; i++) {
-//		for (int j = 0; j < m; j++) {
-//			double valre = mat[i *n + j];
-//			double valim = 0.0;
-//			myfile.write((char*)&valre, sizeof(double));
-//			myfile.write((char*)&valim, sizeof(double));
-//		}
-//	}
-//	myfile.close();
-//
-//}
 void saveVals(const char* fname, std::vector<numType> vec, int n) {
 	std::ofstream myfile;
 	myfile.open(fname, std::ios::binary);
@@ -80,6 +49,38 @@ void saveVals(const char* fname, matrix &mat, bool symm = false) {
 		}
 	}
 	myfile.close();
+	//mat.makeCompressed();
+	//std::vector<int> outer(mat.outerIndexPtr(), mat.outerIndexPtr() + mat.outerSize());
+	//std::vector<Eigen::Triplet<Scalar>> tripletList;
+	//int col = -1;
+	//for (int i = 0; i < mat.nonZeros(); ++i) {
+	//	int aaa = mat.outerIndexPtr()[col + 1];
+	//	if (mat.outerIndexPtr()[col+1] <= i) col++;
+	//	int row = mat.innerIndexPtr()[i];
+
+	//	tripletList.push_back(Eigen::Triplet<Scalar>(row, col, mat.valuePtr()[i]));
+	//	if(row != col) tripletList.push_back(Eigen::Triplet<Scalar>(col, row, mat.valuePtr()[i]));
+	//}
+	//matrix matsymm(mat.rows(), mat.cols());
+	//matsymm.setFromTriplets(tripletList.begin(), tripletList.end());
+	//matsymm.makeCompressed();
+
+	//// Save in CSR format
+	////matrix matsymm = mat;
+	//Scalar *values = matsymm.valuePtr();
+	//int *innerIndices = matsymm.innerIndexPtr();
+	//int *outerStarts = matsymm.outerIndexPtr();
+	//myfile.open("Sizes.txt"); myfile << matsymm.nonZeros() << " " << matsymm.outerSize(); myfile.close();
+	//myfile.open("Values.txt", std::ios::binary);
+	//for (int i = 0; i < matsymm.nonZeros(); i++) {
+	//	double valre = values[i];
+	//	double valim = 0.0;
+	//	myfile.write((char*)&valre, sizeof(double));
+	//	myfile.write((char*)&valim, sizeof(double));
+	//} 
+	//myfile.close();
+	//myfile.open("InnerIndices.txt"); for (int i = 0; i < matsymm.nonZeros(); i++) { myfile << innerIndices[i] << " "; } myfile.close();
+	//myfile.open("OuterStarts.txt"); for (int i = 0; i < matsymm.outerSize(); i++) { myfile << outerStarts[i] << " "; } myfile << matsymm.nonZeros();  myfile.close();
 }
 
 void saveVals(const char* fname, const Eigen::VectorXd &vec) {
@@ -139,9 +140,7 @@ int main(int argc, char *argv[])
 	
     matrix *m;
 	Eigen::VectorXd vcond(input->getNumCoefficients());
-	//for (int i = 0; i < vcond.rows(); i++) vcond[i] = 0.3815;
-	//for (int i = 0; i < 32; i++) vcond[i] = 6; for (int i = 32; i < vcond.rows(); i++) vcond[i] = 0.29;
-	for (int i = 0; i < vcond.rows(); i++) vcond[i] = 1;
+	for (int i = 0; i < vcond.rows(); i++) vcond[i] = 0.3815;
 	input->assembleProblemMatrix(&vcond[0], &m);
 	input->postAssembleProblemMatrix(&m);
 
@@ -160,114 +159,67 @@ int main(int argc, char *argv[])
 
 	//saveVals("A.txt", *m, true);
 
+	// Create preconditioner
+	SparseIncompleteLLT precond(*m);
+	//matrix L = precond.matrixL();
+	//saveVals("L.txt", L);
+
+	// Create CUDA preconditioner
 	int n = (*m).rows();
-	//numType * stiffnessData = buildMeshStiffness(*m, n, n);
-	//saveVals("A_cuda.txt", stiffnessData, n, n);
-	//MatrixCPJDS stiffness;
-	//MatrixCPJDSManager mgr(stiffnessData, n);
-	//mgr.buidMatrixCPJDS(&stiffness);
-	//int size = stiffness.matrixData.n;
-	//std::cout << "Original size: " << n << std::endl;
-	//std::cout << "CPJDSMatrix size: " << size << std::endl;
-	//int repetitions = 100;
-	//std::cout << "\n--- Conjugate Gradients ---" << std::endl;
-	//std::cout << "...running..." << std::endl;
-	//Vector ** currentsVec = new Vector*[32];
-	//numType * vecArr = new numType[size];
-	//for (int k = 0; k < 32; k++) {
-	//	for (int i = 0; i < size; i++) {
-	//		vecArr[i] = 0;
-	//	}
-	//	for (int i = 0; i < n; i++) {
-	//		currents = input->getCurrentVector(k, readings);
-	//		vecArr[mgr.original2PaddedIdx[i]] = currents[i];
-	//	}
-	//	currentsVec[k] = new Vector(vecArr, size);
-	//}
-	//cudaMemcpy(stiffness.preconditionedData, stiffness.cpuData.precond, (size_t)stiffness.matrixData.elCount * sizeof(numType), cudaMemcpyHostToDevice);
-	//PCGSolverCPJDS ** solvers;
-	//solvers = new PCGSolverCPJDS*[32];
-	//for (int i = 0; i < 32; i++) solvers[i] = new PCGSolverCPJDS(&mgr, &stiffness, currentsVec[i]);
-	//HighResClock::time_point t11 = HighResClock::now();
-	//for (int pad = 0; pad < 32; pad++) {
-	//	solvers[pad]->init();
-	//}
-	//HighResClock::time_point t9 = HighResClock::now();
-	//for (int pad = 0; pad < 32; pad++) {
-	//	for (int i = 0; i < repetitions; i++) {
-	//		solvers[pad]->doIteration();
-	//	}
-	//}
-	//cudaDeviceSynchronize();
-	//HighResClock::time_point t10 = HighResClock::now();
-	//HighResClock::time_point t12 = HighResClock::now();
-	//auto duration910 = std::chrono::duration_cast<std::chrono::microseconds>(t10 - t9).count();
-	//std::cout << "...done in " << (((float)duration910) / repetitions) << " us!" << std::endl;
-	//auto duration1112 = std::chrono::duration_cast<std::chrono::microseconds>(t12 - t11).count();
-	//std::cout << "...done (+init) in " << (((float)duration1112) / repetitions) << " us!" << std::endl;
+	MatrixCPJDS *stiffness = new MatrixCPJDS;
+	numType * stiffnessData = buildMeshStiffness(*m, n, n); // FIXME: more efficiently copy data, also do it only once
+	MatrixCPJDSManager *mgr = CGCUDA_Solver::createManager(stiffnessData, stiffness, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients(), n);
 
 	std::vector<Eigen::VectorXd> solutions, solutioncuda;
 	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
-		//currents = (*m).selfadjointView<Eigen::Lower>() * input->getCurrents()[patterno];
+		// Get current vector
 		currents = input->getCurrentVector(patterno, readings);
+		#ifndef BLOCKGND
+		currents[input->getGroundNode()] = 0;
+		#endif
+		//saveVals(("b" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
 
+		// Create CUDA current vector
 		numType *currentsData = new numType[n];
 		for (int i = 0; i < n; i++) currentsData[i] = currents[i];
+		Vector *bVec = CGCUDA_Solver::createCurrentVector(currentsData, *mgr, stiffness->matrixData.n, n);
 		//saveVals(("b" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), currentsData, n, 1);
-
-		//#ifndef BLOCKGND
-		//currents[input->getGroundNode()] = 0;
-		//#endif
-
-		//std::ofstream myfile;
-		//myfile.open("currents" + std::to_string(patterno+1) + ".txt");
-		//for (int i = 0; i < currents.size(); i++) myfile << currents.coeff(i) << std::endl;
-		//myfile.close();
-		//saveVals(("b" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
 		
+		// Current GUI view
 		vectorbView.setModel(makeMatrixTableModel(currents));
 		vectorbView.show();
 
-		SparseIncompleteLLT precond(*m);
-		matrix L = precond.matrixL();
-		//saveVals("L.txt", L);
+		// Solve the direct problem
+		HighResClock::time_point ts1 = HighResClock::now();
 		CG_Solver solver(*m, currents, precond);
 		for (int i = 0; i < 100; i++) solver.do_iteration();
+		HighResClock::time_point ts2 = HighResClock::now();
 		x = solver.getX();
-		//#ifndef BLOCKGND
-		//// Correct potentials
-		//double avg = 0;
-		//for (int i = input->getNodesCount() - input->getGenericElectrodesCount(); i < input->getNodesCount(); i++) avg += x[i];
-		//avg /= input->getGenericElectrodesCount();
-		//for (int i = 0; i < input->getNodesCount(); i++) x[i] -= avg;
-		//#endif
-		numType * stiffnessData = buildMeshStiffness(*m, n, n); // FIXME: more efficiently copy data, also do it only once
-		CGCUDA_Solver solvercuda(stiffnessData, currentsData, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients(), NULL, n);
+		//saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
+		
+		// CUDA solver for the direct problem
+		HighResClock::time_point tc1 = HighResClock::now();
+		CGCUDA_Solver solvercuda(stiffness, mgr, bVec);
 		for (int i = 0; i < 100; i++) solvercuda.doIteration();
+		HighResClock::time_point tc2 = HighResClock::now();
 		std::vector<numType> xcuda = solvercuda.getX();
-		Eigen::VectorXd xcudavec(n);
-		for (int i = 0; i < n; i++) xcudavec[i] = xcuda[i];
+		Eigen::VectorXd xcudavec(n); for (int i = 0; i < n; i++) xcudavec[i] = xcuda[i];
 		//saveVals(("x" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), xcudavec);
 
+		// Potential GUI view
 		vectorView.setModel(makeMatrixTableModel(x.selfadjointView<Eigen::Lower>()));
 		vectorView.show();
-
-		//myfile.open("tensions" + std::to_string(patterno+1) + ".txt");
-		//for (int i = 0; i < x.size(); i++) myfile << x.coeff(i) << std::endl;
-		//myfile.close();
-		//saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
-
+		
+		// Store solutions
 		solutions.push_back(x);
 		solutioncuda.push_back(xcudavec);
-		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << std::endl;
+		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << ". Serial duration is " << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()  <<
+			"us and parallel cuda duration is " << std::chrono::duration_cast<std::chrono::microseconds>(tc2 - tc1).count()  << "us." << std::endl;
 	}
 
-
+	// Save solutions to gmsh files
 	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input, readings);
-
-	std::string refname(params.outputMesh.toStdString());
-	std::size_t dotfound = refname.find_last_of(".");
-	refname.replace(dotfound, 1, "_cuda.");
+	std::string refname(params.outputMesh.toStdString()); std::size_t dotfound = refname.find_last_of("."); refname.replace(dotfound, 1, "_cuda.");
 	solution::savePotentials(solutioncuda, refname.c_str(), input, readings);
 
 	return app.exec();

@@ -11,6 +11,9 @@
 #include "vector.h"
 #include "../nodecoefficients.h"
 
+namespace Eigen {
+	template<typename _Scalar, int _Options, typename _Index> class SparseMatrix;
+}
 using namespace cgl;
 
 struct MatrixData {
@@ -106,6 +109,8 @@ public:
 	int * original2PaddedIdx;
 	/* map (color-sorted-padded index)=>(original index) [size N padded] */
 	int * padded2OriginalIdx;
+	// data must be processed and color-sorted
+	MatrixCPJDSManager(Eigen::SparseMatrix<double, 0, int> *data, int n);
 	// data must be processed and color-sorted
 	MatrixCPJDSManager(numType * data, int n);
 	// data has been pre-processed and color-sorted, n already includes padding

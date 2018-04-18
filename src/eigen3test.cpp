@@ -153,8 +153,7 @@ int main(int argc, char *argv[])
 	MatrixCPJDSManager *mgr = CGCUDA_Solver::createManager(stiffnessData, stiffness, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients(), n);
 
 	std::vector<Eigen::VectorXd> solutions, solutionscuda, solutionscublas;
-	//for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
-	for (int patterno = 0; patterno < 1; patterno++) {
+	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
 		// Get current vector
 		currents = input->getCurrentVector(patterno, readings);
 		#ifndef BLOCKGND
@@ -191,7 +190,7 @@ int main(int argc, char *argv[])
 
 		// Cublas solver for the direct problem
 		HighResClock::time_point tb1 = HighResClock::now();
-		CGCUBLAS_Solver solvercublas(&msymm, currentsData);
+		Cublas::CG_Solver solvercublas(&msymm, currentsData);
 		solvercublas.calculatePrecond();
 		for (int i = 0; i < 100; i++) solvercublas.doIteration();
 		HighResClock::time_point tb2 = HighResClock::now();

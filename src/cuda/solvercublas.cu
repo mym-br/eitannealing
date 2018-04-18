@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <fstream>
 
-CGCUBLAS_Solver::~CGCUBLAS_Solver() {
+using namespace Cublas;
+
+CG_Solver::~CG_Solver() {
 	/* Destroy parameters */
 	cusparseDestroySolveAnalysisInfo(infoA);
 	cusparseDestroySolveAnalysisInfo(info_u);
@@ -27,7 +29,7 @@ CGCUBLAS_Solver::~CGCUBLAS_Solver() {
 	cudaFree(d_rm2);
 }
 
-void CGCUBLAS_Solver::cudaInitialize(float *val, int M, int N, int nz, int *I, int *J, float *rhs) {
+void CG_Solver::cudaInitialize(float *val, int M, int N, int nz, int *I, int *J, float *rhs) {
 	this->M = M; this->N = N; this->nz = nz;
 	x = (float *)malloc(sizeof(float)*N);
 	for (int i = 0; i < N; i++) x[i] = 0.0;
@@ -73,7 +75,7 @@ void CGCUBLAS_Solver::cudaInitialize(float *val, int M, int N, int nz, int *I, i
 	cudaMalloc((void **)&d_rm2, (N) * sizeof(float));
 }
 
-void CGCUBLAS_Solver::calculatePrecond() {
+void CG_Solver::calculatePrecond() {
 	cusparseStatus_t cusparseStatus;
 	/* create the analysis info object for the A matrix */
 	infoA = 0;
@@ -117,7 +119,7 @@ void CGCUBLAS_Solver::calculatePrecond() {
 	cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
 }
 
-void CGCUBLAS_Solver::doIteration() {
+void CG_Solver::doIteration() {
 	const float tol = 1e-12f;
 	const int max_iter = 1000;
 	const float floatone = 1.0;
@@ -163,14 +165,14 @@ void CGCUBLAS_Solver::doIteration() {
 	cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
 }
 
-float *CGCUBLAS_Solver::getX() {
+float *CG_Solver::getX() {
 	cudaMemcpy(x, d_x, N * sizeof(float), cudaMemcpyDeviceToHost);
 	return x;
 }
 
 
-CGCUBLAS_Precond *CGCUBLAS_Precond::createPrecond(Eigen::SparseMatrix<float, 0, int> *A) {
-	CGCUBLAS_Precond *precond = new CGCUBLAS_Precond;
+Precond *Precond::createPrecond(Eigen::SparseMatrix<float, 0, int> *A) {
+	Precond *precond = new Precond;
 
 	//cusparseStatus_t cusparseStatus;
 	///* create the analysis info object for the A matrix */
@@ -214,7 +216,7 @@ CGCUBLAS_Precond *CGCUBLAS_Precond::createPrecond(Eigen::SparseMatrix<float, 0, 
 	return precond;
 }
 
-void CGCUBLAS_Matrix::cudaMemcpyCublasMatrix(CGCUBLAS_Matrix *A) {
+void Matrix::cudaMemcpyCublasMatrix(Matrix *A) {
 	A->descr = 0;
 	cusparseCreateMatDescr(&A->descr);
 

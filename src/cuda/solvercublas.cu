@@ -11,8 +11,8 @@ CG_Solver::~CG_Solver() {
 	cusparseDestroySolveAnalysisInfo(info_u);
 
 	/* Destroy contexts */
-	cusparseDestroy(cusparseHandle);
-	cublasDestroy(cublasHandle);
+	cusparseDestroy(CusparseHandle::Instance().getHandle());
+	cublasDestroy(CublasHandle::Instance().getHandle());
 
 	/* Free device memory */
 	cudaFree(d_col);
@@ -34,16 +34,7 @@ void CG_Solver::cudaInitialize(float *val, int M, int N, int nz, int *I, int *J,
 	x = (float *)malloc(sizeof(float)*N);
 	for (int i = 0; i < N; i++) x[i] = 0.0;
 
-	/* Create CUBLAS context */
-	cublasHandle = 0;
-	cublasStatus_t cublasStatus;
-	cublasStatus = cublasCreate(&cublasHandle);
-
-	/* Create CUSPARSE context */
-	cusparseHandle = 0;
 	cusparseStatus_t cusparseStatus;
-	cusparseStatus = cusparseCreate(&cusparseHandle);
-
 	/* Description of the A matrix*/
 	descr = 0;
 	cusparseStatus = cusparseCreateMatDescr(&descr);
@@ -84,7 +75,7 @@ void CG_Solver::calculatePrecond() {
 	//checkCudaErrors(cusparseStatus);
 
 	/* Perform the analysis for the Non-Transpose case */
-	cusparseStatus = cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+	cusparseStatus = cusparseScsrsv_analysis(CusparseHandle::Instance().getHandle(), CUSPARSE_OPERATION_NON_TRANSPOSE,
 		N, nz, descr, d_val, d_row, d_col, infoA);
 
 	//checkCudaErrors(cusparseStatus);
@@ -93,7 +84,7 @@ void CG_Solver::calculatePrecond() {
 	cudaMemcpy(d_valsILU0, d_val, nz * sizeof(float), cudaMemcpyDeviceToDevice);
 
 	/* generate the Incomplete LU factor H for the matrix A using cudsparseScsrilu0 */
-	cusparseStatus = cusparseScsrilu0(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, descr, d_valsILU0, d_row, d_col, infoA);
+	cusparseStatus = cusparseScsrilu0(CusparseHandle::Instance().getHandle(), CUSPARSE_OPERATION_NON_TRANSPOSE, N, descr, d_valsILU0, d_row, d_col, infoA);
 
 	//checkCudaErrors(cusparseStatus);
 
@@ -113,10 +104,10 @@ void CG_Solver::calculatePrecond() {
 	cusparseSetMatIndexBase(descrU, CUSPARSE_INDEX_BASE_ZERO);
 	cusparseSetMatFillMode(descrU, CUSPARSE_FILL_MODE_UPPER);
 	cusparseSetMatDiagType(descrU, CUSPARSE_DIAG_TYPE_NON_UNIT);
-	cusparseStatus = cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, nz, descrU, d_val, d_row, d_col, info_u);
+	cusparseStatus = cusparseScsrsv_analysis(CusparseHandle::Instance().getHandle(), CUSPARSE_OPERATION_NON_TRANSPOSE, N, nz, descrU, d_val, d_row, d_col, info_u);
 
 	k = 0;
-	cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
+	cublasSdot(CublasHandle::Instance().getHandle(), N, d_r, 1, d_r, 1, &r1);
 }
 
 void CG_Solver::doIteration() {
@@ -129,12 +120,12 @@ void CG_Solver::doIteration() {
 	cusparseStatus_t cusparseStatus;
 
 	// Forward Solve, we can re-use infoA since the sparsity pattern of A matches that of L
-	cusparseStatus = cusparseScsrsv_solve(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, &floatone, descrL,
+	cusparseStatus = cusparseScsrsv_solve(CusparseHandle::Instance().getHandle(), CUSPARSE_OPERATION_NON_TRANSPOSE, N, &floatone, descrL,
 		d_valsILU0, d_row, d_col, infoA, d_r, d_y);
 	//checkCudaErrors(cusparseStatus);
 
 	// Back Substitution
-	cusparseStatus = cusparseScsrsv_solve(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, &floatone, descrU,
+	cusparseStatus = cusparseScsrsv_solve(CusparseHandle::Instance().getHandle(), CUSPARSE_OPERATION_NON_TRANSPOSE, N, &floatone, descrU,
 		d_valsILU0, d_row, d_col, info_u, d_y, d_zm1);
 	//checkCudaErrors(cusparseStatus);
 
@@ -142,27 +133,27 @@ void CG_Solver::doIteration() {
 
 	if (k == 1)
 	{
-		cublasScopy(cublasHandle, N, d_zm1, 1, d_p, 1);
+		cublasScopy(CublasHandle::Instance().getHandle(), N, d_zm1, 1, d_p, 1);
 	}
 	else
 	{
-		cublasSdot(cublasHandle, N, d_r, 1, d_zm1, 1, &numerator);
-		cublasSdot(cublasHandle, N, d_rm2, 1, d_zm2, 1, &denominator);
+		cublasSdot(CublasHandle::Instance().getHandle(), N, d_r, 1, d_zm1, 1, &numerator);
+		cublasSdot(CublasHandle::Instance().getHandle(), N, d_rm2, 1, d_zm2, 1, &denominator);
 		beta = numerator / denominator;
-		cublasSscal(cublasHandle, N, &beta, d_p, 1);
-		cublasSaxpy(cublasHandle, N, &floatone, d_zm1, 1, d_p, 1);
+		cublasSscal(CublasHandle::Instance().getHandle(), N, &beta, d_p, 1);
+		cublasSaxpy(CublasHandle::Instance().getHandle(), N, &floatone, d_zm1, 1, d_p, 1);
 	}
 
-	cusparseScsrmv(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, N, nzILU0, &floatone, descrU, d_val, d_row, d_col, d_p, &floatzero, d_omega);
-	cublasSdot(cublasHandle, N, d_r, 1, d_zm1, 1, &numerator);
-	cublasSdot(cublasHandle, N, d_p, 1, d_omega, 1, &denominator);
+	cusparseScsrmv(CusparseHandle::Instance().getHandle(), CUSPARSE_OPERATION_NON_TRANSPOSE, N, N, nzILU0, &floatone, descrU, d_val, d_row, d_col, d_p, &floatzero, d_omega);
+	cublasSdot(CublasHandle::Instance().getHandle(), N, d_r, 1, d_zm1, 1, &numerator);
+	cublasSdot(CublasHandle::Instance().getHandle(), N, d_p, 1, d_omega, 1, &denominator);
 	alpha = numerator / denominator;
-	cublasSaxpy(cublasHandle, N, &alpha, d_p, 1, d_x, 1);
-	cublasScopy(cublasHandle, N, d_r, 1, d_rm2, 1);
-	cublasScopy(cublasHandle, N, d_zm1, 1, d_zm2, 1);
+	cublasSaxpy(CublasHandle::Instance().getHandle(), N, &alpha, d_p, 1, d_x, 1);
+	cublasScopy(CublasHandle::Instance().getHandle(), N, d_r, 1, d_rm2, 1);
+	cublasScopy(CublasHandle::Instance().getHandle(), N, d_zm1, 1, d_zm2, 1);
 	nalpha = -alpha;
-	cublasSaxpy(cublasHandle, N, &nalpha, d_omega, 1, d_r, 1);
-	cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
+	cublasSaxpy(CublasHandle::Instance().getHandle(), N, &nalpha, d_omega, 1, d_r, 1);
+	cublasSdot(CublasHandle::Instance().getHandle(), N, d_r, 1, d_r, 1, &r1);
 }
 
 float *CG_Solver::getX() {
@@ -182,7 +173,7 @@ Precond *Precond::createPrecond(Eigen::SparseMatrix<float, 0, int> *A) {
 	////checkCudaErrors(cusparseStatus);
 
 	///* Perform the analysis for the Non-Transpose case */
-	//cusparseStatus = cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+	//cusparseStatus = cusparseScsrsv_analysis(CusparseHandle::Instance().getHandle(), CUSPARSE_OPERATION_NON_TRANSPOSE,
 	//	N, nz, descr, d_val, d_row, d_col, infoA);
 
 	////checkCudaErrors(cusparseStatus);
@@ -191,7 +182,7 @@ Precond *Precond::createPrecond(Eigen::SparseMatrix<float, 0, int> *A) {
 	//cudaMemcpy(d_valsILU0, d_val, nz * sizeof(float), cudaMemcpyDeviceToDevice);
 
 	///* generate the Incomplete LU factor H for the matrix A using cudsparseScsrilu0 */
-	//cusparseStatus = cusparseScsrilu0(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, descr, d_valsILU0, d_row, d_col, infoA);
+	//cusparseStatus = cusparseScsrilu0(CusparseHandle::Instance().getHandle(), CUSPARSE_OPERATION_NON_TRANSPOSE, N, descr, d_valsILU0, d_row, d_col, infoA);
 
 	////checkCudaErrors(cusparseStatus);
 
@@ -211,7 +202,7 @@ Precond *Precond::createPrecond(Eigen::SparseMatrix<float, 0, int> *A) {
 	//cusparseSetMatIndexBase(descrU, CUSPARSE_INDEX_BASE_ZERO);
 	//cusparseSetMatFillMode(descrU, CUSPARSE_FILL_MODE_UPPER);
 	//cusparseSetMatDiagType(descrU, CUSPARSE_DIAG_TYPE_NON_UNIT);
-	//cusparseStatus = cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, nz, descrU, d_val, d_row, d_col, info_u);
+	//cusparseStatus = cusparseScsrsv_analysis(CusparseHandle::Instance().getHandle(), CUSPARSE_OPERATION_NON_TRANSPOSE, N, nz, descrU, d_val, d_row, d_col, info_u);
 
 	return precond;
 }
@@ -232,4 +223,22 @@ void Matrix::cudaMemcpyCublasMatrix(Matrix *A) {
 	cudaMemcpy(A->d_row, A->I, (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(A->d_val, A->val, nz * sizeof(float), cudaMemcpyHostToDevice);
 
+}
+
+CusparseHandle::CusparseHandle() {
+	hdl = 0;
+	cusparseStatus_t cusparseStatus = cusparseCreate(&hdl);
+}
+
+CusparseHandle::~CusparseHandle() {
+	cusparseDestroy(hdl);
+}
+
+CublasHandle::CublasHandle() {
+	hdl = 0;
+	cublasStatus_t cublasStatus = cublasCreate(&hdl);
+}
+
+CublasHandle::~CublasHandle() {
+	cublasDestroy(hdl);
 }

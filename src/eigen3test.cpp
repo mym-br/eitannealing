@@ -13,6 +13,7 @@
 #include "observations.h"
 #include "cuda/HighResClock.h"
 #include "cuda/solvercuda.h"
+#include "cuda/solvercublas.h"
 
 numType * buildMeshStiffness(matrix &mat, int m, int n) {
 	numType * stiffnessData = new numType[n * n];
@@ -49,38 +50,6 @@ void saveVals(const char* fname, matrix &mat, bool symm = false) {
 		}
 	}
 	myfile.close();
-	//mat.makeCompressed();
-	//std::vector<int> outer(mat.outerIndexPtr(), mat.outerIndexPtr() + mat.outerSize());
-	//std::vector<Eigen::Triplet<Scalar>> tripletList;
-	//int col = -1;
-	//for (int i = 0; i < mat.nonZeros(); ++i) {
-	//	int aaa = mat.outerIndexPtr()[col + 1];
-	//	if (mat.outerIndexPtr()[col+1] <= i) col++;
-	//	int row = mat.innerIndexPtr()[i];
-
-	//	tripletList.push_back(Eigen::Triplet<Scalar>(row, col, mat.valuePtr()[i]));
-	//	if(row != col) tripletList.push_back(Eigen::Triplet<Scalar>(col, row, mat.valuePtr()[i]));
-	//}
-	//matrix matsymm(mat.rows(), mat.cols());
-	//matsymm.setFromTriplets(tripletList.begin(), tripletList.end());
-	//matsymm.makeCompressed();
-
-	//// Save in CSR format
-	////matrix matsymm = mat;
-	//Scalar *values = matsymm.valuePtr();
-	//int *innerIndices = matsymm.innerIndexPtr();
-	//int *outerStarts = matsymm.outerIndexPtr();
-	//myfile.open("Sizes.txt"); myfile << matsymm.nonZeros() << " " << matsymm.outerSize(); myfile.close();
-	//myfile.open("Values.txt", std::ios::binary);
-	//for (int i = 0; i < matsymm.nonZeros(); i++) {
-	//	double valre = values[i];
-	//	double valim = 0.0;
-	//	myfile.write((char*)&valre, sizeof(double));
-	//	myfile.write((char*)&valim, sizeof(double));
-	//} 
-	//myfile.close();
-	//myfile.open("InnerIndices.txt"); for (int i = 0; i < matsymm.nonZeros(); i++) { myfile << innerIndices[i] << " "; } myfile.close();
-	//myfile.open("OuterStarts.txt"); for (int i = 0; i < matsymm.outerSize(); i++) { myfile << outerStarts[i] << " "; } myfile << matsymm.nonZeros();  myfile.close();
 }
 
 void saveVals(const char* fname, const Eigen::VectorXd &vec) {
@@ -158,6 +127,19 @@ int main(int argc, char *argv[])
 	vectorView.setWindowTitle("Tensions");
 
 	//saveVals("A.txt", *m, true);
+	// Create symmetric matrix with filled upper left and float values
+	std::vector<Eigen::Triplet<Scalar>> tripletList;
+	m->makeCompressed();
+	int col = -1;
+	for (int i = 0; i < m->nonZeros(); ++i) {
+		if (m->outerIndexPtr()[col + 1] <= i) col++;
+		int row = m->innerIndexPtr()[i];
+		tripletList.push_back(Eigen::Triplet<Scalar>(row, col, m->valuePtr()[i]));
+		if (row != col) tripletList.push_back(Eigen::Triplet<Scalar>(col, row, m->valuePtr()[i]));
+	}
+	Eigen::SparseMatrix<float, Eigen::ColMajor> msymm(m->rows(), m->cols());
+	msymm.setFromTriplets(tripletList.begin(), tripletList.end());
+	msymm.makeCompressed();
 
 	// Create preconditioner
 	SparseIncompleteLLT precond(*m);
@@ -170,8 +152,9 @@ int main(int argc, char *argv[])
 	numType * stiffnessData = buildMeshStiffness(*m, n, n); // FIXME: more efficiently copy data, also do it only once
 	MatrixCPJDSManager *mgr = CGCUDA_Solver::createManager(stiffnessData, stiffness, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients(), n);
 
-	std::vector<Eigen::VectorXd> solutions, solutioncuda;
-	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
+	std::vector<Eigen::VectorXd> solutions, solutionscuda, solutionscublas;
+	//for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
+	for (int patterno = 0; patterno < 1; patterno++) {
 		// Get current vector
 		currents = input->getCurrentVector(patterno, readings);
 		#ifndef BLOCKGND
@@ -206,21 +189,32 @@ int main(int argc, char *argv[])
 		Eigen::VectorXd xcudavec(n); for (int i = 0; i < n; i++) xcudavec[i] = xcuda[i];
 		//saveVals(("x" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), xcudavec);
 
+		// Cublas solver for the direct problem
+		HighResClock::time_point tb1 = HighResClock::now();
+		CGCUBLAS_Solver solvercublas(&msymm, currentsData);
+		solvercublas.calculatePrecond();
+		for (int i = 0; i < 100; i++) solvercublas.doIteration();
+		HighResClock::time_point tb2 = HighResClock::now();
+		float *xcublas = solvercublas.getX();
+		Eigen::VectorXd xcublasvec(n); for (int i = 0; i < n; i++) xcublasvec[i] = xcublas[i];
+		//saveVals(("x" + std::to_string(patterno + 1) + "_cublas.txt").c_str(), xcublasvec);
+
 		// Potential GUI view
 		vectorView.setModel(makeMatrixTableModel(x.selfadjointView<Eigen::Lower>()));
 		vectorView.show();
 		
 		// Store solutions
 		solutions.push_back(x);
-		solutioncuda.push_back(xcudavec);
+		solutionscuda.push_back(xcudavec);
+		solutionscublas.push_back(xcublasvec);
 		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << ". Serial duration is " << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()  <<
 			"us and parallel cuda duration is " << std::chrono::duration_cast<std::chrono::microseconds>(tc2 - tc1).count()  << "us." << std::endl;
 	}
 
 	// Save solutions to gmsh files
 	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input, readings);
-	std::string refname(params.outputMesh.toStdString()); std::size_t dotfound = refname.find_last_of("."); refname.replace(dotfound, 1, "_cuda.");
-	solution::savePotentials(solutioncuda, refname.c_str(), input, readings);
+	std::string refname(params.outputMesh.toStdString()); std::size_t dotfound = refname.find_last_of("."); refname.replace(dotfound, 1, "_cuda."); solution::savePotentials(solutionscuda, refname.c_str(), input, readings);
+	std::string refname2(params.outputMesh.toStdString()); refname2.replace(dotfound, 1, "_cublas."); solution::savePotentials(solutionscublas, refname2.c_str(), input, readings);
 
 	return app.exec();
 }

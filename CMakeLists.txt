@@ -44,6 +44,8 @@ set(eitannealingtest_SRCS
   src/cuda/HighResClock.cpp
   src/cuda/solvercuda.cu
   src/cuda/solvercuda.cpp
+  src/cuda/solvercublas.cu
+  src/cuda/solvercublas.cpp
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})

@@ -140,6 +140,7 @@ int main(int argc, char *argv[])
 	Eigen::SparseMatrix<float, Eigen::ColMajor> msymm(m->rows(), m->cols());
 	msymm.setFromTriplets(tripletList.begin(), tripletList.end());
 	msymm.makeCompressed();
+	Cublas::Matrix *Acublas = Cublas::Matrix::createCublasMatrix(&msymm);
 
 	// Create preconditioner
 	SparseIncompleteLLT precond(*m);
@@ -151,6 +152,9 @@ int main(int argc, char *argv[])
 	MatrixCPJDS *stiffness = new MatrixCPJDS;
 	numType * stiffnessData = buildMeshStiffness(*m, n, n); // FIXME: more efficiently copy data, also do it only once
 	MatrixCPJDSManager *mgr = CGCUDA_Solver::createManager(stiffnessData, stiffness, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients(), n);
+
+	// Create Cublas preconditioner
+	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);
 
 	std::vector<Eigen::VectorXd> solutions, solutionscuda, solutionscublas;
 	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
@@ -190,8 +194,7 @@ int main(int argc, char *argv[])
 
 		// Cublas solver for the direct problem
 		HighResClock::time_point tb1 = HighResClock::now();
-		Cublas::CG_Solver solvercublas(&msymm, currentsData);
-		solvercublas.calculatePrecond();
+		Cublas::CG_Solver solvercublas(Acublas, currentsData, precondcublas);
 		for (int i = 0; i < 100; i++) solvercublas.doIteration();
 		HighResClock::time_point tb2 = HighResClock::now();
 		float *xcublas = solvercublas.getX();
@@ -206,8 +209,8 @@ int main(int argc, char *argv[])
 		solutions.push_back(x);
 		solutionscuda.push_back(xcudavec);
 		solutionscublas.push_back(xcublasvec);
-		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << ". Serial duration is " << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()  <<
-			"us and parallel cuda duration is " << std::chrono::duration_cast<std::chrono::microseconds>(tc2 - tc1).count()  << "us." << std::endl;
+		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << ". Times: " << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()  <<
+			"us (serial), " << std::chrono::duration_cast<std::chrono::microseconds>(tc2 - tc1).count()  << "us (cjpds-cuda), " << std::chrono::duration_cast<std::chrono::microseconds>(tb2 - tb1).count()  << "us (cublas)." << std::endl;
 	}
 
 	// Save solutions to gmsh files

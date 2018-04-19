@@ -53,3 +53,11 @@ MatrixCPJDSManager *CGCUDA_Solver::createManager(numType * A, MatrixCPJDS *stiff
 	cudaMemcpy(stiffness->preconditionedData, stiffness->cpuData.precond, (size_t)stiffness->matrixData.elCount * sizeof(numType), cudaMemcpyHostToDevice);
 	return mgr;
 }
+
+MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients) {
+	MatrixCPJDSManager *mgr = new MatrixCPJDSManager(A);
+	mgr->buidMatrixCPJDS(stiffness, nodeCoef, nodesCount, numcoefficients);
+	m_preconditioner_eigen(*stiffness, stiffness->cpuData.data, stiffness->cpuData.precond); // FIXME: Use already implemented preconditioner
+	cudaMemcpy(stiffness->preconditionedData, stiffness->cpuData.precond, (size_t)stiffness->matrixData.elCount * sizeof(numType), cudaMemcpyHostToDevice);
+	return mgr;
+}

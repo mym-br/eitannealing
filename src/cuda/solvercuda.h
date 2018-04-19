@@ -19,6 +19,7 @@ class CGCUDA_Solver {
 
 		static bool m_preconditioner_eigen(MatrixCPJDS M, numType * pdata, numType * precond);
 		static MatrixCPJDSManager *createManager(numType * A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients, int n);
+		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
 		static cgl::Vector *createCurrentVector(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 	private:
 		static void cblas_dscal(int n, numType alpha, numType *x, int inc);

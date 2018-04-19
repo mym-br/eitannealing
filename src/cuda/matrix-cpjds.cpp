@@ -15,61 +15,6 @@
 #include <Eigen/Core>
 #include "../basematrix.h"
 
-MatrixCPJDSManager::MatrixCPJDSManager(matrix *data, int n) {
-	int colorCount = 0;
-	int * reorderIdx = new int[n]; // map for original index -> color-sorted index
-								   // color-sort stiffness matrix
-	LOG("--Color sorting--");
-	// TODO: Implement colorSort with Eigen
-	//int * colorsOff = colorSort(n, pdata, &colorCount, reorderIdx, false); 
-	int * colorsOff = NULL;
-	if (colorsOff == NULL) {
-		LOG("Erro no color-sort.");
-		delete reorderIdx;
-		return;
-	}
-
-	int nPadded = n;
-	// padding-fill for warps
-	//std::cout << "--Padding-filling--" << std::endl;
-	// TODO: Implement fillPadding with Eigen
-	//this->data = fillPadding(n, pdata, colorCount, colorsOff, &nPadded);
-	this->n = nPadded;
-	this->nOrig = n;
-
-	// corrigir offsets no vetor de cores
-	int * colorsOffPadded = new int[colorCount + 1];
-	int newSize = 0;
-	for (int i = 0; i < colorCount; i++) {
-		colorsOffPadded[i] = newSize;
-		newSize += (int)ceil((double)(colorsOff[i + 1] - colorsOff[i]) / WARP_SIZE) * WARP_SIZE;
-	}
-	colorsOffPadded[colorCount] = newSize;
-
-	this->colorCount = colorCount;
-	this->colors = colorsOffPadded;
-
-	// map for color-sorted index -> original index
-	int * unorderIdx = new int[n];
-	// fill padding reorder indices array
-	int * reorderIdxPadded = new int[nPadded];
-	int * unorderIdxPadded = new int[n];
-	fixIndicesMapPadding(n, reorderIdx, unorderIdx, nPadded, reorderIdxPadded, unorderIdxPadded, colorCount, colorsOff);
-
-	delete reorderIdx;
-	delete unorderIdx;
-
-	this->padded2OriginalIdx = reorderIdxPadded;
-	this->original2PaddedIdx = unorderIdxPadded;
-	//LOGV2(padded2OriginalIdx, nPadded, "Padded 2 Original", LOGCPU);
-	//LOGV2(original2PaddedIdx, n, "Original 2 Padded", LOGCPU);
-
-
-	this->auxv = new numType[this->n];
-	this->auxi = new int[this->n];
-
-	blocks = (int)ceil((double)n / BLOCKSIZE);
-}
 /*
  * This constructor does require to have been pre-processed. Thus, it is still
  * not color-sorted nor does it have padding. Also, it is not filled with padding
@@ -218,4 +163,58 @@ Vector * MatrixCPJDSManager::mask() {
 	Vector * mask = new Vector(mask_h, n);
 	delete mask_h;
 	return mask;
+}
+
+MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
+	int n = pdata->cols();
+	int colorCount = 0;
+	int * reorderIdx = new int[n]; // map for original index -> color-sorted index
+								   // color-sort stiffness matrix
+	LOG("--Color sorting--");
+	int * colorsOff = colorSort(pdata, &colorCount, reorderIdx, false);
+	if (colorsOff == NULL) {
+		LOG("Erro no color-sort.");
+		delete reorderIdx;
+		return;
+	}
+
+	int nPadded = n;
+	// padding-fill for warps
+	//std::cout << "--Padding-filling--" << std::endl;
+	this->data = fillPadding(pdata, colorCount, colorsOff, &nPadded);
+	this->n = nPadded;
+	this->nOrig = n;
+
+	// corrigir offsets no vetor de cores
+	int * colorsOffPadded = new int[colorCount + 1];
+	int newSize = 0;
+	for (int i = 0; i < colorCount; i++) {
+		colorsOffPadded[i] = newSize;
+		newSize += (int)ceil((double)(colorsOff[i + 1] - colorsOff[i]) / WARP_SIZE) * WARP_SIZE;
+	}
+	colorsOffPadded[colorCount] = newSize;
+
+	this->colorCount = colorCount;
+	this->colors = colorsOffPadded;
+
+	// map for color-sorted index -> original index
+	int * unorderIdx = new int[n];
+	// fill padding reorder indices array
+	int * reorderIdxPadded = new int[nPadded];
+	int * unorderIdxPadded = new int[n];
+	fixIndicesMapPadding(n, reorderIdx, unorderIdx, nPadded, reorderIdxPadded, unorderIdxPadded, colorCount, colorsOff);
+
+	delete reorderIdx;
+	delete unorderIdx;
+
+	this->padded2OriginalIdx = reorderIdxPadded;
+	this->original2PaddedIdx = unorderIdxPadded;
+	//LOGV2(padded2OriginalIdx, nPadded, "Padded 2 Original", LOGCPU);
+	//LOGV2(original2PaddedIdx, n, "Original 2 Padded", LOGCPU);
+
+
+	this->auxv = new numType[this->n];
+	this->auxi = new int[this->n];
+
+	blocks = (int)ceil((double)n / BLOCKSIZE);
 }

@@ -15,29 +15,6 @@
 #include "cuda/solvercuda.h"
 #include "cuda/solvercublas.h"
 
-numType * buildMeshStiffness(matrix &mat, int m, int n) {
-	numType * stiffnessData = new numType[n * n];
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < m; j++) {
-			double valre = j < i ? mat.coeff(i, j) : mat.coeff(j, i);
-			stiffnessData[i * n + j] = valre;
-		}
-	}
-	return  stiffnessData;
-}
-
-void saveVals(const char* fname, std::vector<numType> vec, int n) {
-	std::ofstream myfile;
-	myfile.open(fname, std::ios::binary);
-	for (int i = 0; i < n; i++) {
-		double valre = vec[i];
-		double valim = 0.0;
-		myfile.write((char*)&valre, sizeof(double));
-		myfile.write((char*)&valim, sizeof(double));
-	}
-	myfile.close();
-}
-
 void saveVals(const char* fname, matrix &mat, bool symm = false) {
 	std::ofstream myfile;
 	myfile.open(fname, std::ios::binary);
@@ -127,6 +104,7 @@ int main(int argc, char *argv[])
 	vectorView.setWindowTitle("Tensions");
 
 	//saveVals("A.txt", *m, true);
+
 	// Create symmetric matrix with filled upper left and float values
 	std::vector<Eigen::Triplet<Scalar>> tripletList;
 	m->makeCompressed();
@@ -148,10 +126,9 @@ int main(int argc, char *argv[])
 	//saveVals("L.txt", L);
 
 	// Create CUDA preconditioner
-	int n = (*m).rows();
+	matrix mCpjds = *m;
 	MatrixCPJDS *stiffness = new MatrixCPJDS;
-	numType * stiffnessData = buildMeshStiffness(*m, n, n); // FIXME: more efficiently copy data, also do it only once
-	MatrixCPJDSManager *mgr = CGCUDA_Solver::createManager(stiffnessData, stiffness, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients(), n);
+	MatrixCPJDSManager *mgr = CGCUDA_Solver::createManager(&mCpjds, stiffness, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients());
 
 	// Create Cublas preconditioner
 	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);
@@ -166,9 +143,9 @@ int main(int argc, char *argv[])
 		//saveVals(("b" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
 
 		// Create CUDA current vector
-		numType *currentsData = new numType[n];
-		for (int i = 0; i < n; i++) currentsData[i] = currents[i];
-		Vector *bVec = CGCUDA_Solver::createCurrentVector(currentsData, *mgr, stiffness->matrixData.n, n);
+		numType *currentsData = new numType[m->cols()];
+		for (int i = 0; i < m->cols(); i++) currentsData[i] = currents[i];
+		Vector *bVec = CGCUDA_Solver::createCurrentVector(currentsData, *mgr, stiffness->matrixData.n, m->cols());
 		//saveVals(("b" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), currentsData, n, 1);
 		
 		// Current GUI view
@@ -189,7 +166,7 @@ int main(int argc, char *argv[])
 		for (int i = 0; i < 100; i++) solvercuda.doIteration();
 		HighResClock::time_point tc2 = HighResClock::now();
 		std::vector<numType> xcuda = solvercuda.getX();
-		Eigen::VectorXd xcudavec(n); for (int i = 0; i < n; i++) xcudavec[i] = xcuda[i];
+		Eigen::VectorXd xcudavec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcudavec[i] = xcuda[i];
 		//saveVals(("x" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), xcudavec);
 
 		// Cublas solver for the direct problem
@@ -198,7 +175,7 @@ int main(int argc, char *argv[])
 		for (int i = 0; i < 100; i++) solvercublas.doIteration();
 		HighResClock::time_point tb2 = HighResClock::now();
 		float *xcublas = solvercublas.getX();
-		Eigen::VectorXd xcublasvec(n); for (int i = 0; i < n; i++) xcublasvec[i] = xcublas[i];
+		Eigen::VectorXd xcublasvec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcublasvec[i] = xcublas[i];
 		//saveVals(("x" + std::to_string(patterno + 1) + "_cublas.txt").c_str(), xcublasvec);
 
 		// Potential GUI view

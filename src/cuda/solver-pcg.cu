@@ -17,7 +17,7 @@
 
 using namespace cgl;
 
-//#define USE_CONSOLIDATED_KERNELS
+#define USE_CONSOLIDATED_KERNELS
 
 // multiplicacao matriz vetor e subtracao (r = b - A * x)
 // solver triangular inferior e superior (usando apenas o primeiro bloco)

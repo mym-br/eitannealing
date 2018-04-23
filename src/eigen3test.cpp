@@ -129,6 +129,7 @@ int main(int argc, char *argv[])
 	matrix mCpjds = *m;
 	MatrixCPJDS *stiffness = new MatrixCPJDS;
 	MatrixCPJDSManager *mgr = CGCUDA_Solver::createManager(&mCpjds, stiffness, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients());
+	numType lINFinityNorm  = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data, stiffness->cpuData.precond);
 
 	// Create Cublas preconditioner
 	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);
@@ -162,7 +163,7 @@ int main(int argc, char *argv[])
 		
 		// CUDA solver for the direct problem
 		HighResClock::time_point tc1 = HighResClock::now();
-		CGCUDA_Solver solvercuda(stiffness, mgr, bVec);
+		CGCUDA_Solver solvercuda(stiffness, mgr, bVec, lINFinityNorm);
 		for (int i = 0; i < 100; i++) solvercuda.doIteration();
 		HighResClock::time_point tc2 = HighResClock::now();
 		std::vector<numType> xcuda = solvercuda.getX();

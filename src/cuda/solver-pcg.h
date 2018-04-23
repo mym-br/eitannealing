@@ -6,13 +6,15 @@
 #include "matrix-cpjds.h"
 #include "vector.h"
 #include "number.h"
+#include "../circularbuff.h"
 
 using namespace cgl;
 
 class PCGSolverCPJDS {
 protected:
 	int it;
-	//Number * rmod, * rmod_prev, * rmod_aux;
+	Number * rmod, * rmod_prev, * rmod_aux;
+	Number *gamma;
 
 	MatrixCPJDSManager * mgr;
 	MatrixCPJDS *A;
@@ -26,17 +28,11 @@ protected:
 	Vector * u;
 	Vector * partial;
 
-	//Number * alpha, *beta, *gamma;
-
 	/* array of cuda streams for parallel queueing */
 
 	int size, blocks;
 
 public:
-
-	Number * rmod, *rmod_prev, *rmod_aux;
-	Number * alpha, *beta, *gamma;
-
 	cudaStream_t stream;
 
 	int getIteration() const {
@@ -54,13 +50,17 @@ public:
 		delete partial;
 
 		delete rmod, rmod_prev, rmod_aux;
-		delete alpha, beta, gamma;
+		delete gamma;
 
 		streamDestroy();
 	}
 
 	void init();
 	void doIteration(int iteration = -1);
+	void doIteration0();
+	void doIteration1();
+	void doIteration2();
+	void doIteration3();
 
 	Vector * getX() {
 		return this->x;
@@ -68,6 +68,19 @@ public:
 
 	void streamInit();
 	void streamDestroy();
+
+	numType getRmod() { return rmod_prev->transf2CPU(); }
+	numType getR0norm() { return r0norm; }
+	numType getCurrentErr() { 
+		if (it>2) return this->err[it - 1];
+		return 0;
+	}
+private:
+	numType rmod2, rmod2_1, gamma2, gamma2_1, beta, r0norm2, r0norm, alpha, eta, eta_p1, rt1, r1, c, s, r2, c_1, s_1, r3;
+	// Circular buffers
+	circularbuff<double, 8> w;
+	circularbuff<double, 8> wt;
+	circularbuff<double, 8> err;
 };
 
 #endif /* SOLVERPCG_H */

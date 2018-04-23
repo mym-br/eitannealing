@@ -10,29 +10,8 @@
 
 #include "basematrix.h"
 #include "incomplete_cholesky.h"
+#include "circularbuff.h"
 //#include "nodecoefficients.h"
-
-template<class base, size_t len> class circularbuff
-{
-	base _val[len];
-	public:
-
-		typedef base basetype;
-
-		const base &operator[](int i) const {
-			if(i>=0)
-				return _val[i%len];
-			return _val[(len - ((-i)%len))%len];
-		}
-
-		base &operator[](int i) {
-			if(i>=0)
-				return _val[i%len];
-			return _val[(len - ((-i)%len))%len];
-		}
-
-		circularbuff(){};
-};
 
 class CG_Solver {
 	protected:

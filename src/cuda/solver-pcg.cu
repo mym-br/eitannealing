@@ -62,8 +62,6 @@ PCGSolverCPJDS::PCGSolverCPJDS(MatrixCPJDSManager * mgr, MatrixCPJDS *M, Vector 
 	rmod = new Number(0);
 	rmod_prev = new Number(1);
 	rmod_aux = new Number(1);
-	alpha = new Number(0);
-	beta = new Number(0);
 	gamma = new Number(0);
 
 	size = A->matrixData.n;
@@ -74,7 +72,7 @@ PCGSolverCPJDS::PCGSolverCPJDS(MatrixCPJDSManager * mgr, MatrixCPJDS *M, Vector 
 
 #ifdef USE_CONSOLIDATED_KERNELS
 
-// Setup and calculate the 1st iteration	
+// Setup and calculate the first 3 iterations
 void PCGSolverCPJDS::init() {
 	//m_preconditioner(A, PCGSolverCPJDS::streams[PCGSolverCPJDS::mainStream]);
 	x->reset(stream);
@@ -99,6 +97,8 @@ void PCGSolverCPJDS::init() {
 	numType * rData = r->getData();
 	numType * xData = x->getData();
 	numType * bData = b->getData();
+	numType * pData = p->getData();
+	numType * qData = q->getData();
 
 	numType * rmodData = rmod->getData();
 	numType * rmod_prevData = rmod_prev->getData();
@@ -108,24 +108,114 @@ void PCGSolverCPJDS::init() {
 
 	it = 0;
 
+	// multiplicacao matriz vetor e subtracao (r = b - A * x)
+	// solver triangular inferior e superior - usando apenas o primeiro bloco (cor precisa caber nessas threads)
+	// z = inv(M) * r
 	cpcg_mult_subtr_solver << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, aData, precond, aIndices, aRowLength,
 		aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 		bData, xData, rData, zData, partialData, blocks);
-	//LOGV(z->getData(),1, "z");
-	//p = z;
-	//z->copyTo(p);
-
-	//cudaError_t cudaStatus = cudaGetLastError();
-	//if (cudaStatus != cudaSuccess) {
-	//	std::ostringstream msg;
-	//	msg << "cpcg_mult_subtr_solver kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
-	//	msg.flush(); LOG(&msg.str()[0]);
-	//}
 
 	// produto interno (rmod = zt . r, somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
 	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
+
+	doIteration0();
+	doIteration1();
+	doIteration2();
+	doIteration3();
+	err[0] = wt[0] * wt[0];
+	err[1] = w[0] * w[0] + wt[1] * wt[1];
+	err[2] = w[0] * w[0] + w[1] * w[1] + wt[2] * wt[2];
+}
+
+void PCGSolverCPJDS::doIteration0() {
+	numType *data_h = new numType[1];
+
+	numType * aData = (*A).matrixData.data;
+	numType * precond = (*A).preconditionedData;
+	int * aIndices = (*A).matrixData.indices;
+	int * aRowLength = (*A).matrixData.rowLength;
+	int * aRowSize = (*A).matrixData.rowSize;
+	int * aColOffset = (*A).matrixData.colOffset;
+
+	int colorCount = (*A).matrixColors.colorCount;
+	int * colors = (*A).matrixColors.colors_d;
+	int * colorsColOffset = (*A).matrixColors.colorsColOffsetSize_d;
+	numType * zData = z->getData();
+	numType * rData = r->getData();
+	numType * xData = x->getData();
+	numType * pData = p->getData();
+	numType * qData = q->getData();
+
+	numType * rmodData = rmod->getData();
+	numType * rmod_prevData = rmod_prev->getData();
+	numType * gammaData = gamma->getData();
+
+	numType * partialData = partial->getData();
+
+	//LOGV(partialData, blocks, "partialData ==============================================");
+
+	//LOGV(pData, p->getSize(), "p before==============================================");
+	//LOGV(zData, z->getSize(), "z ==============================================");
+	// totalizacao (intra-blocos, rmod = zt.r)
+	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
+	// matriz-vetor (q = A * p)
+	// produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
+	cpcg_tot_esc_add_mmv_inner << <blocks, BLOCKSIZE, 0, stream >> >
+		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
+			zData, pData, qData, rmodData, rmod_prevData, partialData, blocks);
+	rmod2_1 = rmod2;
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	rmod2 = *data_h;
+	//LOGV(rmod_prevData, 1, "rmodprev");
+	//LOGV(pData, p->getSize(), "p after ==============================================");
+	//LOGV(qData, q->getSize(), "q ==============================================");
+
+
+	//// Check for any errors launching the kernel
+	//cudaError_t cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_tot_esc_add_mmv_inner kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	// totalizacao (intra-bloco, gamma = pt.(A*p))
+	// escalar e vetor soma (x += (rmod/gamma) * p)
+	// escalar e vetor subtracao (r -= (rmod/gamma) * q)
+	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
+	// solver triangular superior (z = inv(M) * r)
+	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
+	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
+		(size, precond, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
+			xData, rData, zData, pData, qData, rmodData, gammaData, partialData, blocks);
+	gamma2_1 = gamma2;
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	gamma2 = *data_h;
+	//LOGV(xData, x->getSize(), "x ==============================================");
+	//LOGV(rData, r->getSize(), "r ==============================================");
+
+
+	//// Check for any errors launching the kernel
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_tot_esc_add_sub_solver kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	rmod_aux = rmod_prev; // variavel auxiliar para rotacao de ponteiros
+	rmod_prev = rmod; // rmod ja foi calculado e usado (para calcular alpha, no kernel anterior), pode-se setar como antigo
+	rmod = rmod_aux; // prepara novo rmod
+
+					 // produto interno (rmod = zt . r, somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
+					 // precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
+	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
+
+	//LOGV(partialData, partial->getSize(), "partialData ==============================================");
+
+	//// Check for any errors launching the kernel
 	//cudaStatus = cudaGetLastError();
 	//if (cudaStatus != cudaSuccess) {
 	//	std::ostringstream msg;
@@ -133,10 +223,359 @@ void PCGSolverCPJDS::init() {
 	//	msg.flush(); LOG(&msg.str()[0]);
 	//}
 
+	// Error calculations
+	r0norm2 = rmod2;
+	r0norm = sqrt(r0norm2);
+	beta = 0;
+	gamma2 = rmod2 / gamma2;
+	alpha = 1 / gamma2;
+	delete data_h;
+}
+
+void PCGSolverCPJDS::doIteration1() {
+	numType *data_h = new numType[1];
+	it++;
+
+	numType * aData = (*A).matrixData.data;
+	numType * precond = (*A).preconditionedData;
+	int * aIndices = (*A).matrixData.indices;
+	int * aRowLength = (*A).matrixData.rowLength;
+	int * aRowSize = (*A).matrixData.rowSize;
+	int * aColOffset = (*A).matrixData.colOffset;
+
+	int colorCount = (*A).matrixColors.colorCount;
+	int * colors = (*A).matrixColors.colors_d;
+	int * colorsColOffset = (*A).matrixColors.colorsColOffsetSize_d;
+	numType * zData = z->getData();
+	numType * rData = r->getData();
+	numType * xData = x->getData();
+	numType * pData = p->getData();
+	numType * qData = q->getData();
+
+	numType * rmodData = rmod->getData();
+	numType * rmod_prevData = rmod_prev->getData();
+	numType * gammaData = gamma->getData();
+
+	numType * partialData = partial->getData();
+
 	//LOGV(partialData, blocks, "partialData ==============================================");
+
+	//LOGV(pData, p->getSize(), "p before==============================================");
+	//LOGV(zData, z->getSize(), "z ==============================================");
+	// totalizacao (intra-blocos, rmod = zt.r)
+	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
+	// matriz-vetor (q = A * p)
+	// produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
+	cpcg_tot_esc_add_mmv_inner << <blocks, BLOCKSIZE, 0, stream >> >
+		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
+			zData, pData, qData, rmodData, rmod_prevData, partialData, blocks);
+	rmod2_1 = rmod2;
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	rmod2 = *data_h;
+	//LOGV(rmod_prevData, 1, "rmodprev");
+	//LOGV(pData, p->getSize(), "p after ==============================================");
+	//LOGV(qData, q->getSize(), "q ==============================================");
+
+	// Error calculations
+	beta = rmod2 / rmod2_1;
+	eta_p1 = sqrt(beta) / gamma2;
+	rt1 = alpha;
+	r1 = sqrt(rt1*rt1 + eta_p1 * eta_p1);
+	c = rt1 / r1;
+	s = eta_p1 / r1;
+	wt[0] = 1 / rt1;
+	w[0] = 1 / r1;
+
+	//// Check for any errors launching the kernel
+	//cudaError_t cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_tot_esc_add_mmv_inner kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	// totalizacao (intra-bloco, gamma = pt.(A*p))
+	// escalar e vetor soma (x += (rmod/gamma) * p)
+	// escalar e vetor subtracao (r -= (rmod/gamma) * q)
+	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
+	// solver triangular superior (z = inv(M) * r)
+	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
+	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
+		(size, precond, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
+			xData, rData, zData, pData, qData, rmodData, gammaData, partialData, blocks);
+	gamma2_1 = gamma2;
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	gamma2 = *data_h;
+	//LOGV(xData, x->getSize(), "x ==============================================");
+	//LOGV(rData, r->getSize(), "r ==============================================");
+
+
+	//// Check for any errors launching the kernel
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_tot_esc_add_sub_solver kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	rmod_aux = rmod_prev; // variavel auxiliar para rotacao de ponteiros
+	rmod_prev = rmod; // rmod ja foi calculado e usado (para calcular alpha, no kernel anterior), pode-se setar como antigo
+	rmod = rmod_aux; // prepara novo rmod
+
+					 // produto interno (rmod = zt . r, somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
+					 // precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
+	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
+
+	//LOGV(partialData, partial->getSize(), "partialData ==============================================");
+
+	//// Check for any errors launching the kernel
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_inner kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	// Update values for next iteration
+	gamma2 = rmod2 / gamma2;
+	alpha = 1 / gamma2 + beta / gamma2_1;
+	delete data_h;
+}
+
+void PCGSolverCPJDS::doIteration2() {
+	numType *data_h = new numType[1];
+	it++;
+
+	numType * aData = (*A).matrixData.data;
+	numType * precond = (*A).preconditionedData;
+	int * aIndices = (*A).matrixData.indices;
+	int * aRowLength = (*A).matrixData.rowLength;
+	int * aRowSize = (*A).matrixData.rowSize;
+	int * aColOffset = (*A).matrixData.colOffset;
+
+	int colorCount = (*A).matrixColors.colorCount;
+	int * colors = (*A).matrixColors.colors_d;
+	int * colorsColOffset = (*A).matrixColors.colorsColOffsetSize_d;
+	numType * zData = z->getData();
+	numType * rData = r->getData();
+	numType * xData = x->getData();
+	numType * pData = p->getData();
+	numType * qData = q->getData();
+
+	numType * rmodData = rmod->getData();
+	numType * rmod_prevData = rmod_prev->getData();
+	numType * gammaData = gamma->getData();
+
+	numType * partialData = partial->getData();
+
+	//LOGV(partialData, blocks, "partialData ==============================================");
+
+	//LOGV(pData, p->getSize(), "p before==============================================");
+	//LOGV(zData, z->getSize(), "z ==============================================");
+	// totalizacao (intra-blocos, rmod = zt.r)
+	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
+	// matriz-vetor (q = A * p)
+	// produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
+	cpcg_tot_esc_add_mmv_inner << <blocks, BLOCKSIZE, 0, stream >> >
+		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
+			zData, pData, qData, rmodData, rmod_prevData, partialData, blocks);
+	rmod2_1 = rmod2;
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	rmod2 = *data_h;
+	//LOGV(rmod_prevData, 1, "rmodprev");
+	//LOGV(pData, p->getSize(), "p after ==============================================");
+	//LOGV(qData, q->getSize(), "q ==============================================");
+
+	// Error calculations
+	beta = rmod2 / rmod2_1;
+	eta = eta_p1;
+	eta_p1 = sqrt(beta) / gamma2;
+	rt1 = c * alpha - s * eta;
+	r1 = sqrt(rt1*rt1 + eta_p1 * eta_p1);
+	r2 = c * eta + s * alpha;	// r_2,2 = c_1*eta_2
+	c_1 = c;
+	c = rt1 / r1;
+	s_1 = s;
+	s = eta_p1 / r1;
+	w[1] = wt[1] = -r2 * w[0];
+	wt[1] /= rt1;
+	w[1] /= r1;
+
+	//// Check for any errors launching the kernel
+	//cudaError_t cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_tot_esc_add_mmv_inner kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	// totalizacao (intra-bloco, gamma = pt.(A*p))
+	// escalar e vetor soma (x += (rmod/gamma) * p)
+	// escalar e vetor subtracao (r -= (rmod/gamma) * q)
+	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
+	// solver triangular superior (z = inv(M) * r)
+	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
+	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
+		(size, precond, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
+			xData, rData, zData, pData, qData, rmodData, gammaData, partialData, blocks);
+	gamma2_1 = gamma2;
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	gamma2 = *data_h;
+	//LOGV(xData, x->getSize(), "x ==============================================");
+	//LOGV(rData, r->getSize(), "r ==============================================");
+
+
+	//// Check for any errors launching the kernel
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_tot_esc_add_sub_solver kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	rmod_aux = rmod_prev; // variavel auxiliar para rotacao de ponteiros
+	rmod_prev = rmod; // rmod ja foi calculado e usado (para calcular alpha, no kernel anterior), pode-se setar como antigo
+	rmod = rmod_aux; // prepara novo rmod
+
+					 // produto interno (rmod = zt . r, somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
+					 // precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
+	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
+
+	//LOGV(partialData, partial->getSize(), "partialData ==============================================");
+
+	//// Check for any errors launching the kernel
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_inner kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	// Update values for next iteration
+	gamma2 = rmod2 / gamma2;
+	alpha = 1 / gamma2 + beta / gamma2_1;
+	delete data_h;
+}
+
+void PCGSolverCPJDS::doIteration3() {
+	numType *data_h = new numType[1];
+	it++;
+
+	numType * aData = (*A).matrixData.data;
+	numType * precond = (*A).preconditionedData;
+	int * aIndices = (*A).matrixData.indices;
+	int * aRowLength = (*A).matrixData.rowLength;
+	int * aRowSize = (*A).matrixData.rowSize;
+	int * aColOffset = (*A).matrixData.colOffset;
+
+	int colorCount = (*A).matrixColors.colorCount;
+	int * colors = (*A).matrixColors.colors_d;
+	int * colorsColOffset = (*A).matrixColors.colorsColOffsetSize_d;
+	numType * zData = z->getData();
+	numType * rData = r->getData();
+	numType * xData = x->getData();
+	numType * pData = p->getData();
+	numType * qData = q->getData();
+
+	numType * rmodData = rmod->getData();
+	numType * rmod_prevData = rmod_prev->getData();
+	numType * gammaData = gamma->getData();
+
+	numType * partialData = partial->getData();
+
+	//LOGV(partialData, blocks, "partialData ==============================================");
+
+	//LOGV(pData, p->getSize(), "p before==============================================");
+	//LOGV(zData, z->getSize(), "z ==============================================");
+	// totalizacao (intra-blocos, rmod = zt.r)
+	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
+	// matriz-vetor (q = A * p)
+	// produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
+	cpcg_tot_esc_add_mmv_inner << <blocks, BLOCKSIZE, 0, stream >> >
+		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
+			zData, pData, qData, rmodData, rmod_prevData, partialData, blocks);
+	rmod2_1 = rmod2;
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	rmod2 = *data_h;
+	//LOGV(rmod_prevData, 1, "rmodprev");
+	//LOGV(pData, p->getSize(), "p after ==============================================");
+	//LOGV(qData, q->getSize(), "q ==============================================");
+
+	// Error calculations
+	beta = rmod2 / rmod2_1;
+	eta = eta_p1;
+	eta_p1 = sqrt(beta) / gamma2;
+	rt1 = c * alpha - s * c_1*eta;
+	r1 = sqrt(rt1*rt1 + eta_p1 * eta_p1);
+	r2 = c_1 * c*eta + s * alpha; // r_2,k = c_k-2*c_k-1*eta_k + s_k-1*alpha_k
+	r3 = s_1 * eta;
+	c_1 = c;
+	c = rt1 / r1;
+	s_1 = s;
+	s = eta_p1 / r1;
+	w[2] = wt[2] = -(r3*w[0] + r2 * w[1]);
+	wt[2] /= rt1;
+	w[2] /= r1;
+
+	//// Check for any errors launching the kernel
+	//cudaError_t cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_tot_esc_add_mmv_inner kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	// totalizacao (intra-bloco, gamma = pt.(A*p))
+	// escalar e vetor soma (x += (rmod/gamma) * p)
+	// escalar e vetor subtracao (r -= (rmod/gamma) * q)
+	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
+	// solver triangular superior (z = inv(M) * r)
+	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
+	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
+		(size, precond, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
+			xData, rData, zData, pData, qData, rmodData, gammaData, partialData, blocks);
+	gamma2_1 = gamma2;
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	gamma2 = *data_h;
+	//LOGV(xData, x->getSize(), "x ==============================================");
+	//LOGV(rData, r->getSize(), "r ==============================================");
+
+
+	//// Check for any errors launching the kernel
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_tot_esc_add_sub_solver kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+	rmod_aux = rmod_prev; // variavel auxiliar para rotacao de ponteiros
+	rmod_prev = rmod; // rmod ja foi calculado e usado (para calcular alpha, no kernel anterior), pode-se setar como antigo
+	rmod = rmod_aux; // prepara novo rmod
+
+					 // produto interno (rmod = zt . r, somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
+					 // precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
+	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
+
+	//LOGV(partialData, partial->getSize(), "partialData ==============================================");
+
+	//// Check for any errors launching the kernel
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {
+	//	std::ostringstream msg;
+	//	msg << "cpcg_inner kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
+	//	msg.flush(); LOG(&msg.str()[0]);
+	//}
+
+
+	// Update values for next iteration
+	gamma2 = rmod2 / gamma2;
+	alpha = 1 / gamma2 + beta / gamma2_1;
+	delete data_h;
 }
 
 void PCGSolverCPJDS::doIteration(int iteration) {
+	numType *data_h = new numType[1];
 	it++;
 
 	numType * aData = (*A).matrixData.data;
@@ -172,12 +611,26 @@ void PCGSolverCPJDS::doIteration(int iteration) {
 	cpcg_tot_esc_add_mmv_inner << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 		zData, pData, qData, rmodData, rmod_prevData, partialData, blocks);
-
+	rmod2_1 = rmod2;
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	rmod2 = *data_h;
 	//LOGV(rmodData, 1, "rmod");
 	//LOGV(rmod_prevData, 1, "rmodprev");
 	//LOGV(pData, p->getSize(), "p after ==============================================");
 	//LOGV(qData, q->getSize(), "q ==============================================");
 
+	// Error calculations
+	beta = rmod2 / rmod2_1;
+	eta = eta_p1;
+	eta_p1 = sqrt(beta) / gamma2; 	// eta_k+1 = sqrt(beta_k)/gamma_k-1
+	rt1 = c * alpha - s * c_1*eta;
+	r1 = sqrt(rt1*rt1 + eta_p1 * eta_p1);
+	r2 = c_1 * c*eta + s * alpha; // r_2,k = c_k-2*c_k-1*eta_k + s_k-1*alpha_k
+	r3 = s_1 * eta;
+	c_1 = c;
+	c = rt1 / r1;
+	s_1 = s;
+	s = eta_p1 / r1;
 
 	//// Check for any errors launching the kernel
 	//cudaError_t cudaStatus = cudaGetLastError();
@@ -196,7 +649,9 @@ void PCGSolverCPJDS::doIteration(int iteration) {
 	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, precond, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 		xData, rData, zData, pData, qData, rmodData, gammaData, partialData, blocks);
-
+	gamma2_1 = gamma2;
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	gamma2 = *data_h;
 	//LOGV(gammaData, 1, "gamma");
 	//LOGV(xData, x->getSize(), "x ==============================================");
 	//LOGV(rData, r->getSize(), "r ==============================================");
@@ -227,6 +682,33 @@ void PCGSolverCPJDS::doIteration(int iteration) {
 	//	msg << "cpcg_inner kernel failed: " << cudaGetErrorString(cudaStatus) << "\n";
 	//	msg.flush(); LOG(&msg.str()[0]);
 	//}
+
+	// FIXME: GET RID OF THOSE STUPID BUFFERS!!!!!!!!!!!!!!!!!!!!!
+	if (it<360) {
+		w[it - 1] = wt[it - 1] = -(r3*w[it - 3] + r2 * w[it - 2]);
+		wt[it - 1] /= rt1;
+		w[it - 1] /= r1;
+	}
+	else {
+		w[0] = it;
+	}
+
+	/* ########## LANCZOS
+	leta = vt.norm();
+	v_1 = v;
+	v = vt/leta;
+	vt = A*v;
+	lalpha = vt.dot(v);
+	vt -= lalpha*v + leta*v_1;
+	alpha_[it] = lalpha;
+	eta_[it] = leta;*/
+
+	err[it - 1] = w[it - 2] * w[it - 2] + wt[it - 1] * wt[it - 1] - wt[it - 2] * wt[it - 2];
+
+	// Update values for next iteration
+	gamma2 = rmod2 / gamma2;
+	alpha = 1 / gamma2 + beta / gamma2_1;
+	delete data_h;
 }
 
 #else

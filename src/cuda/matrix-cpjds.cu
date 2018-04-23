@@ -113,20 +113,20 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 		}
 	}
 
-	std::ofstream myfile;
-	myfile.open("E:\\Temp\\adata.txt");
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			numType val = data[i * n + j];
-			if (MOD(val) < EPS) {
-				val = 0;
-			}
-			myfile << val << "\t";
-		}
-		myfile << "\n";
-	}
-	myfile.flush();
-	myfile.close();
+	//std::ofstream myfile;
+	//myfile.open("adata.txt");
+	//for (int i = 0; i < n; i++) {
+	//	for (int j = 0; j < n; j++) {
+	//		numType val = data[i * n + j];
+	//		if (MOD(val) < EPS) {
+	//			val = 0;
+	//		}
+	//		myfile << val << "\t";
+	//	}
+	//	myfile << "\n";
+	//}
+	//myfile.flush();
+	//myfile.close();
 
 	// left-shift each rows' non-zeroes
 	std::vector<std::deque<int>> rowsL(n), rowsU(n), padding(n);

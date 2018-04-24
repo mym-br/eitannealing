@@ -165,8 +165,8 @@ int main(int argc, char *argv[])
 		HighResClock::time_point tc1 = HighResClock::now();
 		CGCUDA_Solver solvercuda(stiffness, mgr, bVec, lINFinityNorm);
 		for (int i = 0; i < 100; i++) solvercuda.doIteration();
-		HighResClock::time_point tc2 = HighResClock::now();
 		std::vector<numType> xcuda = solvercuda.getX();
+		HighResClock::time_point tc2 = HighResClock::now();
 		Eigen::VectorXd xcudavec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcudavec[i] = xcuda[i];
 		//saveVals(("x" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), xcudavec);
 
@@ -174,8 +174,8 @@ int main(int argc, char *argv[])
 		HighResClock::time_point tb1 = HighResClock::now();
 		Cublas::CG_Solver solvercublas(Acublas, currentsData, precondcublas);
 		for (int i = 0; i < 100; i++) solvercublas.doIteration();
-		HighResClock::time_point tb2 = HighResClock::now();
 		float *xcublas = solvercublas.getX();
+		HighResClock::time_point tb2 = HighResClock::now();
 		Eigen::VectorXd xcublasvec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcublasvec[i] = xcublas[i];
 		//saveVals(("x" + std::to_string(patterno + 1) + "_cublas.txt").c_str(), xcublasvec);
 

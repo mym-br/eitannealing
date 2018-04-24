@@ -57,10 +57,10 @@ public:
 
 	void init();
 	void doIteration(int iteration = -1);
-	void doIteration0();
-	void doIteration1();
-	void doIteration2();
-	void doIteration3();
+	void doIteration0(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
+	void doIteration1(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
+	void doIteration2(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
+	void doIteration3(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
 
 	Vector * getX() {
 		return this->x;

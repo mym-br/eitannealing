@@ -1,0 +1,7 @@
+# ignore all auxiliary matlab files
+*.m
+# ignore vs config file
+CMakeSettings.json
+# ignore vs folders
+.vs/	
+src/.vs/

@@ -44,3 +44,12 @@ numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS M, numType * pdata, nu
 
 	return chol_mat.getLINFinityNorm();
 }
+
+
+Eigen::VectorXf CGCUDA_Solver::getX() {
+	std::vector<numType> xCpu = this->transfX2Cpu();
+	if(std::isnan(xCpu[0])) throw std::exception();
+	float *data = &(*xCpu.begin());
+	Eigen::Map<Eigen::VectorXf> ans(data, xCpu.size());
+	return ans;
+}

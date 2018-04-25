@@ -41,6 +41,7 @@ template <class T>
 class solutionbase {
 	friend class solution;
 	friend class solutioncomplex;
+	friend class solutionCuda;
 protected:
 	//T* sol;
 	//Eigen::SparseMatrix<T, Eigen::ColMajor> *stiffness, *stiffnessorig;

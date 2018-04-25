@@ -74,8 +74,13 @@ PCGSolverCPJDS::PCGSolverCPJDS(MatrixCPJDSManager * mgr, MatrixCPJDS *M, Vector 
 
 #ifdef USE_CONSOLIDATED_KERNELS
 
-// Setup and calculate the first 3 iterations
 void PCGSolverCPJDS::init() {
+	x->reset(stream);
+	this->init(x);
+}
+
+// Setup and calculate the first 3 iterations
+void PCGSolverCPJDS::init(Vector *x0) {
 	//m_preconditioner(A, PCGSolverCPJDS::streams[PCGSolverCPJDS::mainStream]);
 	x->reset(stream);
 	r->reset(stream);
@@ -104,6 +109,9 @@ void PCGSolverCPJDS::init() {
 	numType * partialData = partial->getData();
 
 	it = 0;
+
+	// Initial x value
+	x0->copyTo(x);
 
 	// multiplicacao matriz vetor e subtracao (r = b - A * x)
 	// solver triangular inferior e superior - usando apenas o primeiro bloco (cor precisa caber nessas threads)
@@ -465,7 +473,7 @@ void PCGSolverCPJDS::doIteration(int iteration) {
 #else
 
 // Setup and calculate the 1st iteration	
-void PCGSolverCPJDS::init() {
+void PCGSolverCPJDS::init(Vector *x0) {
 	//m_preconditioner(A, PCGSolverCPJDS::streams[PCGSolverCPJDS::mainStream]);
 	x->reset();
 	r->reset();
@@ -487,6 +495,10 @@ void PCGSolverCPJDS::init() {
 	numType * partialData = partial->getData();
 
 	it = 0;
+
+	// Initial x value
+	x0->copyTo(x);
+
 	//r = b - A * x;
 	mgr->mult(*A, x, u); // u = A * x
 

@@ -134,7 +134,8 @@ int main(int argc, char *argv[])
 	// Create Cublas preconditioner
 	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);
 
-	std::vector<Eigen::VectorXd> solutions, solutionscuda, solutionscublas;
+	std::vector<Eigen::VectorXd> solutions, solutionscublas;
+	std::vector<Eigen::VectorXf> solutionscuda;
 	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
 		// Get current vector
 		currents = input->getCurrentVector(patterno, readings);
@@ -164,10 +165,11 @@ int main(int argc, char *argv[])
 		// CUDA solver for the direct problem
 		HighResClock::time_point tc1 = HighResClock::now();
 		CGCUDA_Solver solvercuda(stiffness, mgr, bVec, lINFinityNorm);
-		for (int i = 0; i < 100; i++) solvercuda.doIteration();
-		std::vector<numType> xcuda = solvercuda.getX();
+		for (int i = 0; i < 100; i++) solvercuda.do_iteration();
+		//std::vector<numType> xcuda = solvercuda.getX();
+		Eigen::VectorXf xcudavec = solvercuda.getX();
 		HighResClock::time_point tc2 = HighResClock::now();
-		Eigen::VectorXd xcudavec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcudavec[i] = xcuda[i];
+		//Eigen::VectorXd xcudavec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcudavec[i] = xcuda[i];
 		//saveVals(("x" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), xcudavec);
 
 		// Cublas solver for the direct problem

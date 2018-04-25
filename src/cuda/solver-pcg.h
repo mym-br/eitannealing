@@ -56,6 +56,7 @@ public:
 	}
 
 	void init();
+	void init(Vector *x0);
 	void doIteration(int iteration = -1);
 	void doIteration0(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
 	void doIteration1(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);

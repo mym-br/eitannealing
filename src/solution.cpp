@@ -602,3 +602,25 @@ void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *fi
 	myfile.flush();
 	myfile.close();
 }
+
+void solution::savePotentials(std::vector<Eigen::VectorXf> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings) {
+	std::ofstream myfile;
+	myfile.open(filename);
+
+	std::ifstream inputfile(input->getMeshFilename());
+	for (int i = 0; inputfile.eof() != true; i++) {
+		std::string line;
+		std::getline(inputfile, line);
+		myfile << line << '\n';
+	}
+
+	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
+	for (int patterno = 0; patterno < sols.size(); patterno++) {
+		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
+		for (int j = 0; j < input->getNodesCount(); j++)
+			myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+		myfile << "$EndNodeData\n";
+	}
+	myfile.flush();
+	myfile.close();
+}

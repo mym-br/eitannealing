@@ -15,7 +15,7 @@ set(eitannealingtest_SRCS
   src/graphics.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  src/eigen3test.cpp
+  src/maincuda.cpp
   src/problem.cpp
   src/solution.cpp
   src/solutionbase.cpp
@@ -46,6 +46,7 @@ set(eitannealingtest_SRCS
   src/cuda/solvercuda.cpp
   src/cuda/solvercublas.cu
   src/cuda/solvercublas.cpp
+  src/cuda/solutioncuda.cpp
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})

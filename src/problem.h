@@ -30,6 +30,7 @@ class problem {
 	friend class solution;
 	friend class solutioncomplex;
 	friend class solutioncomplexcomplete;
+	friend class solutionCuda;
 
 	private:
 	int groundNode;

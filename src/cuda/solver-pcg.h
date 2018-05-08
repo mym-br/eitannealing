@@ -70,14 +70,14 @@ public:
 	void streamInit();
 	void streamDestroy();
 
-	numType getRmod() { return rmod_prev->transf2CPU(); }
-	numType getR0norm() { return r0norm; }
-	numType getCurrentErr() { 
+	double getRmod() { return rmod_prev->transf2CPU(); }
+	double getR0norm() { return r0norm; }
+	double getCurrentErr() {
 		if (it>2) return this->err[it - 1];
 		return 0;
 	}
 private:
-	numType rmod2, rmod2_1, gamma2, gamma2_1, beta, r0norm2, r0norm, alpha, eta, eta_p1, rt1, r1, c, s, r2, c_1, s_1, r3;
+	double rmod2, rmod2_1, gamma2, gamma2_1, beta, r0norm2, r0norm, alpha, eta, eta_p1, rt1, r1, c, s, r2, c_1, s_1, r3;
 	// Circular buffers
 	circularbuff<double, 8> w;
 	circularbuff<double, 8> wt;

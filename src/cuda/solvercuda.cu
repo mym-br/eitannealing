@@ -12,7 +12,7 @@ CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Ve
 	solver->init();
 }
 
-CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm) {
+CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
 	size = stiffness->matrixData.n;
 	solver = new PCGSolverCPJDS(mgr, stiffness, bVec);
 	solver->init(x0);
@@ -63,12 +63,12 @@ MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<double> *A,
 	return mgr;
 }
 
-numType CGCUDA_Solver::getResidueSquaredNorm() const {
+double CGCUDA_Solver::getResidueSquaredNorm() const {
 	return solver->getRmod();
 }
 
-numType CGCUDA_Solver::getErrorl2Estimate() const {
-	numType r0norm = solver->getR0norm();
+double CGCUDA_Solver::getErrorl2Estimate() const {
+	double r0norm = solver->getR0norm();
 	return r0norm * r0norm * this->solver->getCurrentErr() * LINFinityNorm;
 }
 

@@ -91,9 +91,11 @@ void solutionCuda::initSimulations(const solutionCuda &base) {
 		numType *currentsData = new numType[input->getNodesCount()];
 		for (int j = 0; j < input->getNodesCount(); j++) currentsData[j] = input->getCurrentVector(i, readings)[j];
 		Vector *bVec = CGCUDA_Solver::createCurrentVector(currentsData, *mgr, stiffnessCpjds->matrixData.n, input->getNodesCount());
-		// Reuse previous solutions as initial values
-		//simulations[i] = new CGCUDA_Solver(stiffnessCpjds, mgr, bVec, base.simulations[i]->getCpjdsX(), lINFinityNorm);
-		simulations[i] = new CGCUDA_Solver(stiffnessCpjds, mgr, bVec, lINFinityNorm);
+		// Reuse previous solutions as initial values. FIXME: Use gpu values directly
+		Eigen::VectorXd xprev = base.simulations[i]->getX().cast<double>();
+		numType *x0Data = new numType[input->getNodesCount()]; for (int i = 0; i < input->getNodesCount(); i++) x0Data[i] = xprev[i];
+		Vector *x0Vec = CGCUDA_Solver::createCurrentVector(x0Data, *mgr, stiffnessCpjds->matrixData.n, input->getNodesCount());
+		simulations[i] = new CGCUDA_Solver(stiffnessCpjds, mgr, bVec, x0Vec, lINFinityNorm);
 
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
@@ -212,41 +214,51 @@ void solutionCuda::improve()
 
 bool solutionCuda::compareWith(solutionbase &target, double kt, double prob)
 {
+	//std::vector<Eigen::VectorXd> solutionscuda;
 	double delta, expdelta;
-	// Ensure errors are within required margin
-	while (true) {
-		double min_delta = target.minTotalDist - this->maxTotalDist;
-		double max_delta = target.maxTotalDist - this->minTotalDist;
-		delta = target.totalDist - this->totalDist;
-		expdelta = exp(-delta / kt);
-		// Check boundary conditions:
-		// Upper bound is negative, no doubt here
-		if (max_delta < 0) break;
-		// Estimate is negative, but upper bound is positive
-		else if (delta <= 0) {
-			if (exp(-max_delta / kt) >= (1 - prob)) break; // Upper condition only
-		}
-		// Estimate and upper bounds are positive, lower bound is negative
-		else if (min_delta <= 0) {
-			if (expdelta >= 1 - prob) { // Lower condition
-				if (expdelta <= prob) break;	// upper condition
-				if (exp(-max_delta / kt) >= (expdelta - prob)) break;
+	// Ensure errors are within required margin	
+	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
+		for (int k = 0; k < 30; k++) simulations[patterno]->do_iteration();
+		// Just some scrap space to avoid dynamic allocations
+		//		WARNING: Obviously thread-unsafe!!!!
+		static Eigen::VectorXd aux(input->getGenericElectrodesCount());
+
+		// Do another iteration on the patterno solver
+			
+		this->totalit++;
+		// Recalcule expected distance and boundaries
+		Eigen::VectorXd xcudavec = (simulations[patterno]->getX()).cast<double>();
+		//solutionscuda.push_back(xcudavec);
+		aux = (simulations[patterno]->getX()).cast<double>().tail(input->getGenericElectrodesCount());
+		#ifndef BLOCKGND
+		// Rebase tension for zero sum
+		zeroSumVector(aux);
+		#endif
+		aux -= readings->getTensions()[patterno];
+
+		distance[patterno] = aux.norm();
+		err[patterno] = sqrt(simulations[patterno]->getErrorl2Estimate());
+		maxdist[patterno] = distance[patterno] + err[patterno];
+		mindist[patterno] = std::max(distance[patterno] - err[patterno], 0.0);
+		err_x_dist[patterno] = maxdist[patterno] * err[patterno];
+		totalDist = distance.norm() + regularisation;
+		minTotalDist = mindist.norm() + regularisation;
+		maxTotalDist = maxdist.norm() + regularisation;
+		// reevaluate patterno
+		double max = err_x_dist[0];
+		critical = 0;
+		for (int i = 1; i < readings->getNObs(); i++) {
+			if (max < err_x_dist[i]) {
+				max = err_x_dist[i];
+				critical = i;
 			}
 		}
-		// Classic case, everything is positive
-		else {
-			if (exp(-min_delta / kt) <= prob + expdelta) { // lower condition
-				if (expdelta <= prob) break;	// upper condition
-				if (exp(-max_delta / kt) >= (expdelta - prob)) break;
-			}
-		}
-		// Not there yet, improve boundaries
-		// Select wich one to improve
-		if (this->critErr > target.critErr)
-			this->improve();
-		else
-			target.improve();
+		critErr = err[patterno];
 	}
+	//solution::savePotentials(solutionscuda, "directsolution.msh", input, readings);
+
+	delta = target.totalDist - this->totalDist;
+	expdelta = exp(-delta / kt);
 	if (delta <= 0) {
 		//std::cout << "+";
 		return true;

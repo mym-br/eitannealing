@@ -28,8 +28,12 @@ class CGCUDA_Solver {
 		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
 		static cgl::Vector *createCurrentVector(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 		
-		numType getResidueSquaredNorm() const;
-		numType getErrorl2Estimate() const;
+		double getResidueSquaredNorm() const;
+		double getErrorl2Estimate() const;
+
+		// Debug
+		static Eigen::SparseMatrix<double, 0, int> getCpjdsStiffness(MatrixCPJDS M, numType * pdata);
+		static Eigen::Matrix<double, -1, 1, 0> getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 
 	private:
 		static void cblas_dscal(int n, numType alpha, numType *x, int inc);

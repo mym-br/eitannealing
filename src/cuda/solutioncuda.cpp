@@ -93,6 +93,22 @@ void solutionCuda::initSimulations(const solutionCuda &base) {
 		Vector *bVec = CGCUDA_Solver::createCurrentVector(currentsData, *mgr, stiffnessCpjds->matrixData.n, input->getNodesCount());
 		// Reuse previous solutions as initial values. FIXME: Use gpu values directly
 		Eigen::VectorXd xprev = base.simulations[i]->getX().cast<double>();
+
+		//// DEBUG: Save x prev and sol
+		//std::ofstream myfile;
+		//myfile.open("xprev.bin", std::ios::binary);
+		//for (int i = 0; i < xprev.size(); i++) {
+		//	double valre = xprev.coeff(i);
+		//	myfile.write((char*)&valre, sizeof(double));
+		//}
+		//myfile.close();
+		//myfile.open("sol.bin", std::ios::binary);
+		//for (int i = 0; i < input->getNumCoefficients(); i++) {
+		//	double valre = sol[i];
+		//	myfile.write((char*)&valre, sizeof(double));
+		//}
+		//myfile.close();
+
 		numType *x0Data = new numType[input->getNodesCount()]; for (int i = 0; i < input->getNodesCount(); i++) x0Data[i] = xprev[i];
 		Vector *x0Vec = CGCUDA_Solver::createCurrentVector(x0Data, *mgr, stiffnessCpjds->matrixData.n, input->getNodesCount());
 		simulations[i] = new CGCUDA_Solver(stiffnessCpjds, mgr, bVec, x0Vec, lINFinityNorm);
@@ -104,7 +120,7 @@ void solutionCuda::initSimulations(const solutionCuda &base) {
 		double err = simulations[i]->getErrorl2Estimate();
 		double aux;
 		int ndecr = 0;
-		while (ndecr<2) {
+		while (ndecr<2 && simulations[i]->getResidueSquaredNorm() > 1E-30) {
 			simulations[i]->do_iteration();
 			aux = simulations[i]->getErrorl2Estimate();
 			if (aux >= err) ndecr = 0;
@@ -218,7 +234,7 @@ bool solutionCuda::compareWith(solutionbase &target, double kt, double prob)
 	double delta, expdelta;
 	// Ensure errors are within required margin	
 	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
-		for (int k = 0; k < 30; k++) simulations[patterno]->do_iteration();
+		for (int k = 0; k < 30 && simulations[patterno]->getResidueSquaredNorm() > 1E-30; k++) simulations[patterno]->do_iteration();
 		// Just some scrap space to avoid dynamic allocations
 		//		WARNING: Obviously thread-unsafe!!!!
 		static Eigen::VectorXd aux(input->getGenericElectrodesCount());

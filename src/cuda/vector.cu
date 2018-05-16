@@ -72,12 +72,7 @@ __global__ void cv_scalar(int dim, numType * v, numType * a, numType * b, numTyp
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	numType val;
-	if (b[0] < 0.0000001 && b[0] > -0.0000001) {
-		val = a[0] / 0.0000001;
-	}
-	else {
-		val = a[0] / b[0];
-	}
+	val = a[0] / b[0];
 
 	if (row < dim) {
 		r[row] = v[row] * val;
@@ -90,12 +85,7 @@ __global__ void cv_scalar_add(int dim, numType * r, numType * a, numType * b, nu
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	numType val;
-	if (b[0] < 0.0000001 && b[0] > -0.0000001) {
-		val = a[0] / 0.0000001;
-	}
-	else {
-		val = a[0] / b[0];
-	}
+	val = a[0] / b[0];
 
 	if (row < dim) {
 		r[row] += v[row] * val;

@@ -43,7 +43,7 @@ void CGCUDA_Solver::cblas_dscal(int n, numType alpha, numType *x, int inc) {
 	}
 }
 
-numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS &M, std::shared_ptr<numType> pdata, std::shared_ptr<numType> precond) {
+numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata, std::unique_ptr<numType[]> &precond) {
 
 	int size = M.csrMap.n;
 	int nnz = M.csrMap.nnz;

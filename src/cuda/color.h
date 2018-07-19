@@ -5,14 +5,11 @@
 
 #include <list>
 #include <map>
+#include <memory>
 
 #include <Eigen/Core>
 #include "../basematrix.h"
 
-bool graphColoring(int dim, int *indices, int *rl, int rowMax, int * colors);
-
-bool graphColoring(int dim, numType * data, int * colors);
-
-bool graphColoring(matrix * data, int * colors);
+bool graphColoring(matrix * data, std::unique_ptr<int[]> &colors);
 
 #endif /* COLOR_H */

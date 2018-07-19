@@ -127,8 +127,8 @@ int main(int argc, char *argv[])
 
 	// Create CUDA preconditioner
 	matrix mCpjds = *m;
-	MatrixCPJDS *stiffness = new MatrixCPJDS;
-	MatrixCPJDSManager *mgr = CGCUDA_Solver::createManager(&mCpjds, stiffness, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients());
+	std::unique_ptr<MatrixCPJDS> stiffness = std::unique_ptr<MatrixCPJDS>(new MatrixCPJDS);
+	std::unique_ptr<MatrixCPJDSManager> mgr = std::unique_ptr<MatrixCPJDSManager>(CGCUDA_Solver::createManager(&mCpjds, stiffness.get(), input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients()));
 	numType lINFinityNorm  = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
 
 	// Create Cublas preconditioner
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 		
 		// CUDA solver for the direct problem
 		HighResClock::time_point tc1 = HighResClock::now();
-		CGCUDA_Solver solvercuda(stiffness, mgr, bVec, lINFinityNorm);
+		CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), bVec, lINFinityNorm);
 		for (int i = 0; i < 100; i++) solvercuda.do_iteration();
 		//std::vector<numType> xcuda = solvercuda.getX();
 		Eigen::VectorXf xcudavec = solvercuda.getX();
@@ -197,11 +197,6 @@ int main(int argc, char *argv[])
 	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input, readings);
 	std::string refname(params.outputMesh.toStdString()); std::size_t dotfound = refname.find_last_of("."); refname.replace(dotfound, 1, "_cuda."); solution::savePotentials(solutionscuda, refname.c_str(), input, readings);
 	std::string refname2(params.outputMesh.toStdString()); refname2.replace(dotfound, 1, "_cublas."); solution::savePotentials(solutionscublas, refname2.c_str(), input, readings);
-
-	// Clean memory
-	mgr->deleteMatrixCPJDS(*stiffness);
-	delete mgr;
-	delete stiffness;
 
 	return app.exec();
 }

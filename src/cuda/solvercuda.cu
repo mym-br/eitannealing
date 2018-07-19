@@ -72,9 +72,9 @@ double CGCUDA_Solver::getErrorl2Estimate() const {
 	return r0norm * r0norm * this->solver->getCurrentErr() * LINFinityNorm;
 }
 
-numType CGCUDA_Solver::createPreconditioner(MatrixCPJDS M, numType * pdata, numType * precond) {
+numType CGCUDA_Solver::createPreconditioner(MatrixCPJDS &M, std::shared_ptr<numType> pdata) {
 	numType ans = m_preconditioner_eigen(M, M.cpuData.data, M.cpuData.precond); // FIXME: Use already implemented preconditioner
-	cudaMemcpy(M.preconditionedData, M.cpuData.precond, (size_t)M.matrixData.elCount * sizeof(numType), cudaMemcpyHostToDevice);
+	cudaMemcpy(M.preconditionedData, M.cpuData.precond.get(), (size_t)M.matrixData.elCount * sizeof(numType), cudaMemcpyHostToDevice);
 	return ans;
 }
 

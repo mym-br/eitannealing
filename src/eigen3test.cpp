@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 	matrix mCpjds = *m;
 	MatrixCPJDS *stiffness = new MatrixCPJDS;
 	MatrixCPJDSManager *mgr = CGCUDA_Solver::createManager(&mCpjds, stiffness, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients());
-	numType lINFinityNorm  = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data, stiffness->cpuData.precond);
+	numType lINFinityNorm  = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
 
 	// Create Cublas preconditioner
 	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);
@@ -197,6 +197,11 @@ int main(int argc, char *argv[])
 	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input, readings);
 	std::string refname(params.outputMesh.toStdString()); std::size_t dotfound = refname.find_last_of("."); refname.replace(dotfound, 1, "_cuda."); solution::savePotentials(solutionscuda, refname.c_str(), input, readings);
 	std::string refname2(params.outputMesh.toStdString()); refname2.replace(dotfound, 1, "_cublas."); solution::savePotentials(solutionscublas, refname2.c_str(), input, readings);
+
+	// Clean memory
+	mgr->deleteMatrixCPJDS(*stiffness);
+	delete mgr;
+	delete stiffness;
 
 	return app.exec();
 }

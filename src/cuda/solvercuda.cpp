@@ -43,7 +43,7 @@ void CGCUDA_Solver::cblas_dscal(int n, numType alpha, numType *x, int inc) {
 	}
 }
 
-numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS M, numType * pdata, numType * precond) {
+numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS &M, std::shared_ptr<numType> pdata, std::shared_ptr<numType> precond) {
 
 	int size = M.csrMap.n;
 	int nnz = M.csrMap.nnz;
@@ -54,7 +54,7 @@ numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS M, numType * pdata, nu
 		int row = M.csrMap.row[i];
 		int dataIdx = csrMap.csr2cpjds[i];
 
-		numType val = pdata[dataIdx];
+		numType val = pdata.get()[dataIdx];
 		int col = M.csrMap.indices[i];
 
 		tripletList.push_back(Eigen::Triplet<numType>(row, col, val));
@@ -70,8 +70,8 @@ numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS M, numType * pdata, nu
 	for (int i = 0; i < nnz; ++i) {
 		int dataIdx = csrMap.csr2cpjds[i];
 		int dataIdxUper = csrMap.csr2cpjds_upper[i];
-		precond[dataIdx] = data[i];
-		precond[dataIdxUper] = data[i];
+		precond.get()[dataIdx] = data[i];
+		precond.get()[dataIdxUper] = data[i];
 	}
 
 	return chol_mat.getLINFinityNorm();

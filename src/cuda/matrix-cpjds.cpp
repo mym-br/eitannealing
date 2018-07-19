@@ -40,13 +40,14 @@ MatrixCPJDSManager::MatrixCPJDSManager(numType * pdata, int n) {
 	this->nOrig = n;
 
 	// corrigir offsets no vetor de cores
-	int * colorsOffPadded = new int[colorCount + 1];
+	//int * colorsOffPadded = new int[colorCount + 1];
+	std::shared_ptr<int> colorsOffPadded(new int[colorCount + 1], std::default_delete<int[]>());
 	int newSize = 0;
 	for (int i = 0; i < colorCount; i++) {
-		colorsOffPadded[i] = newSize;
+		colorsOffPadded.get()[i] = newSize;
 		newSize += (int)ceil((double)(colorsOff[i + 1] - colorsOff[i]) / WARP_SIZE) * WARP_SIZE;
 	}
-	colorsOffPadded[colorCount] = newSize;
+	colorsOffPadded.get()[colorCount] = newSize;
 
 	this->colorCount = colorCount;
 	this->colors = colorsOffPadded;
@@ -60,6 +61,7 @@ MatrixCPJDSManager::MatrixCPJDSManager(numType * pdata, int n) {
 
 	delete reorderIdx;
 	delete unorderIdx;
+	delete colorsOff;
 
 	this->padded2OriginalIdx = reorderIdxPadded;
 	this->original2PaddedIdx = unorderIdxPadded;
@@ -79,7 +81,7 @@ MatrixCPJDSManager::MatrixCPJDSManager(numType * pdata, int n) {
 * colors: array of each colors offset (size is colorCount + 1, last position being equal to n)
 * colorCount: number of colors
 */
-MatrixCPJDSManager::MatrixCPJDSManager(numType * data, int n, int * colors, int colorCount, int nOrig) {
+MatrixCPJDSManager::MatrixCPJDSManager(std::shared_ptr<numType> data, int n, std::shared_ptr<int> colors, int colorCount, int nOrig) {
 	this->data = data;
 	this->n = n;
 	this->colors = colors;
@@ -88,12 +90,12 @@ MatrixCPJDSManager::MatrixCPJDSManager(numType * data, int n, int * colors, int 
 };
 
 MatrixCPJDSManager::~MatrixCPJDSManager() {
-	delete data;
-	delete colors;
-	delete padded2OriginalIdx;
-	delete original2PaddedIdx;
-	delete auxv;
-	delete auxi;
+	//if (data) { delete data; data = NULL; }
+	//if (colors) { delete colors; colors = NULL; }
+	if (padded2OriginalIdx) { delete padded2OriginalIdx; padded2OriginalIdx = NULL; }
+	if (original2PaddedIdx) { delete original2PaddedIdx; original2PaddedIdx = NULL; }
+	if (auxv) { delete auxv; auxv = NULL; }
+	if (auxi) { delete auxi; auxi = NULL; }
 }
 
 /* this method allows the conversion os (row, col) coordinates to the index in the data and indices arrays */
@@ -186,13 +188,14 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
 	this->nOrig = n;
 
 	// corrigir offsets no vetor de cores
-	int * colorsOffPadded = new int[colorCount + 1];
+	//int * colorsOffPadded = new int[colorCount + 1];
+	std::shared_ptr<int> colorsOffPadded(new int[colorCount + 1], std::default_delete<int[]>());
 	int newSize = 0;
 	for (int i = 0; i < colorCount; i++) {
-		colorsOffPadded[i] = newSize;
+		colorsOffPadded.get()[i] = newSize;
 		newSize += (int)ceil((double)(colorsOff[i + 1] - colorsOff[i]) / WARP_SIZE) * WARP_SIZE;
 	}
-	colorsOffPadded[colorCount] = newSize;
+	colorsOffPadded.get()[colorCount] = newSize;
 
 	this->colorCount = colorCount;
 	this->colors = colorsOffPadded;
@@ -206,6 +209,7 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
 
 	delete reorderIdx;
 	delete unorderIdx;
+	delete colorsOff;
 
 	this->padded2OriginalIdx = reorderIdxPadded;
 	this->original2PaddedIdx = unorderIdxPadded;

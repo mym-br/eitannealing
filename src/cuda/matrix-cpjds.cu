@@ -26,16 +26,17 @@ struct Dependencies {
 
 typedef std::vector<std::vector<Dependencies>> DependeciesMap;
 
-void dependencies_analysis(numType * data, int n, DependeciesMap * dependenciesMap) {
+//void dependencies_analysis(numType * data, int n, DependeciesMap * dependenciesMap) {
+void dependencies_analysis(std::shared_ptr<numType> data, int n, DependeciesMap * dependenciesMap) {
 	for (int i = 0; i < n; i++) { // for each row...
 		for (int j = i + 1; j < n; j++) { // ... for every (upper triangle) column in the row
 			//for (int j = 0; j < i; j++) { // ... for every (lower triangle) column in the row
-			if (MOD(data[i * n + j]) > EPS) { // ... if element (i, j) is non-zero, search dependencies
+			if (MOD(data.get()[i * n + j]) > EPS) { // ... if element (i, j) is non-zero, search dependencies
 				Dependencies d;
 				for (int k = 0; k < i; k++) { // check all rows before current row
 					//for (int k = 0; k < j; k++) { // check all columns before current column
 					// check if (k, i) and (k, j) are both non-zero
-					if (MOD(data[k * n + i]) > EPS && MOD(data[k * n + j]) > EPS) {
+					if (MOD(data.get()[k * n + i]) > EPS && MOD(data.get()[k * n + j]) > EPS) {
 						d.dependencies.push_back(k); // push dependency (only row in lower triangular is needed)
 					}
 				}
@@ -107,7 +108,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	}
 	// checking colors offsets (must be multiple of WARP_SIZE)
 	for (int i = 0; i <= colorCount; i++) {
-		if (colors[i] % WARP_SIZE != 0) {
+		if (colors.get()[i] % WARP_SIZE != 0) {
 			LOG("Invalid color offset for colored pJDS format!");
 			return -1;
 		}
@@ -134,13 +135,13 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 		// saving diagonal Aii's index is not needed (Aii is expected to be positive)
 		// lower triangular: add rest of the line with column < row
 		for (int j = 0; j < i; j++) {
-			if (MOD(data[i * n + j]) > EPS) { // DATA IS ROW-MAJOR!!!
+			if (MOD(data.get()[i * n + j]) > EPS) { // DATA IS ROW-MAJOR!!!
 				rowsL[i].push_back(j); // adding Aij to each row array, if non-zero
 			}
 		}
 		// upper triangular: add rest of the line with column > row
 		for (int j = i + 1; j < n; j++) {
-			if (MOD(data[i * n + j]) > EPS) { // DATA IS ROW-MAJOR!!!
+			if (MOD(data.get()[i * n + j]) > EPS) { // DATA IS ROW-MAJOR!!!
 				rowsU[i].push_back(j); // adding Aij to each row array, if non-zero
 			}
 		}
@@ -185,9 +186,9 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	// find largest row size in each color (should be first row!)
 	for (int k = 0; k < colorCount; k++) {
 		colorOffsetCount[k] = offsetSize;
-		maxSize = rowsL[colors[k]].size() + 1 + rowsU[colors[k]].size();
+		maxSize = rowsL[colors.get()[k]].size() + 1 + rowsU[colors.get()[k]].size();
 		// step is warp size because all rows in a warp block have same size
-		for (int i = colors[k]; i < colors[k + 1]; i += WARP_SIZE) {
+		for (int i = colors.get()[k]; i < colors.get()[k + 1]; i += WARP_SIZE) {
 			int size = rowsL[i].size() + 1 + rowsU[i].size();
 			if (size > maxSize) {
 				std::cout << "something is not right... " << size << " (" << i << ") > " << maxSize << " (" << k << ")" << std::endl;
@@ -203,8 +204,8 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	int * colOffset = new int[offsetSize];
 
 	// data and indices arrays
-	numType * mdata = new numType[total];
-	int * indices = new int[total];
+	std::shared_ptr<numType> mdata(new numType[total], std::default_delete<numType[]>());
+	std::unique_ptr<int[]> indices(new int[total]);
 
 	// values
 	//std::cout << "values:" << std::endl;
@@ -244,23 +245,23 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 		int col = 0;
 		// insert diagonal in first column
 		colOffset[colorOffsetCount[k] + col] = pos;
-		for (int i = colors[k]; i < colors[k + 1]; i++) {
+		for (int i = colors.get()[k]; i < colors.get()[k + 1]; i++) {
 			indices[pos] = i;
-			mdata[pos] = data[i * n + i];
+			mdata.get()[pos] = data.get()[i * n + i];
 			pos++;
 		}
 		col++;
 		while (true) { // iterate over all rows in color block for as long as it has elements
 			hasElements = false;
 			int startPos = pos;
-			for (int i = colors[k]; i < colors[k + 1]; i++) {
+			for (int i = colors.get()[k]; i < colors.get()[k + 1]; i++) {
 				// fill data array in COL-MAJOR format
 				if (rowsL[i].size() > 0) {// lower triangular
 					int idx = rowsL[i].front(); // first element
 					rowsL[i].pop_front(); // remove element
 
 					indices[pos] = idx;
-					mdata[pos] = data[i * n + idx];
+					mdata.get()[pos] = data.get()[i * n + idx];
 
 					pos++;
 					hasElements = true;
@@ -270,14 +271,14 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 					rowsU[i].pop_front(); // remove element
 
 					indices[pos] = idx;
-					mdata[pos] = data[i * n + idx];
+					mdata.get()[pos] = data.get()[i * n + idx];
 
 					pos++;
 					hasElements = true;
 				}
 				else if (padding[i].size() > 0) {// padding zeroes
 					indices[pos] = -1;
-					mdata[pos] = 0;
+					mdata.get()[pos] = 0;
 					padding[i].pop_front();
 
 					pos++;
@@ -298,9 +299,9 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	/* computing (x,y)=>IDX map */
 	std::vector<std::map<int, int>> rowCol2IdxMap(n);
 	for (int k = 0; k < colorCount; k++) { // color block
-		for (int i = colors[k]; i < colors[k + 1]; i++) { // iterating rows in such color
+		for (int i = colors.get()[k]; i < colors.get()[k + 1]; i++) { // iterating rows in such color
 			for (int j = 0; j < rowLength[i]; j++) {
-				int idx = colOffset[colorOffsetCount[k] + j] + i - colors[k];
+				int idx = colOffset[colorOffsetCount[k] + j] + i - colors.get()[k];
 				rowCol2IdxMap[i].insert(std::pair<int, int>(indices[idx], idx));
 			}
 		}
@@ -608,13 +609,13 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 
 	// CUDA device memory transfer
 	/* matrix data */
-	cudaMemcpy(c_mdata,							mdata,							(size_t)total * sizeof (numType),	cudaMemcpyHostToDevice);
-	cudaMemcpy(c_indices,						indices,						(size_t)total * sizeof (int),		cudaMemcpyHostToDevice);
+	cudaMemcpy(c_mdata,							mdata.get(),							(size_t)total * sizeof (numType),	cudaMemcpyHostToDevice);
+	cudaMemcpy(c_indices,						indices.get(),						(size_t)total * sizeof (int),		cudaMemcpyHostToDevice);
 	cudaMemcpy(c_rowLength,						rowLength,						(size_t)n * sizeof (int),			cudaMemcpyHostToDevice);
 	cudaMemcpy(c_rowSize,						rowSize,						(size_t)n * sizeof (int),			cudaMemcpyHostToDevice);
 	cudaMemcpy(c_colOffset,						colOffset,						(size_t)offsetSize * sizeof (int),	cudaMemcpyHostToDevice);
 	/* matrix colors */
-	cudaMemcpy(c_colors,						colors,							(size_t)(colorCount + 1) * sizeof (int),cudaMemcpyHostToDevice);
+	cudaMemcpy(c_colors,						colors.get(),							(size_t)(colorCount + 1) * sizeof (int),cudaMemcpyHostToDevice);
 	cudaMemcpy(c_colorsColOffsetSize,			colorOffsetCount,				(size_t)colorCount * sizeof (int),	cudaMemcpyHostToDevice);
 	/* matrix dependencies*/
 	cudaMemcpy(c_dependencyRowDataIndex,		dependencyRowDataIndex,			(size_t)depsSize * sizeof (int),	cudaMemcpyHostToDevice);
@@ -660,8 +661,8 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 
 	// setting CPU aux data
 	(*M).cpuData.data = mdata;
-	(*M).cpuData.indices = indices;
-	(*M).cpuData.precond = new numType[total]; for (int i = 0; i < total; i++) (*M).cpuData.precond[i] = 0;
+	(*M).cpuData.indices = std::move(indices);//indices;
+	(*M).cpuData.precond = std::shared_ptr<numType>(new numType[total]); for (int i = 0; i < total; i++) (*M).cpuData.precond.get()[i] = 0;
 	
 	// free CPU memory used for initializing GPU data
 	/* matrix data */
@@ -742,32 +743,32 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	return 0;
 }
 
-void MatrixCPJDSManager::deleteMatrixCPJDS(MatrixCPJDS M) {
+void MatrixCPJDSManager::deleteMatrixCPJDS(MatrixCPJDS &M) {
 	/* matrix data */
-	cudaFree(M.matrixData.data);
-	cudaFree(M.matrixData.indices);
-	cudaFree(M.matrixData.rowLength);
-	cudaFree(M.matrixData.rowSize);
-	cudaFree(M.matrixData.colOffset);
+	cudaFree(M.matrixData.data); M.matrixData.data = NULL;
+	cudaFree(M.matrixData.indices); M.matrixData.indices = NULL;
+	cudaFree(M.matrixData.rowLength); M.matrixData.rowLength = NULL;
+	cudaFree(M.matrixData.rowSize); M.matrixData.rowSize = NULL;
+	cudaFree(M.matrixData.colOffset); M.matrixData.colOffset = NULL;
 	/* matrix colors (CPU MEMORY!) */
 	//delete M.matrixColors.colors; // deleted in destructor
-	delete M.matrixColors.colorsColOffsetSize;
-	cudaFree(M.matrixColors.colors_d);
-	cudaFree(M.matrixColors.colorsColOffsetSize_d);
+	delete M.matrixColors.colorsColOffsetSize; M.matrixColors.colorsColOffsetSize = NULL;
+	cudaFree(M.matrixColors.colors_d); M.matrixColors.colors_d = NULL;
+	cudaFree(M.matrixColors.colorsColOffsetSize_d); M.matrixColors.colorsColOffsetSize_d = NULL;
 	/* matrix dependencies*/
-	cudaFree(M.matrixDependencies.dependencyRowDataIndex);
-	cudaFree(M.matrixDependencies.dependencyDiagDataIndex);
-	cudaFree(M.matrixDependencies.dependencyArrayInitialIndex);
-	cudaFree(M.matrixDependencies.dependencyLowerDataIndex);
-	cudaFree(M.matrixDependencies.dependencyUpperDataIndex);
-	cudaFree(M.matrixDependencies.nnzElementDataIndex);
-	cudaFree(M.matrixDependencies.dependenciesSize);
+	cudaFree(M.matrixDependencies.dependencyRowDataIndex); M.matrixDependencies.dependencyRowDataIndex = NULL;
+	cudaFree(M.matrixDependencies.dependencyDiagDataIndex); M.matrixDependencies.dependencyDiagDataIndex = NULL;
+	cudaFree(M.matrixDependencies.dependencyArrayInitialIndex); M.matrixDependencies.dependencyArrayInitialIndex = NULL;
+	cudaFree(M.matrixDependencies.dependencyLowerDataIndex); M.matrixDependencies.dependencyLowerDataIndex = NULL;
+	cudaFree(M.matrixDependencies.dependencyUpperDataIndex); M.matrixDependencies.dependencyUpperDataIndex = NULL;
+	cudaFree(M.matrixDependencies.nnzElementDataIndex); M.matrixDependencies.nnzElementDataIndex = NULL;
+	cudaFree(M.matrixDependencies.dependenciesSize); M.matrixDependencies.dependenciesSize = NULL;
 	/* preconditioner data */
-	cudaFree(M.preconditionedData);
+	cudaFree(M.preconditionedData); M.preconditionedData = NULL;
 	/* aux data */
-	delete M.cpuData.data;
-	delete M.cpuData.precond;
-	delete M.cpuData.indices;
+	//delete M.cpuData.data; M.cpuData.data = NULL;
+	//delete M.cpuData.precond; M.cpuData.precond = NULL;
+	//delete M.cpuData.indices; M.cpuData.indices = NULL;
 };
 
 /* sets an element value according to row and column indexes */
@@ -832,7 +833,7 @@ std::vector<numType> MatrixCPJDSManager::restore(Vector * v){
 }
 
 /* Matrix-vector multiplication: b = A * x, A: matrix; b, x: vectors */
-void MatrixCPJDSManager::mult(MatrixCPJDS M, Vector * x, Vector * b) {
+void MatrixCPJDSManager::mult(MatrixCPJDS &M, Vector * x, Vector * b) {
 #ifdef DEBUG
 	if (x == NULL || b == NULL) {
 		printf("mv_mult error: vector(s) null!\n");
@@ -927,7 +928,7 @@ void MatrixCPJDSManager::mult(MatrixCPJDS M, Vector * x, Vector * b, cudaStream_
 	int * mColOffset = M.matrixData.colOffset;
 
 	int colorCount = M.matrixColors.colorCount;
-	int * colors = M.matrixColors.colors;
+	std::shared_ptr<int> colors = M.matrixColors.colors;
 	int * mColorsColOffsetSize = M.matrixColors.colorsColOffsetSize;
 
 	numType * xData = x->getData();
@@ -935,8 +936,8 @@ void MatrixCPJDSManager::mult(MatrixCPJDS M, Vector * x, Vector * b, cudaStream_
 
 	for (int k = 0; k < colorCount; k++) {
 
-		int colorStart = colors[k];
-		int colorEnd = colors[k + 1];
+		int colorStart = colors.get()[k];
+		int colorEnd = colors.get()[k + 1];
 		int colorColOffset = mColorsColOffsetSize[k];
 
 		int size = colorEnd - colorStart;
@@ -979,7 +980,7 @@ void MatrixCPJDSManager::multInner(MatrixCPJDS M, Vector * x, Vector * y, cudaSt
 	int * mColOffset = M.matrixData.colOffset;
 
 	int colorCount = M.matrixColors.colorCount;
-	int * colors = M.matrixColors.colors;
+	std::shared_ptr<int> colors = M.matrixColors.colors;
 	int * mColorsColOffsetSize = M.matrixColors.colorsColOffsetSize;
 
 	numType * xData = x->getData();
@@ -988,8 +989,8 @@ void MatrixCPJDSManager::multInner(MatrixCPJDS M, Vector * x, Vector * y, cudaSt
 
 	for (int k = 0; k < colorCount; k++) {
 
-		int colorStart = colors[k];
-		int colorEnd = colors[k + 1];
+		int colorStart = colors.get()[k];
+		int colorEnd = colors.get()[k + 1];
 		int colorColOffset = mColorsColOffsetSize[k];
 
 		int size = colorEnd - colorStart;
@@ -1062,7 +1063,7 @@ void MatrixCPJDSManager::multInner2(MatrixCPJDS M, Vector * x, Vector * y, cudaS
 
 /* Linear system solver: A * x = b => x = inv(A) * b; A: matrix; x, b: vectors */
 // L must be lower triangular
-void MatrixCPJDSManager::solve(MatrixCPJDS M, Vector * b, Vector * x) {
+void MatrixCPJDSManager::solve(MatrixCPJDS &M, Vector * b, Vector * x) {
 #ifdef DEBUG
 	if (x == NULL || b == NULL) {
 		printf("mv_solve error: vector(s) null!\n");
@@ -1082,15 +1083,15 @@ void MatrixCPJDSManager::solve(MatrixCPJDS M, Vector * b, Vector * x) {
 	int * mColOffset = M.matrixData.colOffset;
 
 	int colorCount = M.matrixColors.colorCount;
-	int * colors = M.matrixColors.colors;
+	std::shared_ptr<int> colors = M.matrixColors.colors;
 	int * mColorsColOffsetSize = M.matrixColors.colorsColOffsetSize;
 
 	numType * xData = x->getData();
 	numType * bData = b->getData();
 
 	for (int k = 0; k < colorCount; k++) {
-		int colorStart = colors[k];
-		int colorEnd = colors[k + 1];
+		int colorStart = colors.get()[k];
+		int colorEnd = colors.get()[k + 1];
 		int colorColOffset = mColorsColOffsetSize[k];
 
 		int size = colorEnd - colorStart;
@@ -1133,15 +1134,15 @@ void MatrixCPJDSManager::solve(MatrixCPJDS M, Vector * b, Vector * x, cudaStream
 	int * mColOffset = M.matrixData.colOffset;
 
 	int colorCount = M.matrixColors.colorCount;
-	int * colors = M.matrixColors.colors;
+	std::shared_ptr<int> colors = M.matrixColors.colors;
 	int * mColorsColOffsetSize = M.matrixColors.colorsColOffsetSize;
 
 	numType * xData = x->getData();
 	numType * bData = b->getData();
 
 	for (int k = 0; k < colorCount; k++) {
-		int colorStart = colors[k];
-		int colorEnd = colors[k + 1];
+		int colorStart = colors.get()[k];
+		int colorEnd = colors.get()[k + 1];
 		int colorColOffset = mColorsColOffsetSize[k];
 
 		int size = colorEnd - colorStart;
@@ -1164,7 +1165,7 @@ void MatrixCPJDSManager::solve(MatrixCPJDS M, Vector * b, Vector * x, cudaStream
 
 /* Linear system solver: A * x = b => x = inv(A) * b; A: matrix; x, b: vectors */
 // U must be an upper triangular matrix
-void MatrixCPJDSManager::solve_t(MatrixCPJDS M, Vector * b, Vector * x) {
+void MatrixCPJDSManager::solve_t(MatrixCPJDS &M, Vector * b, Vector * x) {
 #ifdef DEBUG
 	if (x == NULL || b == NULL) {
 		printf("mv_solve error: vector(s) null!\n");
@@ -1184,7 +1185,7 @@ void MatrixCPJDSManager::solve_t(MatrixCPJDS M, Vector * b, Vector * x) {
 	int * mColOffset = M.matrixData.colOffset;
 
 	int colorCount = M.matrixColors.colorCount;
-	int * colors = M.matrixColors.colors;
+	std::shared_ptr<int> colors = M.matrixColors.colors;
 	int * mColorsColOffsetSize = M.matrixColors.colorsColOffsetSize;
 
 	numType * xData = x->getData();
@@ -1192,8 +1193,8 @@ void MatrixCPJDSManager::solve_t(MatrixCPJDS M, Vector * b, Vector * x) {
 
 	for (int k = colorCount - 1; k >= 0; k--) {
 
-		int colorStart = colors[k];
-		int colorEnd = colors[k + 1];
+		int colorStart = colors.get()[k];
+		int colorEnd = colors.get()[k + 1];
 		int colorColOffset = mColorsColOffsetSize[k];
 
 		int size = colorEnd - colorStart;
@@ -1236,7 +1237,7 @@ void MatrixCPJDSManager::solve_t(MatrixCPJDS M, Vector * b, Vector * x, cudaStre
 	int * mColOffset = M.matrixData.colOffset;
 
 	int colorCount = M.matrixColors.colorCount;
-	int * colors = M.matrixColors.colors;
+	std::shared_ptr<int> colors = M.matrixColors.colors;
 	int * mColorsColOffsetSize = M.matrixColors.colorsColOffsetSize;
 
 	numType * xData = x->getData();
@@ -1244,8 +1245,8 @@ void MatrixCPJDSManager::solve_t(MatrixCPJDS M, Vector * b, Vector * x, cudaStre
 
 	for (int k = colorCount - 1; k >= 0; k--) {
 
-		int colorStart = colors[k];
-		int colorEnd = colors[k + 1];
+		int colorStart = colors.get()[k];
+		int colorEnd = colors.get()[k + 1];
 		int colorColOffset = mColorsColOffsetSize[k];
 
 		int size = colorEnd - colorStart;
@@ -1326,7 +1327,7 @@ void MatrixCPJDSManager::saveToFile(char * filename, MatrixCPJDS M, numType * da
 			numType val = 0;
 			if (idx > -1) {
 				int dcol = M.cpuData.indices[idx];
-				val = M.cpuData.data[idx];
+				val = M.cpuData.data.get()[idx];
 			}
 			file << val << " ";
 		}
@@ -1860,4 +1861,33 @@ __global__ void cmv_solve_inner(numType * aData, int * aIndices, int * aRowLengt
 
 }
 
+MatrixData::~MatrixData() {
+	if (data) { cudaFree(data); data = NULL; }
+	if (indices) { cudaFree(indices); indices = NULL; }
+	if (rowLength) { cudaFree(rowLength); rowLength = NULL; }
+	if (rowSize) { cudaFree(rowSize); rowSize = NULL; }
+	if (colOffset) { cudaFree(colOffset); colOffset = NULL; }
+}
+
+
+MatrixColors::~MatrixColors() {
+	//if (colors) { delete[] colors; colors = NULL; }
+	if (colorsColOffsetSize) { delete[] colorsColOffsetSize; colorsColOffsetSize = NULL; }
+	if (colors_d) { cudaFree(colors_d); colors_d = NULL; }
+	if (colorsColOffsetSize_d) { cudaFree(colorsColOffsetSize_d); colorsColOffsetSize_d = NULL; }
+}
+
+MatrixDependencies::~MatrixDependencies() {
+	if (dependencyRowDataIndex) { cudaFree(dependencyRowDataIndex); dependencyRowDataIndex = NULL; }
+	if(dependencyDiagDataIndex) {cudaFree(dependencyDiagDataIndex); dependencyDiagDataIndex = NULL; }
+	if(dependencyArrayInitialIndex) {cudaFree(dependencyArrayInitialIndex); dependencyArrayInitialIndex = NULL; }
+	if(dependencyLowerDataIndex) {cudaFree(dependencyLowerDataIndex); dependencyLowerDataIndex = NULL; }
+	if(dependencyUpperDataIndex) {cudaFree(dependencyUpperDataIndex); dependencyUpperDataIndex = NULL; }
+	if(nnzElementDataIndex) {cudaFree(nnzElementDataIndex); nnzElementDataIndex = NULL; }
+	if(dependenciesSize) {cudaFree(dependenciesSize); dependenciesSize = NULL; }
+}
+
+MatrixCPJDS::~MatrixCPJDS() {
+	if (preconditionedData) { cudaFree(preconditionedData); preconditionedData = NULL; }
+}
 #endif

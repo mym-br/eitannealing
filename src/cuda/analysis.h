@@ -4,6 +4,7 @@
 #include "settings.h"
 #include <Eigen/Core>
 #include "../basematrix.h"
+#include <memory>
 
 /** data must represent a square complete(filled) matrix - default reorders by lower triangular */
 int * colorSort(int n, numType * data, int * colorCount, int * newIdx);
@@ -17,8 +18,8 @@ void swap(numType * data, int size, int a, int b, int * newIdx);
 void swap(matrix * data, int a, int b, int * newIdx);
 
 /** data must represent a square complete(filled) matrix */
-numType * fillPadding(int size, numType * data, int colorCount, int * colorOff, int * sizePadding);
-numType * fillPadding(matrix * data, int colorCount, int * colorOff, int * sizePadding);
+std::shared_ptr<numType> fillPadding(int size, numType * data, int colorCount, int * colorOff, int * sizePadding);
+std::shared_ptr<numType> fillPadding(matrix * data, int colorCount, int * colorOff, int * sizePadding);
 
 /** data must represent an array */
 numType * fillPaddingV(int size, numType * data, int sizePadded, numType * dataPadded, int colorCount, int * colorOff);

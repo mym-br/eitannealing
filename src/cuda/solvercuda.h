@@ -24,7 +24,7 @@ class CGCUDA_Solver {
 		int getIteration();
 		Vector *getCpjdsX();
 
-		static numType createPreconditioner(MatrixCPJDS M, numType * pdata, numType * precond);
+		static numType createPreconditioner(MatrixCPJDS &M, std::shared_ptr<numType> pdata);
 		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
 		static cgl::Vector *createCurrentVector(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 		
@@ -37,7 +37,7 @@ class CGCUDA_Solver {
 
 	private:
 		static void cblas_dscal(int n, numType alpha, numType *x, int inc);
-		static numType m_preconditioner_eigen(MatrixCPJDS M, numType * pdata, numType * precond);
+		static numType m_preconditioner_eigen(MatrixCPJDS &M, std::shared_ptr<numType> pdata, std::shared_ptr<numType> precond);
 		std::vector<numType> transfX2Cpu();
 		int size;
 		PCGSolverCPJDS *solver;

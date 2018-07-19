@@ -13,7 +13,7 @@ solutionCuda::solutionCuda(const double *sigma, std::shared_ptr<problem> _input,
 {
 	stiffnessCpjds = new MatrixCPJDS;
 	mgr = CGCUDA_Solver::createManager(stiffness, stiffnessCpjds, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients());
-	lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffnessCpjds, stiffnessCpjds->cpuData.data, stiffnessCpjds->cpuData.precond);
+	lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffnessCpjds, stiffnessCpjds->cpuData.data);
 	this->initSimulations();
 	this->initErrors();
 }
@@ -30,7 +30,7 @@ solutionCuda::solutionCuda(std::shared_ptr<problem> _input, observations<double>
 {
 	stiffnessCpjds = new MatrixCPJDS;
 	mgr = CGCUDA_Solver::createManager(stiffness, stiffnessCpjds, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients());
-	lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffnessCpjds, stiffnessCpjds->cpuData.data, stiffnessCpjds->cpuData.precond);
+	lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffnessCpjds, stiffnessCpjds->cpuData.data);
 	this->initSimulations();
 	this->initErrors();
 }
@@ -46,7 +46,7 @@ solutionCuda::solutionCuda(double *sigma, const solutionCuda &base, std::shared_
 {
 	stiffnessCpjds = new MatrixCPJDS;
 	mgr = CGCUDA_Solver::createManager(stiffness, stiffnessCpjds, input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients());
-	lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffnessCpjds, stiffnessCpjds->cpuData.data, stiffnessCpjds->cpuData.precond);
+	lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffnessCpjds, stiffnessCpjds->cpuData.data);
 	this->initSimulations(base);
 	this->initErrors();
 }

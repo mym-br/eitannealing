@@ -234,7 +234,7 @@ void swap(numType * arr, int n, int a, int b, int * newIdx) {
 	}
 }
 
-numType * fillPadding(int size, numType * data, int colorCount, int * colorOff, int * sizePadding) {
+std::shared_ptr<numType> fillPadding(int size, numType * data, int colorCount, int * colorOff, int * sizePadding) {
 	int * newColorCount = new int[colorCount];
 	int * newOff = new int[colorCount + 1];
 	int * insCount = new int[colorCount];
@@ -250,17 +250,18 @@ numType * fillPadding(int size, numType * data, int colorCount, int * colorOff, 
 	//LOGV2(newOff, colorCount + 1, "Matrix padding insert position:", LOGCPU);
 	//LOGV2(insCount, colorCount, "Matrix padding count:", LOGCPU);
 
-	numType * newData = new numType[newSize * newSize];
+	//numType * newData = new numType[newSize * newSize];
+	std::shared_ptr<numType> newData(new numType[newSize * newSize], std::default_delete<numType[]>());
 	for (int i = 0; i < newSize; i++) {
 		for (int j = 0; j < newSize; j++) {
-			newData[i * newSize + j] = 0;
+			newData.get()[i * newSize + j] = 0;
 		}
-		newData[i * newSize + i] = 1;
+		newData.get()[i * newSize + i] = 1;
 	}
 
 	for (int i = 0; i < size; i++) {
 		for (int j = 0; j < size; j++) {
-			newData[i * newSize + j] = data[i * size + j];
+			newData.get()[i * newSize + j] = data[i * size + j];
 		}
 	}
 	//LOGM2(newData, newSize, newSize, "Copied padded matrix:", LOGCPU);
@@ -273,9 +274,9 @@ numType * fillPadding(int size, numType * data, int colorCount, int * colorOff, 
 					int newRow = (i + newOff[k] - colorOff[k]);
 					if (newRow != i) {
 						// move value to correct position
-						newData[newRow * newSize + j] = newData[i * newSize + j];
+						newData.get()[newRow * newSize + j] = newData.get()[i * newSize + j];
 						// reset previous position
-						newData[i * newSize + j] = 0;
+						newData.get()[i * newSize + j] = 0;
 					}
 				}
 			}
@@ -290,9 +291,9 @@ numType * fillPadding(int size, numType * data, int colorCount, int * colorOff, 
 					int newColumn = (j + newOff[k] - colorOff[k]);
 					if (newColumn != j) {
 						// move value to correct position
-						newData[i * newSize + newColumn] = newData[i * newSize + j];
+						newData.get()[i * newSize + newColumn] = newData.get()[i * newSize + j];
 						// reset previous position
-						newData[i * newSize + j] = 0;
+						newData.get()[i * newSize + j] = 0;
 					}
 				}
 			}
@@ -301,8 +302,8 @@ numType * fillPadding(int size, numType * data, int colorCount, int * colorOff, 
 	//LOGM2(newData, newSize, newSize, "Padded reordered matrix (cols):", LOGCPU);
 	// "fix" main diagonal
 	for (int i = 0; i < newSize; i++) {
-		if (MOD(newData[i * newSize + i]) < EPS) {
-			newData[i * newSize + i] = 1;
+		if (MOD(newData.get()[i * newSize + i]) < EPS) {
+			newData.get()[i * newSize + i] = 1;
 		}
 	}
 	//LOGM2(newData, newSize, newSize, "Padded reordered matrix:", LOGCPU);
@@ -567,7 +568,7 @@ int * colorSort(matrix * data, int * colorCount, int * newIdx, bool reorderByLow
 }
 
 
-numType * fillPadding(matrix * data, int colorCount, int * colorOff, int * sizePadding) {
+std::shared_ptr<numType> fillPadding(matrix * data, int colorCount, int * colorOff, int * sizePadding) {
 	int size = data->cols();
 	int * newColorCount = new int[colorCount];
 	int * newOff = new int[colorCount + 1];
@@ -584,20 +585,21 @@ numType * fillPadding(matrix * data, int colorCount, int * colorOff, int * sizeP
 	//LOGV2(newOff, colorCount + 1, "Matrix padding insert position:", LOGCPU);
 	//LOGV2(insCount, colorCount, "Matrix padding count:", LOGCPU);
 
-	numType * newData = new numType[newSize * newSize];
+	//numType * newData = new numType[newSize * newSize];
+	std::shared_ptr<numType> newData(new numType[newSize * newSize], std::default_delete<numType[]>());
 	for (int i = 0; i < newSize; i++) {
 		for (int j = 0; j < newSize; j++) {
-			newData[i * newSize + j] = 0;
+			newData.get()[i * newSize + j] = 0;
 		}
-		newData[i * newSize + i] = 1;
+		newData.get()[i * newSize + i] = 1;
 	}
 
 	for (int col = 0; col<data->outerSize(); ++col)
 		for (matrix::InnerIterator it(*data, col); it; ++it)
 		{
 			int row = it.row();
-			newData[row * newSize + col] = it.value();
-			newData[col * newSize + row] = it.value();
+			newData.get()[row * newSize + col] = it.value();
+			newData.get()[col * newSize + row] = it.value();
 		}
 	//LOGM2(newData, newSize, newSize, "Copied padded matrix:", LOGCPU);
 
@@ -609,9 +611,9 @@ numType * fillPadding(matrix * data, int colorCount, int * colorOff, int * sizeP
 					int newRow = (i + newOff[k] - colorOff[k]);
 					if (newRow != i) {
 						// move value to correct position
-						newData[newRow * newSize + j] = newData[i * newSize + j];
+						newData.get()[newRow * newSize + j] = newData.get()[i * newSize + j];
 						// reset previous position
-						newData[i * newSize + j] = 0;
+						newData.get()[i * newSize + j] = 0;
 					}
 				}
 			}
@@ -626,9 +628,9 @@ numType * fillPadding(matrix * data, int colorCount, int * colorOff, int * sizeP
 					int newColumn = (j + newOff[k] - colorOff[k]);
 					if (newColumn != j) {
 						// move value to correct position
-						newData[i * newSize + newColumn] = newData[i * newSize + j];
+						newData.get()[i * newSize + newColumn] = newData.get()[i * newSize + j];
 						// reset previous position
-						newData[i * newSize + j] = 0;
+						newData.get()[i * newSize + j] = 0;
 					}
 				}
 			}
@@ -637,8 +639,8 @@ numType * fillPadding(matrix * data, int colorCount, int * colorOff, int * sizeP
 	//LOGM2(newData, newSize, newSize, "Padded reordered matrix (cols):", LOGCPU);
 	// "fix" main diagonal
 	for (int i = 0; i < newSize; i++) {
-		if (MOD(newData[i * newSize + i]) < EPS) {
-			newData[i * newSize + i] = 1;
+		if (MOD(newData.get()[i * newSize + i]) < EPS) {
+			newData.get()[i * newSize + i] = 1;
 		}
 	}
 	//LOGM2(newData, newSize, newSize, "Padded reordered matrix:", LOGCPU);

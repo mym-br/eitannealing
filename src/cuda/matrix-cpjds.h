@@ -17,30 +17,28 @@ namespace Eigen {
 }
 using namespace cgl;
 
-void deleteCudaIntPtr(int* ptr);
-void deleteCudaNumTypePtr(numType* ptr);
 struct DeleterCudaIntPtr { void operator()(int* ptr); void operator()(numType* ptr); };
 
 struct MatrixData {
 	int n; // n is multiple of WARP_SIZE (32)
 	// TODO: convert ALL to smart cuda ptr
-	std::shared_ptr<numType> data;
-	std::shared_ptr<int> indices;
-	std::shared_ptr<int> rowLength; // row length (non-zeros)
-	std::shared_ptr<int> rowSize; // row max (includes trailing padding-zeros) - all rows in the warp have same size
-	std::shared_ptr<int> colOffset; // row start (index of the first element of the row)
+	std::unique_ptr<numType[], DeleterCudaIntPtr> data;
+	std::unique_ptr<int[], DeleterCudaIntPtr> indices;
+	std::unique_ptr<int[], DeleterCudaIntPtr> rowLength; // row length (non-zeros)
+	std::unique_ptr<int[], DeleterCudaIntPtr> rowSize; // row max (includes trailing padding-zeros) - all rows in the warp have same size
+	std::unique_ptr<int[], DeleterCudaIntPtr> colOffset; // row start (index of the first element of the row)
 	int offsetCount; // merely for debug, size of colOffset array
 	int nnz; // number of non-zero elements
 	int elCount; // total elements (including padding-zeroes)
 };
 
 struct MatrixColors {
-	std::shared_ptr<int> colors; // color groups/offsets
-	std::shared_ptr<int> colorsColOffsetSize; // each color's colOffset block position in the colOffset array
+	std::shared_ptr<int[]> colors; // color groups/offsets
+	std::unique_ptr<int[]> colorsColOffsetSize; // each color's colOffset block position in the colOffset array
 	int colorCount;
 
-	std::shared_ptr<int> colors_d; // color groups/offsets
-	std::shared_ptr<int> colorsColOffsetSize_d; // each color's colOffset block position in the colOffset array
+	std::unique_ptr<int[], DeleterCudaIntPtr> colors_d; // color groups/offsets
+	std::unique_ptr<int[], DeleterCudaIntPtr> colorsColOffsetSize_d; // each color's colOffset block position in the colOffset array
 };
 
 struct MatrixDependencies {
@@ -89,7 +87,7 @@ class MatrixCPJDSManager {
 private:
 	std::unique_ptr<numType[]> data;
 	int n;
-	std::shared_ptr<int> colors;
+	std::shared_ptr<int[]> colors;
 	int colorCount;
 
 	/* map (row,col)=>data_array_idx */
@@ -118,8 +116,6 @@ public:
 	std::unique_ptr<int[]> padded2OriginalIdx;
 	// data must be processed and color-sorted
 	MatrixCPJDSManager(Eigen::SparseMatrix<double> *data);
-	// data has been pre-processed and color-sorted, n already includes padding
-	MatrixCPJDSManager(std::unique_ptr<numType[]> data, int n, std::shared_ptr<int> colors, int colorCount, int nOrig);
 
 	/* provided M matrix is filled with a complete CPJDS matrix */
 	int buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);

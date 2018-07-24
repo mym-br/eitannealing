@@ -15,20 +15,6 @@
 #include <Eigen/Core>
 #include "../basematrix.h"
 
-/*
-* data: full symmetric matrix (n-by-n), with zeroes - data is row-major!!!
-* n: matrix size - must be multiple of WARP_SIZE (32)
-* colors: array of each colors offset (size is colorCount + 1, last position being equal to n)
-* colorCount: number of colors
-*/
-MatrixCPJDSManager::MatrixCPJDSManager(std::unique_ptr<numType[]> data, int n, std::shared_ptr<int> colors, int colorCount, int nOrig) {
-	this->data = std::move(data);
-	this->n = n;
-	this->colors = colors;
-	this->colorCount = colorCount;
-	this->nOrig = nOrig;
-};
-
 /* this method allows the conversion os (row, col) coordinates to the index in the data and indices arrays */
 int MatrixCPJDSManager::coordinates2Index(int row, int col) {
 	std::map<int, int> columnsMap = coord2IndexMap[row];
@@ -119,13 +105,13 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
 
 	// corrigir offsets no vetor de cores
 	//int * colorsOffPadded = new int[colorCount + 1];
-	std::shared_ptr<int> colorsOffPadded(new int[colorCount + 1], std::default_delete<int[]>());
+	std::shared_ptr<int[]> colorsOffPadded(new int[colorCount + 1]);
 	int newSize = 0;
 	for (int i = 0; i < colorCount; i++) {
-		colorsOffPadded.get()[i] = newSize;
+		colorsOffPadded[i] = newSize;
 		newSize += (int)ceil((double)(colorsOff[i + 1] - colorsOff[i]) / WARP_SIZE) * WARP_SIZE;
 	}
-	colorsOffPadded.get()[colorCount] = newSize;
+	colorsOffPadded[colorCount] = newSize;
 
 	this->colorCount = colorCount;
 	this->colors = colorsOffPadded;

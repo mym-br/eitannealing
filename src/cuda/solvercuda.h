@@ -15,8 +15,8 @@ namespace Eigen {
 
 class CGCUDA_Solver {
 	public:
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm);
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, bool consolidatedKernels = false);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm, bool consolidatedKernels = false);
 		void do_iteration();
 		//std::vector<numType> getX();
 		Eigen::Matrix<numType, -1, 1, 0> getX();

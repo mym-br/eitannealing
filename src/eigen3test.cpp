@@ -15,6 +15,8 @@
 #include "cuda/solvercuda.h"
 #include "cuda/solvercublas.h"
 
+#define CGITS 0
+
 void saveVals(const char* fname, matrix &mat, bool symm = false) {
 	std::ofstream myfile;
 	myfile.open(fname, std::ios::binary);
@@ -135,7 +137,7 @@ int main(int argc, char *argv[])
 	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);
 
 	std::vector<Eigen::VectorXd> solutions, solutionscublas;
-	std::vector<Eigen::VectorXf> solutionscuda;
+	std::vector<Eigen::VectorXf> solutionscuda, solutionscuda2;
 	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
 		// Get current vector
 		currents = input->getCurrentVector(patterno, readings);
@@ -157,25 +159,29 @@ int main(int argc, char *argv[])
 		// Solve the direct problem
 		HighResClock::time_point ts1 = HighResClock::now();
 		CG_Solver solver(*m, currents, precond);
-		for (int i = 0; i < 100; i++) solver.do_iteration();
+		for (int i = 0; i < CGITS; i++) solver.do_iteration();
 		HighResClock::time_point ts2 = HighResClock::now();
 		x = solver.getX();
 		//saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
 		
 		// CUDA solver for the direct problem
 		HighResClock::time_point tc1 = HighResClock::now();
-		CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), bVec, lINFinityNorm);
-		for (int i = 0; i < 100; i++) solvercuda.do_iteration();
+		CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), bVec, lINFinityNorm, false);
+		for (int i = 0; i < CGITS; i++) solvercuda.do_iteration();
 		//std::vector<numType> xcuda = solvercuda.getX();
 		Eigen::VectorXf xcudavec = solvercuda.getX();
 		HighResClock::time_point tc2 = HighResClock::now();
 		//Eigen::VectorXd xcudavec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcudavec[i] = xcuda[i];
 		//saveVals(("x" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), xcudavec);
+		CGCUDA_Solver solvercuda2(stiffness.get(), mgr.get(), bVec, lINFinityNorm, true);
+		for (int i = 0; i < CGITS; i++) solvercuda2.do_iteration();
+		//std::vector<numType> xcuda = solvercuda.getX();
+		Eigen::VectorXf xcudavec2 = solvercuda2.getX();
 
 		// Cublas solver for the direct problem
 		HighResClock::time_point tb1 = HighResClock::now();
 		Cublas::CG_Solver solvercublas(Acublas, currentsData, precondcublas);
-		for (int i = 0; i < 100; i++) solvercublas.doIteration();
+		for (int i = 0; i < 3+CGITS; i++) solvercublas.doIteration();
 		float *xcublas = solvercublas.getX();
 		HighResClock::time_point tb2 = HighResClock::now();
 		Eigen::VectorXd xcublasvec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcublasvec[i] = xcublas[i];
@@ -188,6 +194,7 @@ int main(int argc, char *argv[])
 		// Store solutions
 		solutions.push_back(x);
 		solutionscuda.push_back(xcudavec);
+		solutionscuda2.push_back(xcudavec2);
 		solutionscublas.push_back(xcublasvec);
 		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << ". Times: " << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()  <<
 			"us (serial), " << std::chrono::duration_cast<std::chrono::microseconds>(tc2 - tc1).count()  << "us (cjpds-cuda), " << std::chrono::duration_cast<std::chrono::microseconds>(tb2 - tb1).count()  << "us (cublas)." << std::endl;
@@ -196,7 +203,8 @@ int main(int argc, char *argv[])
 	// Save solutions to gmsh files
 	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input, readings);
 	std::string refname(params.outputMesh.toStdString()); std::size_t dotfound = refname.find_last_of("."); refname.replace(dotfound, 1, "_cuda."); solution::savePotentials(solutionscuda, refname.c_str(), input, readings);
+	std::string refnameCuda2(params.outputMesh.toStdString()); refnameCuda2.replace(dotfound, 1, "_cuda2."); solution::savePotentials(solutionscuda2, refnameCuda2.c_str(), input, readings);
 	std::string refname2(params.outputMesh.toStdString()); refname2.replace(dotfound, 1, "_cublas."); solution::savePotentials(solutionscublas, refname2.c_str(), input, readings);
 
-	return app.exec();
+	return 0;
 }

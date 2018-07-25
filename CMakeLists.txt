@@ -15,7 +15,8 @@ set(eitannealingtest_SRCS
   src/graphics.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  src/maincuda.cpp
+  #src/maincuda.cpp
+  src/eigen3test.cpp
   src/problem.cpp
   src/solution.cpp
   src/solutionbase.cpp

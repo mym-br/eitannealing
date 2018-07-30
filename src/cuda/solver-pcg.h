@@ -76,7 +76,7 @@ public:
 		if (it>2) return this->err[it - 1];
 		return 0;
 	}
-private:
+protected:
 	double rmod2, rmod2_1, gamma2, gamma2_1, beta, r0norm2, r0norm, alpha, eta, eta_p1, rt1, r1, c, s, r2, c_1, s_1, r3;
 	// Circular buffers
 	circularbuff<double, 8> w;

@@ -132,6 +132,8 @@ int main(int argc, char *argv[])
 	std::unique_ptr<MatrixCPJDS> stiffness = std::unique_ptr<MatrixCPJDS>(new MatrixCPJDS);
 	std::unique_ptr<MatrixCPJDSManager> mgr = std::unique_ptr<MatrixCPJDSManager>(CGCUDA_Solver::createManager(&mCpjds, stiffness.get(), input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients()));
 	numType lINFinityNorm  = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
+	//matrix mPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.data); saveVals("Acpjds.txt", mPrint, true);
+	//matrix precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.txt", precondPrint);
 
 	// Create Cublas preconditioner
 	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);

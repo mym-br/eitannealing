@@ -15,7 +15,7 @@ vectorx CGCUDA_Solver::getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, in
 	return vecArr;
 }
 
-matrix CGCUDA_Solver::getCpjdsStiffness(MatrixCPJDS M, numType * pdata) {
+matrix CGCUDA_Solver::getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata) {
 	int size = M.csrMap.n;
 	int nnz = M.csrMap.nnz;
 	MatrixCPJDS2CSR csrMap = M.csrMap;

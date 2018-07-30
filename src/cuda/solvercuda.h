@@ -32,7 +32,7 @@ class CGCUDA_Solver {
 		double getErrorl2Estimate() const;
 
 		// Debug
-		static Eigen::SparseMatrix<double, 0, int> getCpjdsStiffness(MatrixCPJDS M, numType * pdata);
+		static Eigen::SparseMatrix<double, 0, int> getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
 		static Eigen::Matrix<double, -1, 1, 0> getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 
 	private:

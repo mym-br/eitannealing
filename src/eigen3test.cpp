@@ -15,7 +15,7 @@
 #include "cuda/solvercuda.h"
 #include "cuda/solvercublas.h"
 
-#define CGITS 0
+#define CGITS 100
 
 void saveVals(const char* fname, matrix &mat, bool symm = false) {
 	std::ofstream myfile;
@@ -175,10 +175,12 @@ int main(int argc, char *argv[])
 		HighResClock::time_point tc2 = HighResClock::now();
 		//Eigen::VectorXd xcudavec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcudavec[i] = xcuda[i];
 		//saveVals(("x" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), xcudavec);
+		HighResClock::time_point tcc1 = HighResClock::now();
 		CGCUDA_Solver solvercuda2(stiffness.get(), mgr.get(), bVec, lINFinityNorm, true);
 		for (int i = 0; i < CGITS; i++) solvercuda2.do_iteration();
 		//std::vector<numType> xcuda = solvercuda.getX();
 		Eigen::VectorXf xcudavec2 = solvercuda2.getX();
+		HighResClock::time_point tcc2 = HighResClock::now();
 
 		// Cublas solver for the direct problem
 		HighResClock::time_point tb1 = HighResClock::now();
@@ -199,7 +201,7 @@ int main(int argc, char *argv[])
 		solutionscuda2.push_back(xcudavec2);
 		solutionscublas.push_back(xcublasvec);
 		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << ". Times: " << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()  <<
-			"us (serial), " << std::chrono::duration_cast<std::chrono::microseconds>(tc2 - tc1).count()  << "us (cjpds-cuda), " << std::chrono::duration_cast<std::chrono::microseconds>(tb2 - tb1).count()  << "us (cublas)." << std::endl;
+			"us (serial), " << std::chrono::duration_cast<std::chrono::microseconds>(tc2 - tc1).count()  << "us (cjpds-cuda), " << std::chrono::duration_cast<std::chrono::microseconds>(tcc2 - tcc1).count() << "us (cjpds-consolidatedcuda), " << std::chrono::duration_cast<std::chrono::microseconds>(tb2 - tb1).count()  << "us (cublas)." << std::endl;
 	}
 
 	// Save solutions to gmsh files

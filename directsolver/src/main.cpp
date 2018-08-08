@@ -1,214 +1,124 @@
-#include "solver.h"
-#include "problem.h"
-#include "solution.h"
-#include <QTableView>
-#include <QApplication>
-#include <QCommandLineParser>
-#include "parameters\parametersparser.h"
-#include "matrixview.h"
+#include <stdio.h>
 #include <iostream>
-#include <Eigen/SparseCholesky>
-#include "twodim/problem2D.h"
-#include "threedim/problem3D.h"
-#include "observations.h"
-#include "cuda/HighResClock.h"
-#include "cuda/solvercuda.h"
-#include "cuda/solvercublas.h"
+#include "args/args.hxx"
+#include "basematrix.h"
+#include "incomplete_cholesky.h"
+#include "solver.h"
+#include <chrono>
 
-#define CGITS 100
-
-void saveVals(const char* fname, matrix &mat, bool symm = false) {
-	std::ofstream myfile;
-	myfile.open(fname, std::ios::binary);
-	for (int i = 0; i < mat.rows(); i++) {
-		for (int j = 0; j < mat.cols(); j++) {
-			double valre = j < i && symm ? mat.coeff(i, j) : mat.coeff(j, i);
-			double valim = 0.0;
-			myfile.write((char*)&valre, sizeof(double));
-			myfile.write((char*)&valim, sizeof(double));
-		}
-	}
-	myfile.close();
-}
-
-void saveVals(const char* fname, const Eigen::VectorXd &vec) {
-	std::ofstream myfile;
-	myfile.open(fname, std::ios::binary); myfile;
-	for (int i = 0; i < vec.size(); i++) {
-		double valre = vec.coeff(i);
-		double valim = 0.0;
-		myfile.write((char*)&valre, sizeof(double));
-		myfile.write((char*)&valim, sizeof(double));
-	}
-	myfile.close();
+extern "C" {
+	#include "mm/mmio.h"
 }
 
 int main(int argc, char *argv[])
 {
-	QApplication app(argc, argv);
-	QApplication::setApplicationName("EIT Annealing Test");
-	QApplication::setApplicationVersion("0.1");
+	// Parse arguments
+	args::ArgumentParser parser("This is a performance test program for the CG implementation of eitannealingtest.", "No comments.");
+	args::HelpFlag help(parser, "help", "Display this help menu", { 'h', "help" });
+	args::CompletionFlag completion(parser, { "complete" });
+	args::ValueFlag<std::string> bfname(parser, "filename", "b vector file", { 'b' });
+	args::Positional<std::string> Afname(parser, "filename", "A matrix file");
+	try { parser.ParseCLI(argc, argv); }
+	catch (args::Completion e) { std::cout << e.what(); return 0; }
+	catch (args::Help) { std::cout << parser; return 0; }
+	catch (args::ParseError e) { std::cerr << e.what() << std::endl << parser; return 1; }
 
-	// --> Parse command line arguments
-	QCommandLineParser parser;
-	parser.setApplicationDescription("EIT Annealing Test.");
-	EitAnnealingArgs params;
-	QString errorMessage;
-	switch (parseCommandLine(parser, &params, &errorMessage)) {
-	case CommandLineOk:
-		break;
-	case CommandLineError:
-		fputs(qPrintable(errorMessage), stderr);
-		fputs("\n\n", stderr);
-		fputs(qPrintable(parser.helpText()), stderr);
-		return 1;
-	case CommandLineVersionRequested:
-		printf("%s %s\n", qPrintable(QCoreApplication::applicationName()),
-			qPrintable(QCoreApplication::applicationVersion()));
-		return 0;
-	case CommandLineHelpRequested:
-		parser.showHelp();
-		Q_UNREACHABLE();
-	}
-
-	observations<double> *readings = new observations<double>;
-
-	bool is2dProblem;
-	std::string meshfname = params.inputMesh.toStdString();
-	std::string currentsfname = params.inputCurrents.toStdString();
-	std::string tensionsfname = params.inputTensions.toStdString();
-	std::shared_ptr<problem> input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
-	input->setGroundNode(params.ground);
-	input->initProblem(meshfname.c_str());
-	const char *currentsfnamecstr = currentsfname.c_str();
-	readings->initObs(&currentsfnamecstr, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
-	input->buildNodeCoefficients();
-	input->prepareSkeletonMatrix();
-	input->createCoef2KMatrix();
+	// Open matrix file
+	FILE *f;
+	if ((f = fopen(args::get(Afname).c_str(), "r")) == NULL) { std::cerr << "Could not read file " << args::get(Afname) << std::endl; return 1; }
+	MM_typecode matcode;
+	if (mm_read_banner(f, &matcode) != 0) { std::cerr << "Could not process Matrix Market banner.\n" << std::endl; return 1; }
 	
-    matrix *m;
-	Eigen::VectorXd vcond(input->getNumCoefficients());
-	for (int i = 0; i < vcond.rows(); i++) vcond[i] = 0.3815;
-	input->assembleProblemMatrix(&vcond[0], &m);
-	input->postAssembleProblemMatrix(&m);
+	// Check matrix type
+	if (mm_is_complex(matcode)) { std::cerr << "Sorry, this application does not support Market Market type: [" << mm_typecode_to_str(matcode) << "]" << std::endl; return 1; }
 
-    QTableView matrixView;
-    matrixView.setModel(makeMatrixTableModel(m->selfadjointView<Eigen::Lower>()));
-    matrixView.setWindowTitle("Stiffness");
-    matrixView.show();
+	// Get matrix size
+	int ret_code, M, N, nz;
+	if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0 || M != N) { std::cerr << "Incorrect matrix size"; return 1; }
+	std::cout << "Detected A matrix with size " << M << "x" << N << std::endl;
 
-	Eigen::VectorXd currents;
-	QTableView vectorbView;
-	vectorbView.setWindowTitle("Currents");
-
-	Eigen::VectorXd x;
-	QTableView vectorView;
-	vectorView.setWindowTitle("Tensions");
-
-	//saveVals("A.txt", *m, true);
-
-	// Create symmetric matrix with filled upper left and float values
+	// Read matrix to Eigen type
+	std::cout << "Creating Eigen sparse matrix" << std::endl;
+	int row, col;  Scalar val;
 	std::vector<Eigen::Triplet<Scalar>> tripletList;
-	m->makeCompressed();
-	int col = -1;
-	for (int i = 0; i < m->nonZeros(); ++i) {
-		if (m->outerIndexPtr()[col + 1] <= i) col++;
-		int row = m->innerIndexPtr()[i];
-		tripletList.push_back(Eigen::Triplet<Scalar>(row, col, m->valuePtr()[i]));
-		if (row != col) tripletList.push_back(Eigen::Triplet<Scalar>(col, row, m->valuePtr()[i]));
+	for (int i = 0; i < nz; i++) {
+		fscanf(f, "%d %d %lg\n", &row, &col, &val);
+		tripletList.push_back(Eigen::Triplet<Scalar>(row-1, col-1, val));  /* adjust from 1-based to 0-based */
 	}
-	Eigen::SparseMatrix<float, Eigen::ColMajor> msymm(m->rows(), m->cols());
-	msymm.setFromTriplets(tripletList.begin(), tripletList.end());
-	msymm.makeCompressed();
-	Cublas::Matrix *Acublas = Cublas::Matrix::createCublasMatrix(&msymm);
+	auto t1 = std::chrono::high_resolution_clock::now();
+	matrix A(M, N);
+	A.setFromTriplets(tripletList.begin(), tripletList.end());
+	A.makeCompressed();
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_analyser = t2 - t1;
+	std::cout << "Serial analyser on A used " << time_analyser.count() << " us." << std::endl;
+	// Close file
+	fclose(f);
 
+	///************************/
+	///* now write out matrix */
+	///************************/
+	//mm_write_banner(stdout, matcode);
+	//mm_write_mtx_crd_size(stdout, M, N, nz);
+	//for (int k = 0; k<A.outerSize(); ++k)
+	//	for (matrix::InnerIterator it(A, k); it; ++it)
+	//		fprintf(stdout, "%d %d %20.19g\n", it.row() + 1, it.col() + 1, it.value());
+
+	// Create vector
+	vectorx b(M);
+	if (bfname) { 
+		// Open vector file
+		if ((f = fopen(args::get(bfname).c_str(), "r")) == NULL) { std::cerr << "Could not read file " << args::get(bfname) << std::endl; return 1; }
+		if (mm_read_banner(f, &matcode) != 0) { std::cerr << "Could not process Matrix Market banner.\n" << std::endl; return 1; }
+
+		// Check vector type
+		if (mm_is_complex(matcode)) { std::cerr << "Sorry, this application does not support Market Market type: [" << mm_typecode_to_str(matcode) << "]" << std::endl; return 1; }
+
+		// Get vector size
+		if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0 || N != 1) { std::cerr << "Incorrect vector size"; return 1; }
+		std::cout << "Detected b vector with size " << M << "x" << N << std::endl;
+
+		// Read vector to Eigen type
+		b.setZero();
+		for (int i = 0; i < nz; i++)
+		{
+			fscanf(f, "%d %d %lg\n", &row, &col, &val);
+			b[row - 1] = val;  /* adjust from 1-based to 0-based */
+		}
+	}
+	else {
+		// TODO: Generate random rhs
+	}
+
+	///************************/
+	///* now write out vector */
+	///************************/
+	//mm_write_banner(stdout, matcode);
+	//mm_write_mtx_crd_size(stdout, M, N, nz);
+	//std::cout << b.transpose() << std::endl;
+
+	t1 = std::chrono::high_resolution_clock::now();
+	// TODO: Read res and maxit parameters
+	std::cout << "Starting CG with res = " << -1 << " and max iterations = " << 100 << std::endl;
 	// Create preconditioner
-	SparseIncompleteLLT precond(*m);
-	//matrix L = precond.matrixL();
-	//saveVals("L.txt", L);
+	SparseIncompleteLLT L(A);
 
-	// Create CUDA preconditioner
-	matrix mCpjds = *m;
-	std::unique_ptr<MatrixCPJDS> stiffness = std::unique_ptr<MatrixCPJDS>(new MatrixCPJDS);
-	std::unique_ptr<MatrixCPJDSManager> mgr = std::unique_ptr<MatrixCPJDSManager>(CGCUDA_Solver::createManager(&mCpjds, stiffness.get(), input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients()));
-	numType lINFinityNorm  = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
-	//matrix mPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.data); saveVals("Acpjds.txt", mPrint, true);
-	//matrix precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.txt", precondPrint);
+	// Create solver
+	CG_Solver solver(A, b, L);
 
-	// Create Cublas preconditioner
-	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);
+	// Execute solver iterations
+	for (int i = 0; i < 100; i++) solver.do_iteration();
 
-	std::vector<Eigen::VectorXd> solutions, solutionscublas;
-	std::vector<Eigen::VectorXf> solutionscuda, solutionscuda2;
-	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
-		// Get current vector
-		currents = input->getCurrentVector(patterno, readings);
-		#ifndef BLOCKGND
-		currents[input->getGroundNode()] = 0;
-		#endif
-		//saveVals(("b" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
-
-		// Create CUDA current vector
-		numType *currentsData = new numType[m->cols()];
-		for (int i = 0; i < m->cols(); i++) currentsData[i] = currents[i];
-		Vector *bVec = CGCUDA_Solver::createCurrentVector(currentsData, *mgr, stiffness->matrixData.n, m->cols());
-		//saveVals(("b" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), currentsData, n, 1);
-		
-		// Current GUI view
-		vectorbView.setModel(makeMatrixTableModel(currents));
-		vectorbView.show();
-
-		// Solve the direct problem
-		HighResClock::time_point ts1 = HighResClock::now();
-		CG_Solver solver(*m, currents, precond);
-		for (int i = 0; i < CGITS; i++) solver.do_iteration();
-		HighResClock::time_point ts2 = HighResClock::now();
-		x = solver.getX();
-		//saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
-		
-		// CUDA solver for the direct problem
-		HighResClock::time_point tc1 = HighResClock::now();
-		CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), bVec, lINFinityNorm, false);
-		for (int i = 0; i < CGITS; i++) solvercuda.do_iteration();
-		//std::vector<numType> xcuda = solvercuda.getX();
-		Eigen::VectorXf xcudavec = solvercuda.getX();
-		HighResClock::time_point tc2 = HighResClock::now();
-		//Eigen::VectorXd xcudavec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcudavec[i] = xcuda[i];
-		//saveVals(("x" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), xcudavec);
-		HighResClock::time_point tcc1 = HighResClock::now();
-		CGCUDA_Solver solvercuda2(stiffness.get(), mgr.get(), bVec, lINFinityNorm, true);
-		for (int i = 0; i < CGITS; i++) solvercuda2.do_iteration();
-		//std::vector<numType> xcuda = solvercuda.getX();
-		Eigen::VectorXf xcudavec2 = solvercuda2.getX();
-		HighResClock::time_point tcc2 = HighResClock::now();
-
-		// Cublas solver for the direct problem
-		HighResClock::time_point tb1 = HighResClock::now();
-		Cublas::CG_Solver solvercublas(Acublas, currentsData, precondcublas);
-		for (int i = 0; i < 3+CGITS; i++) solvercublas.doIteration();
-		float *xcublas = solvercublas.getX();
-		HighResClock::time_point tb2 = HighResClock::now();
-		Eigen::VectorXd xcublasvec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcublasvec[i] = xcublas[i];
-		//saveVals(("x" + std::to_string(patterno + 1) + "_cublas.txt").c_str(), xcublasvec);
-
-		// Potential GUI view
-		vectorView.setModel(makeMatrixTableModel(x.selfadjointView<Eigen::Lower>()));
-		vectorView.show();
-		
-		// Store solutions
-		solutions.push_back(x);
-		solutionscuda.push_back(xcudavec);
-		solutionscuda2.push_back(xcudavec2);
-		solutionscublas.push_back(xcublasvec);
-		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << ". Times: " << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()  <<
-			"us (serial), " << std::chrono::duration_cast<std::chrono::microseconds>(tc2 - tc1).count()  << "us (cjpds-cuda), " << std::chrono::duration_cast<std::chrono::microseconds>(tcc2 - tcc1).count() << "us (cjpds-consolidatedcuda), " << std::chrono::duration_cast<std::chrono::microseconds>(tb2 - tb1).count()  << "us (cublas)." << std::endl;
-	}
-
-	// Save solutions to gmsh files
-	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input, readings);
-	std::string refname(params.outputMesh.toStdString()); std::size_t dotfound = refname.find_last_of("."); refname.replace(dotfound, 1, "_cuda."); solution::savePotentials(solutionscuda, refname.c_str(), input, readings);
-	std::string refnameCuda2(params.outputMesh.toStdString()); refnameCuda2.replace(dotfound, 1, "_cuda2."); solution::savePotentials(solutionscuda2, refnameCuda2.c_str(), input, readings);
-	std::string refname2(params.outputMesh.toStdString()); refname2.replace(dotfound, 1, "_cublas."); solution::savePotentials(solutionscublas, refname2.c_str(), input, readings);
+	///************************/
+	///* now write out result */
+	///************************/
+	vectorx x = solver.getX();
+	t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_executor = t2 - t1;
+	std::cout << "Serial executor on A used " << time_executor.count() << " us." << std::endl;
+	//for (int i = 0; i < M; i++) {
+	//	std::cout << i + 1 << "\t" << x[i] << std::endl;
+	//}
 
 	return 0;
 }

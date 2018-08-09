@@ -12,7 +12,18 @@ extern "C" {
 
 #define DEFAULTMAXITS 100
 
-void runCGTest(matrix &A, vectorx &b, double res, int maxit, SparseIncompleteLLT &L);
+struct raw_matrix {
+	raw_matrix(int _M, int _N) : M(_M), N(_N) {}
+	void addElement(std::tuple<int, int, double> el) { elements.push_back(el); }
+	std::vector<std::tuple<int, int, double>>::iterator begin() { return elements.begin(); }
+	std::vector<std::tuple<int, int, double>>::iterator end() { return elements.end(); }
+	std::vector<std::tuple<int, int, double>>::const_iterator cbegin() { return elements.cbegin(); }
+	std::vector<std::tuple<int, int, double>>::const_iterator cend() { return elements.cend(); }
+	int M, N;
+	std::vector<std::tuple<int, int, double>> elements;
+};
+typedef std::vector<double> raw_vector;
+void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit);
 
 int main(int argc, char *argv[])
 {
@@ -43,24 +54,13 @@ int main(int argc, char *argv[])
 	if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0 || M != N) { std::cerr << "Incorrect matrix size"; return 1; }
 	std::cout << "Detected A matrix with size " << M << "x" << N << std::endl;
 
-	// Read matrix to Eigen type
-	std::cout << "Creating Eigen sparse matrix" << std::endl;
+	// Read matrix
 	int row, col;  Scalar val;
-	std::vector<Eigen::Triplet<Scalar>> tripletList;
+	raw_matrix A(M,N);
 	for (int i = 0; i < nz; i++) {
 		fscanf(f, "%d %d %lg\n", &row, &col, &val);
-		tripletList.push_back(Eigen::Triplet<Scalar>(row-1, col-1, val));  /* adjust from 1-based to 0-based */
+		A.addElement({ row - 1, col - 1, val });  /* adjust from 1-based to 0-based */
 	}
-	auto t1 = std::chrono::high_resolution_clock::now();
-	// Create sparse matrix
-	matrix A(M, N);
-	A.setFromTriplets(tripletList.begin(), tripletList.end());
-	A.makeCompressed();
-	// Create preconditioner
-	SparseIncompleteLLT L(A);
-	auto t2 = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> time_analyser = t2 - t1;
-	std::cout << "Serial analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 	// Close file
 	fclose(f);
 
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	//		fprintf(stdout, "%d %d %20.19g\n", it.row() + 1, it.col() + 1, it.value());
 
 	// Create vector
-	vectorx b(M);
+	raw_vector b(M);
 	if (bfname) { 
 		// Open vector file
 		if ((f = fopen(args::get(bfname).c_str(), "r")) == NULL) { std::cerr << "Could not read file " << args::get(bfname) << std::endl; return 1; }
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 		std::cout << "Detected b vector with size " << M << "x" << N << std::endl;
 
 		// Read vector to Eigen type
-		b.setZero();
+		std::fill(b.begin(), b.end(), 0);
 		for (int i = 0; i < nz; i++)
 		{
 			fscanf(f, "%d %d %lg\n", &row, &col, &val);
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		// TODO: Generate random rhs
-		b.setOnes();
+		std::fill(b.begin(), b.end(), 1);
 	}
 
 	///************************/
@@ -107,20 +107,37 @@ int main(int argc, char *argv[])
 	//mm_write_mtx_crd_size(stdout, M, N, nz);
 	//std::cout << b.transpose() << std::endl;
 
-	runCGTest(A, b, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, L);
+	runEigenCGTest(A, b, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	
 	return 0;
 }
 
-void runCGTest(matrix &A, vectorx &b, double res, int maxit, SparseIncompleteLLT &L) {
+void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit) {
+	std::cout << "Creating Eigen sparse matrix and preconditioner" << std::endl;
+	
+	// Convert matrix data
+	std::vector<Eigen::Triplet<Scalar>> tripletList;
+	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<Scalar>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
+	auto t1 = std::chrono::high_resolution_clock::now();
+	vectorx b(braw.size());
+	for (int i = 0; i < b.size(); i++) b[i] = braw[i];
+
+	// Create sparse matrix
+	matrix A(Araw.M, Araw.N);
+	A.setFromTriplets(tripletList.begin(), tripletList.end());
+	A.makeCompressed();
+	// Create preconditioner
+	SparseIncompleteLLT L(A);
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_analyser = t2 - t1;
+	std::cout << "Serial analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
+
 	// TODO: Read res and maxit parameters
 	std::cout << "Starting CG with res = " << res << " and max iterations = " << maxit << std::endl;
-
 	// Create solver
 	CG_Solver solver(A, b, L);
-
 	// Execute solver iterations
-	auto t1 = std::chrono::high_resolution_clock::now();
+	t1 = std::chrono::high_resolution_clock::now();
 	int totalIts = 3; 
 	double curRes = std::numeric_limits<double>::max();
 	//for (int i = 0; i < 100; i++) {
@@ -129,7 +146,7 @@ void runCGTest(matrix &A, vectorx &b, double res, int maxit, SparseIncompleteLLT
 		curRes = sqrt(solver.getResidueSquaredNorm());
 		totalIts++;
 	}
-	auto t2 = std::chrono::high_resolution_clock::now();
+	t2 = std::chrono::high_resolution_clock::now();
 
 	///************************/
 	///* now write out result */

@@ -10,6 +10,10 @@ extern "C" {
 	#include "mm/mmio.h"
 }
 
+#define DEFAULTMAXITS 100
+
+void runCGTest(matrix &A, vectorx &b, double res, int maxit, SparseIncompleteLLT &L);
+
 int main(int argc, char *argv[])
 {
 	// Parse arguments
@@ -17,6 +21,8 @@ int main(int argc, char *argv[])
 	args::HelpFlag help(parser, "help", "Display this help menu", { 'h', "help" });
 	args::CompletionFlag completion(parser, { "complete" });
 	args::ValueFlag<std::string> bfname(parser, "filename", "b vector file", { 'b' });
+	args::ValueFlag<double> res(parser, "number", "Residual for CG convergence", { "res" });
+	args::ValueFlag<int> maxits(parser, "number", "Maximum number of CG iterations", { "maxits" });
 	args::Positional<std::string> Afname(parser, "filename", "A matrix file");
 	try { parser.ParseCLI(argc, argv); }
 	catch (args::Completion e) { std::cout << e.what(); return 0; }
@@ -46,12 +52,15 @@ int main(int argc, char *argv[])
 		tripletList.push_back(Eigen::Triplet<Scalar>(row-1, col-1, val));  /* adjust from 1-based to 0-based */
 	}
 	auto t1 = std::chrono::high_resolution_clock::now();
+	// Create sparse matrix
 	matrix A(M, N);
 	A.setFromTriplets(tripletList.begin(), tripletList.end());
 	A.makeCompressed();
+	// Create preconditioner
+	SparseIncompleteLLT L(A);
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> time_analyser = t2 - t1;
-	std::cout << "Serial analyser on A used " << time_analyser.count() << " us." << std::endl;
+	std::cout << "Serial analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 	// Close file
 	fclose(f);
 
@@ -88,6 +97,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		// TODO: Generate random rhs
+		b.setOnes();
 	}
 
 	///************************/
@@ -97,28 +107,37 @@ int main(int argc, char *argv[])
 	//mm_write_mtx_crd_size(stdout, M, N, nz);
 	//std::cout << b.transpose() << std::endl;
 
-	t1 = std::chrono::high_resolution_clock::now();
+	runCGTest(A, b, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, L);
+	
+	return 0;
+}
+
+void runCGTest(matrix &A, vectorx &b, double res, int maxit, SparseIncompleteLLT &L) {
 	// TODO: Read res and maxit parameters
-	std::cout << "Starting CG with res = " << -1 << " and max iterations = " << 100 << std::endl;
-	// Create preconditioner
-	SparseIncompleteLLT L(A);
+	std::cout << "Starting CG with res = " << res << " and max iterations = " << maxit << std::endl;
 
 	// Create solver
 	CG_Solver solver(A, b, L);
 
 	// Execute solver iterations
-	for (int i = 0; i < 100; i++) solver.do_iteration();
+	auto t1 = std::chrono::high_resolution_clock::now();
+	int totalIts = 3; 
+	double curRes = std::numeric_limits<double>::max();
+	//for (int i = 0; i < 100; i++) {
+	while(curRes > res && totalIts < maxit) {
+		solver.do_iteration();
+		curRes = sqrt(solver.getResidueSquaredNorm());
+		totalIts++;
+	}
+	auto t2 = std::chrono::high_resolution_clock::now();
 
 	///************************/
 	///* now write out result */
 	///************************/
 	vectorx x = solver.getX();
-	t2 = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> time_executor = t2 - t1;
-	std::cout << "Serial executor on A used " << time_executor.count() << " us." << std::endl;
+	std::cout << "Serial executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " <<  totalIts << " iterations." << std::endl;
 	//for (int i = 0; i < M; i++) {
 	//	std::cout << i + 1 << "\t" << x[i] << std::endl;
 	//}
-
-	return 0;
 }

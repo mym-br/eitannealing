@@ -97,13 +97,9 @@ __global__ void cmv_solve_inner(numType * aData, int * aIndices, int * aRowLengt
 	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * bData, numType * interm, numType * partial);
 
 /*
-* data: full symmetric matrix (n-by-n), with zeroes - data is row-major!!!
-* n: matrix size - must be multiple of WARP_SIZE (32)
-* colors: array of each colors offset (size is colorCount + 1, last position being equal to n)
-* colorCount: number of colors
 * M: resulting matrix in colored pJDS format
 */
-int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients) {
+int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	// checking size (must be multiple of WARP_SIZE)
 	if (n % WARP_SIZE != 0) {
 		LOG("Invalid matrix size for pJDS format!");
@@ -116,21 +112,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 			return -1;
 		}
 	}
-
-	//std::ofstream myfile;
-	//myfile.open("adata.txt");
-	//for (int i = 0; i < n; i++) {
-	//	for (int j = 0; j < n; j++) {
-	//		numType val = data[i * n + j];
-	//		if (MOD(val) < EPS) {
-	//			val = 0;
-	//		}
-	//		myfile << val << "\t";
-	//	}
-	//	myfile << "\n";
-	//}
-	//myfile.flush();
-	//myfile.close();
 
 	// left-shift each rows' non-zeroes
 	std::vector<std::deque<int>> rowsL(n), rowsU(n), padding(n);
@@ -210,37 +191,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	std::unique_ptr<numType[]> mdata(new numType[total]);
 	std::unique_ptr<int[]> indices(new int[total]);
 
-	// values
-	//std::cout << "values:" << std::endl;
-	//for (int i = 0; i < n; i++) {
-	//	std::cout << data[i * n + i] << "\t";
-	//	for (int j = 0; j < rowsL[i].size(); j++) {
-	//		std::cout << data[i * n + rowsL[i][j]] << "\t";
-	//	}
-	//	for (int j = 0; j < rowsU[i].size(); j++) {
-	//		std::cout << data[i * n + rowsU[i][j]] << "\t";
-	//	}
-	//	for (int j = 0; j < padding[i].size(); j++) {
-	//		std::cout << "0\t";
-	//	}
-	//	std::cout << std::endl;
-	//}
-	//// indices
-	//std::cout << "\nindices:" << std::endl;
-	//for (int i = 0; i < n; i++) {
-	//	std::cout << i << "\t";
-	//	for (int j = 0; j < rowsL[i].size(); j++) {
-	//		std::cout << rowsL[i][j] << "\t";
-	//	}
-	//	for (int j = 0; j < rowsU[i].size(); j++) {
-	//		std::cout << rowsU[i][j] << "\t";
-	//	}
-	//	for (int j = 0; j < padding[i].size(); j++) {
-	//		std::cout << "x\t";
-	//	}
-	//	std::cout << std::endl;
-	//}
-
 	int pos = 0;
 	// each block is built in color order
 	for (int k = 0; k < colorCount; k++) {
@@ -311,15 +261,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	}
 	this->coord2IndexMap = rowCol2IdxMap;
 
-	// ---- DEBUG ----
-	//for (int i = 0; i < n; i++) { // iterating rows in such color
-	//	for (std::map<int, int>::iterator it = rowCol2IdxMap[i].begin(); it != rowCol2IdxMap[i].end(); ++it) {
-	//		std::cout << it->first << ">" << it->second << '\t';
-	//	}
-	//	std::cout << std::endl;
-	//}
-	// ---- DEBUG END ----
-
 	/* computing dependencies */
 	DependeciesMap dependencies(n);
 	dependencies_analysis(data, n, &dependencies);
@@ -356,22 +297,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 		}
 	}
 
-	//// ---- DEBUG ----
-	//std::cout << "Dependencies" << std::endl;
-	//for (int i = 0; i < n; i++) { // iterating rows
-	//	std::vector<Dependencies> dvCPJDS = dependenciesCPJDS[i];
-	//	for (int j = 0; j < dvCPJDS.size(); j++) {
-	//		Dependencies d = dvCPJDS[j];
-	//		std::cout << "row " << i << ": (" << d.lower.first << ", " << d.lower.second << ") - " << d.dependenciesSize << std::endl;
-	//		for (int k = 0; k < d.dependencies.size(); k += 2) {
-	//			std::cout << mdata[d.dependencies[k]] << ", " << mdata[d.dependencies[k + 1]] << std::endl;
-	//		}
-	//		std::cout << std::endl;
-	//	}
-	//}
-	//std::cout << std::endl;
-	//// ---- DEBUG END ----
-
 	// make all dependecies' arrays for the same row have the same size
 	// (it is supposed that dependencies's array size is smaller than warp size - however, warp will not be filled)
 	//std::vector<std::vector<std::deque<int>>> rowsDeps(n);
@@ -393,35 +318,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 		}
 	}
 
-	//// ---- DEBUG ----
-	//std::cout << "Dependencies (padded)" << std::endl;
-	//for (int i = 0; i < n; i++) { // iterating rows
-	//	std::vector<Dependencies> dvCPJDS = dependenciesCPJDS[i];
-	//	for (int j = 0; j < dvCPJDS.size(); j++) {
-	//		Dependencies d = dvCPJDS[j];
-	//		std::cout << "row " << i << ": (" << d.lower.first << ", " << d.lower.second << ") - " << d.dependenciesSize << std::endl;
-	//		for (int k = 0; k < d.dependencies.size(); k += 2) {
-	//			if (mdata[d.dependencies[k]] > -1) {
-	//				std::cout << mdata[d.dependencies[k]];
-	//			}
-	//			else {
-	//				std::cout << "x";
-	//			}
-	//			std::cout << ", ";
-	//			if (mdata[d.dependencies[k + 1]] > -1) {
-	//				std::cout << mdata[d.dependencies[k + 1]];
-	//			}
-	//			else {
-	//				std::cout << "x";
-	//			}
-	//			std::cout << std::endl;
-	//		}
-	//		std::cout << std::endl;
-	//	}
-	//}
-	//std::cout << std::endl;
-	//// ---- DEBUG END ----
-
 	// create dependencies's arrays in CPJDS format
 	std::vector<int> depsArrDiag;
 	std::vector<int> depsArrRow;
@@ -439,7 +335,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 		int depsSize = 0;
 		if (dvCPJDS.size() > 0) {
 			depsSize = dvCPJDS[0].dependencies.size() / 2; // all dvCPJDS have same size (padded in previous step)
-			// also, dependenciesCPJDS.dependencies array is doubled as it contains both row and diagonal elements
+														   // also, dependenciesCPJDS.dependencies array is doubled as it contains both row and diagonal elements
 		}
 		// size
 		depsSizeArr[i] = depsSize;
@@ -453,7 +349,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 		}
 
 		depsNNZArr[i] = depsLowerArr.size(); // size of depsLowerArr = size of depsUpperArr
-		// element's indices (lower and upper)
+											 // element's indices (lower and upper)
 		for (int j = 0; j < dvCPJDS.size(); j++) {
 			depsLowerArr.push_back(coord2IndexMap[dvCPJDS[j].lower.first][dvCPJDS[j].lower.second]);
 			depsUpperArr.push_back(coord2IndexMap[dvCPJDS[j].lower.second][dvCPJDS[j].lower.first]);
@@ -461,62 +357,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	}
 	depsNNZArr[n] = depsLowerArr.size(); // size of depsLowerArr = size of depsUpperArr
 
-	//// ---- DEBUG ----
-	//std::cout << "Dependencies (padded, single array)" << std::endl;
-	//for (int i = 0; i < n; i++) { // iterating rows
-	//	int depsSize = depsSizeArr[i];
-	//	if (depsSize > 0) {
-	//		std::cout << "row " << i << std::endl;
-	//		// adding elements to "global" array, column-major
-	//		for (int j = 0; j < depsSize; j++) {
-	//			if (depsArrDiag[depsIdxArr[i] + j] > -1) {
-	//				std::cout << mdata[depsArrDiag[depsIdxArr[i] + j]];
-	//			}
-	//			else {
-	//				std::cout << "x";
-	//			}
-	//			std::cout << "\t";
-	//		}
-	//		std::cout << std::endl;
-	//
-	//		for (int j = 0; j < depsSize; j++) {
-	//			if (depsArrRow[depsIdxArr[i] + j] > -1) {
-	//				std::cout << mdata[depsArrRow[depsIdxArr[i] + j]];
-	//			}
-	//			else {
-	//				std::cout << "x";
-	//			}
-	//			std::cout << "\t";
-	//		}
-	//		std::cout << std::endl;
-	//
-	//		// element's indices (lower and upper)
-	//		for (int j = 0; j < dependenciesCPJDS[i].size(); j++) {
-	//			depsLowerArr[depsNNZArr[i] + j];
-	//			depsUpperArr[depsNNZArr[i] + j];
-	//		}
-	//	}
-	//}
-	//std::cout << std::endl;
-	//std::cout << "Dependencies (dependencies)" << std::endl;
-	//for (int i = 0; i < n; i++) { // iterating rows
-	//	if (dependenciesCPJDS[i].size() > 0) {
-	//		std::cout << "row " << i << std::endl;
-	//		for (int j = 0; j < dependenciesCPJDS[i].size(); j++) {
-	//			std::cout << depsLowerArr[depsNNZArr[i] + j] << "(" << mdata[depsLowerArr[depsNNZArr[i] + j]] << ")" << "\t";
-	//		}
-	//		std::cout << std::endl;
-	//		for (int j = 0; j < dependenciesCPJDS[i].size(); j++) {
-	//			std::cout << depsUpperArr[depsNNZArr[i] + j] << "(" << mdata[depsUpperArr[depsNNZArr[i] + j]] << ")" << "\t";
-	//		}
-	//		std::cout << std::endl;
-	//	}
-	//}
-	//std::cout << std::endl;
-	//// ---- DEBUG END ----
-
-	// create arrays in specified formats (MatrixDependencies e ElementDependencies)
-	// element and diagonal rows dependency's index in data array
 	int * dependencyRowDataIndex = new int[depsArrRow.size()];
 	int * dependencyDiagDataIndex = new int[depsArrDiag.size()];
 	// dependency's array initial index (index in dependencyRowDataIndex and dependencyDiagDataIndex)
@@ -540,31 +380,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	for (int i = 0; i < depsNNZArr.size(); i++) nnzElementDataIndex[i] = depsNNZArr[i];
 	for (int i = 0; i < depsSizeArr.size(); i++) dependenciesSize[i] = depsSizeArr[i];
 	for (int i = 0; i < total; i++) pdata[i] = 0;
-
-	//// sanity check
-	//std::cout << "dependency lower and upper indices sanity check...." << std::endl;
-	//for (int i = 0; i < depsLowerArr.size(); i++) {
-	//	for (int j = i + 1; j < depsLowerArr.size(); j++) {
-	//		if (depsLowerArr[i] == depsLowerArr[j]) {
-	//			std::cout << "repeated lower indices..." << std::endl;
-	//		}
-	//	}
-	//}
-	//for (int i = 0; i < depsUpperArr.size(); i++) {
-	//	for (int j = i + 1; j < depsUpperArr.size(); j++) {
-	//		if (depsUpperArr[i] == depsUpperArr[j]) {
-	//			std::cout << "repeated upper indices..." << std::endl;
-	//		}
-	//	}
-	//}
-	//for (int i = 0; i < depsNNZArr.size(); i++) {
-	//	for (int j = i + 1; j < depsNNZArr.size(); j++) {
-	//		if (depsNNZArr[i] == depsNNZArr[j]) {
-	//			std::cout << "repeated depsNNZArr indices..." << std::endl;
-	//		}
-	//	}
-	//}
-	//std::cout << "dependency lower and upper indices sanity check....done!" << std::endl;
 
 	int depsSize = depsArrRow.size(), // = depsArrDiag.size()
 		idxSize = depsLowerArr.size(); // = depsUpperArr.size()
@@ -591,45 +406,45 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 
 	// CUDA device memory allocation
 	/* matrix data */
-	cudaMalloc((void**)& c_mdata,						total * sizeof (numType));
-	cudaMalloc((void**)& c_indices,						total * sizeof (int));
-	cudaMalloc((void**)& c_rowLength,					n * sizeof (int));
-	cudaMalloc((void**)& c_rowSize,						n * sizeof (int));
-	cudaMalloc((void**)& c_colOffset,					offsetSize * sizeof (int));
+	cudaMalloc((void**)& c_mdata, total * sizeof(numType));
+	cudaMalloc((void**)& c_indices, total * sizeof(int));
+	cudaMalloc((void**)& c_rowLength, n * sizeof(int));
+	cudaMalloc((void**)& c_rowSize, n * sizeof(int));
+	cudaMalloc((void**)& c_colOffset, offsetSize * sizeof(int));
 	/* matrix colors */
-	cudaMalloc((void**)& c_colors,						(colorCount + 1) * sizeof (int));
-	cudaMalloc((void**)& c_colorsColOffsetSize,			colorCount * sizeof(int));
+	cudaMalloc((void**)& c_colors, (colorCount + 1) * sizeof(int));
+	cudaMalloc((void**)& c_colorsColOffsetSize, colorCount * sizeof(int));
 	/* matrix dependencies*/
-	cudaMalloc((void**)& c_dependencyRowDataIndex,		depsSize * sizeof (int));
-	cudaMalloc((void**)& c_dependencyDiagDataIndex,		depsSize * sizeof (int));
-	cudaMalloc((void**)& c_dependencyLowerDataIndex,	idxSize * sizeof (int));
-	cudaMalloc((void**)& c_dependencyUpperDataIndex,	idxSize * sizeof (int));
-	cudaMalloc((void**)& c_dependencyArrayInitialIndex,	n * sizeof (int));
-	cudaMalloc((void**)& c_dependenciesSize,			n * sizeof (int));
-	cudaMalloc((void**)& c_nnzElementDataIndex,			(n + 1) * sizeof (int));
+	cudaMalloc((void**)& c_dependencyRowDataIndex, depsSize * sizeof(int));
+	cudaMalloc((void**)& c_dependencyDiagDataIndex, depsSize * sizeof(int));
+	cudaMalloc((void**)& c_dependencyLowerDataIndex, idxSize * sizeof(int));
+	cudaMalloc((void**)& c_dependencyUpperDataIndex, idxSize * sizeof(int));
+	cudaMalloc((void**)& c_dependencyArrayInitialIndex, n * sizeof(int));
+	cudaMalloc((void**)& c_dependenciesSize, n * sizeof(int));
+	cudaMalloc((void**)& c_nnzElementDataIndex, (n + 1) * sizeof(int));
 	/* preconditioner data */
-	cudaMalloc((void**)& c_pdata,						total * sizeof (numType));
+	cudaMalloc((void**)& c_pdata, total * sizeof(numType));
 
 	// CUDA device memory transfer
 	/* matrix data */
-	cudaMemcpy(c_mdata.get(),					mdata.get(),					(size_t)total * sizeof (numType),	cudaMemcpyHostToDevice);
-	cudaMemcpy(c_indices.get(),					indices.get(),					(size_t)total * sizeof (int),		cudaMemcpyHostToDevice);
-	cudaMemcpy(c_rowLength.get(),				rowLength,						(size_t)n * sizeof (int),			cudaMemcpyHostToDevice);
-	cudaMemcpy(c_rowSize.get(),					rowSize,						(size_t)n * sizeof (int),			cudaMemcpyHostToDevice);
-	cudaMemcpy(c_colOffset.get(),				colOffset,						(size_t)offsetSize * sizeof (int),	cudaMemcpyHostToDevice);
+	cudaMemcpy(c_mdata.get(), mdata.get(), (size_t)total * sizeof(numType), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_indices.get(), indices.get(), (size_t)total * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_rowLength.get(), rowLength, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_rowSize.get(), rowSize, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_colOffset.get(), colOffset, (size_t)offsetSize * sizeof(int), cudaMemcpyHostToDevice);
 	/* matrix colors */
-	cudaMemcpy(c_colors.get(),					colors.get(),					(size_t)(colorCount + 1) * sizeof (int),cudaMemcpyHostToDevice);
-	cudaMemcpy(c_colorsColOffsetSize.get(),		colorOffsetCount.get(),			(size_t)colorCount * sizeof (int),	cudaMemcpyHostToDevice);
+	cudaMemcpy(c_colors.get(), colors.get(), (size_t)(colorCount + 1) * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_colorsColOffsetSize.get(), colorOffsetCount.get(), (size_t)colorCount * sizeof(int), cudaMemcpyHostToDevice);
 	/* matrix dependencies*/
-	cudaMemcpy(c_dependencyRowDataIndex.get(),	dependencyRowDataIndex,			(size_t)depsSize * sizeof (int),	cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependencyDiagDataIndex.get(),	dependencyDiagDataIndex,		(size_t)depsSize * sizeof (int),	cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependencyLowerDataIndex.get(),dependencyLowerDataIndex,		(size_t)idxSize * sizeof (int),		cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependencyUpperDataIndex.get(),dependencyUpperDataIndex,		(size_t)idxSize * sizeof (int),		cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependencyArrayInitialIndex.get(),	dependencyArrayInitialIndex,(size_t)n * sizeof (int),			cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependenciesSize.get(),		dependenciesSize,				(size_t)n * sizeof (int),			cudaMemcpyHostToDevice);
-	cudaMemcpy(c_nnzElementDataIndex.get(),		nnzElementDataIndex,			(size_t)(n + 1) * sizeof (int),		cudaMemcpyHostToDevice);
+	cudaMemcpy(c_dependencyRowDataIndex.get(), dependencyRowDataIndex, (size_t)depsSize * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_dependencyDiagDataIndex.get(), dependencyDiagDataIndex, (size_t)depsSize * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_dependencyLowerDataIndex.get(), dependencyLowerDataIndex, (size_t)idxSize * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_dependencyUpperDataIndex.get(), dependencyUpperDataIndex, (size_t)idxSize * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_dependencyArrayInitialIndex.get(), dependencyArrayInitialIndex, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_dependenciesSize.get(), dependenciesSize, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_nnzElementDataIndex.get(), nnzElementDataIndex, (size_t)(n + 1) * sizeof(int), cudaMemcpyHostToDevice);
 	/* preconditioner data */
-	cudaMemcpy(c_pdata.get(),					pdata,							(size_t)total * sizeof (numType),	cudaMemcpyHostToDevice);
+	cudaMemcpy(c_pdata.get(), pdata, (size_t)total * sizeof(numType), cudaMemcpyHostToDevice);
 
 	/* set matrix data */
 	(*M).matrixData.data = std::move(c_mdata);
@@ -657,7 +472,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	(*M).matrixDependencies.nnzElementDataIndex = std::move(c_nnzElementDataIndex);
 	(*M).matrixDependencies.depsSize = depsSize;
 	(*M).matrixDependencies.idxSize = idxSize;
-	//(*M).dependenciesSupportData = dependenciesSupportData; // -- removed
 	/* set preconditioner data */
 	(*M).preconditionedData = std::move(c_pdata);
 	// OBS: is color-data needed in GPU memory?
@@ -666,7 +480,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	(*M).cpuData.data = std::move(mdata);
 	(*M).cpuData.indices = std::move(indices);//indices;
 	(*M).cpuData.precond = std::unique_ptr<numType[]>(new numType[total]); for (int i = 0; i < total; i++) (*M).cpuData.precond[i] = 0;
-	
+
 	// free CPU memory used for initializing GPU data
 	/* matrix data */
 	delete rowLength;
@@ -682,34 +496,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	delete dependenciesSize;
 	/* preconditioner data */
 	delete pdata;
-
-	std::vector<int> coefDepCount(numcoefficients);
-	//for (int i = 0; i < numcoefficients; ++i) { // computing coefficients
-	//	coefDepCount[i] = 0;
-	//	CondutanceCoefficientsVector ccv = condutanceCoefficients[i];
-	//	for (int j = 0; j < ccv.size(); j++) {
-	//		int row = ccv[j].row;
-	//		int col = ccv[j].col;
-	//		if (row == GROUNDNODE || col == GROUNDNODE) { // skipping ground node
-	//			continue;
-	//		}
-	//		coefDepCount[i]++;
-	//	}
-	//}
-	for (int i = 0; i<nodesCount; ++i) {
-		for (nodeCoefficients *aux = nodeCoef[i]; aux != NULL; aux = aux->next) { 
-			coefDepCount[aux->condIndex]++;
-		}
-	}
-	// finding maximum dependency's count
-	maxDepCount = -1;
-	for (int i = 0; i < numcoefficients; i++) {
-		if (coefDepCount[i] > maxDepCount) {
-			maxDepCount = coefDepCount[i];
-		}
-	}
-	cudaMalloc((void**)& auxv_d, maxDepCount * sizeof(numType));
-	cudaMalloc((void**)& auxi_d, maxDepCount * sizeof(int));
 
 	std::vector<int> csr2cpjds_map;
 	std::vector<int> csr2cpjds_map_upper;
@@ -743,6 +529,47 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 	csrMap.row = csr2cpjds_row;
 	(*M).csrMap = csrMap;
 
+	return 0;
+}
+
+/*
+* data: full symmetric matrix (n-by-n), with zeroes - data is row-major!!!
+* n: matrix size - must be multiple of WARP_SIZE (32)
+* colors: array of each colors offset (size is colorCount + 1, last position being equal to n)
+* colorCount: number of colors
+* M: resulting matrix in colored pJDS format
+*/
+int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients) {
+	int ans;
+	if ((ans = buidMatrixCPJDS(M)) != 0) return ans;
+
+	std::vector<int> coefDepCount(numcoefficients);
+	//for (int i = 0; i < numcoefficients; ++i) { // computing coefficients
+	//	coefDepCount[i] = 0;
+	//	CondutanceCoefficientsVector ccv = condutanceCoefficients[i];
+	//	for (int j = 0; j < ccv.size(); j++) {
+	//		int row = ccv[j].row;
+	//		int col = ccv[j].col;
+	//		if (row == GROUNDNODE || col == GROUNDNODE) { // skipping ground node
+	//			continue;
+	//		}
+	//		coefDepCount[i]++;
+	//	}
+	//}
+	for (int i = 0; i<nodesCount; ++i) {
+		for (nodeCoefficients *aux = nodeCoef[i]; aux != NULL; aux = aux->next) {
+			coefDepCount[aux->condIndex]++;
+		}
+	}
+	// finding maximum dependency's count
+	maxDepCount = -1;
+	for (int i = 0; i < numcoefficients; i++) {
+		if (coefDepCount[i] > maxDepCount) {
+			maxDepCount = coefDepCount[i];
+		}
+	}
+	cudaMalloc((void**)& auxv_d, maxDepCount * sizeof(numType));
+	cudaMalloc((void**)& auxi_d, maxDepCount * sizeof(int));
 	return 0;
 }
 
@@ -1703,621 +1530,5 @@ __global__ void cmv_solve_inner(numType * aData, int * aIndices, int * aRowLengt
 
 	__syncthreads();
 
-}
-
-
-int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
-	// checking size (must be multiple of WARP_SIZE)
-	if (n % WARP_SIZE != 0) {
-		LOG("Invalid matrix size for pJDS format!");
-		return -1;
-	}
-	// checking colors offsets (must be multiple of WARP_SIZE)
-	for (int i = 0; i <= colorCount; i++) {
-		if (colors[i] % WARP_SIZE != 0) {
-			LOG("Invalid color offset for colored pJDS format!");
-			return -1;
-		}
-	}
-
-	//std::ofstream myfile;
-	//myfile.open("adata.txt");
-	//for (int i = 0; i < n; i++) {
-	//	for (int j = 0; j < n; j++) {
-	//		numType val = data[i * n + j];
-	//		if (MOD(val) < EPS) {
-	//			val = 0;
-	//		}
-	//		myfile << val << "\t";
-	//	}
-	//	myfile << "\n";
-	//}
-	//myfile.flush();
-	//myfile.close();
-
-	// left-shift each rows' non-zeroes
-	std::vector<std::deque<int>> rowsL(n), rowsU(n), padding(n);
-	for (int i = 0; i < n; i++) {
-		// saving diagonal Aii's index is not needed (Aii is expected to be positive)
-		// lower triangular: add rest of the line with column < row
-		for (int j = 0; j < i; j++) {
-			if (MOD(data[i * n + j]) > EPS) { // DATA IS ROW-MAJOR!!!
-				rowsL[i].push_back(j); // adding Aij to each row array, if non-zero
-			}
-		}
-		// upper triangular: add rest of the line with column > row
-		for (int j = i + 1; j < n; j++) {
-			if (MOD(data[i * n + j]) > EPS) { // DATA IS ROW-MAJOR!!!
-				rowsU[i].push_back(j); // adding Aij to each row array, if non-zero
-			}
-		}
-	}
-
-	// row's length (equivalent to number of non-zeroes)
-	int * rowLength = new int[n];
-	// row's size, including padding zeroes
-	int * rowSize = new int[n];
-
-	int nnz = 0,
-		total = 0;
-	int blocks = n / WARP_SIZE;
-	for (int k = 0; k < blocks; k++) {
-		int blockSize = 0;
-		for (int i = 0; i < WARP_SIZE; i++) {
-			int row = k * WARP_SIZE + i;
-			// row length = lower triangular row's nnz + main diagonal + upper triangular row's nnz
-			rowLength[row] = rowsL[row].size() + 1 + rowsU[row].size();
-			nnz += rowLength[row]; // total number of non-zeroes
-
-			if (rowLength[row] > blockSize) { // lower triangular warp-block size
-				blockSize = rowLength[row];
-			}
-		}
-		for (int i = 0; i < WARP_SIZE; i++) {
-			int row = k * WARP_SIZE + i;
-			rowSize[row] = blockSize;
-			// fill zeroes so that all rows in a warp have the same size
-			for (int j = rowLength[row]; j < blockSize; j++) {
-				padding[row].push_back(-1);
-			}
-			// add to total element count
-			total += blockSize;
-		}
-	}
-
-	// preparing columns' offsets (COL-MAJOR!!)
-	std::unique_ptr<int[]> colorOffsetCount(new int[colorCount + 1]);
-	int maxSize = 0,
-		offsetSize = 0;
-	// find largest row size in each color (should be first row!)
-	for (int k = 0; k < colorCount; k++) {
-		colorOffsetCount[k] = offsetSize;
-		maxSize = rowsL[colors[k]].size() + 1 + rowsU[colors[k]].size();
-		// step is warp size because all rows in a warp block have same size
-		for (int i = colors[k]; i < colors[k + 1]; i += WARP_SIZE) {
-			int size = rowsL[i].size() + 1 + rowsU[i].size();
-			if (size > maxSize) {
-				std::cout << "something is not right... " << size << " (" << i << ") > " << maxSize << " (" << k << ")" << std::endl;
-				maxSize = size;
-			}
-		}
-		// lower triangular
-		offsetSize += maxSize;
-	}
-	colorOffsetCount[colorCount] = offsetSize;
-
-	// offset arrays (each color has a different size, computed above)
-	int * colOffset = new int[offsetSize];
-
-	// data and indices arrays
-	std::unique_ptr<numType[]> mdata(new numType[total]);
-	std::unique_ptr<int[]> indices(new int[total]);
-
-	// values
-	//std::cout << "values:" << std::endl;
-	//for (int i = 0; i < n; i++) {
-	//	std::cout << data[i * n + i] << "\t";
-	//	for (int j = 0; j < rowsL[i].size(); j++) {
-	//		std::cout << data[i * n + rowsL[i][j]] << "\t";
-	//	}
-	//	for (int j = 0; j < rowsU[i].size(); j++) {
-	//		std::cout << data[i * n + rowsU[i][j]] << "\t";
-	//	}
-	//	for (int j = 0; j < padding[i].size(); j++) {
-	//		std::cout << "0\t";
-	//	}
-	//	std::cout << std::endl;
-	//}
-	//// indices
-	//std::cout << "\nindices:" << std::endl;
-	//for (int i = 0; i < n; i++) {
-	//	std::cout << i << "\t";
-	//	for (int j = 0; j < rowsL[i].size(); j++) {
-	//		std::cout << rowsL[i][j] << "\t";
-	//	}
-	//	for (int j = 0; j < rowsU[i].size(); j++) {
-	//		std::cout << rowsU[i][j] << "\t";
-	//	}
-	//	for (int j = 0; j < padding[i].size(); j++) {
-	//		std::cout << "x\t";
-	//	}
-	//	std::cout << std::endl;
-	//}
-
-	int pos = 0;
-	// each block is built in color order
-	for (int k = 0; k < colorCount; k++) {
-		bool hasElements = true;
-		int col = 0;
-		// insert diagonal in first column
-		colOffset[colorOffsetCount[k] + col] = pos;
-		for (int i = colors[k]; i < colors[k + 1]; i++) {
-			indices[pos] = i;
-			mdata[pos] = data[i * n + i];
-			pos++;
-		}
-		col++;
-		while (true) { // iterate over all rows in color block for as long as it has elements
-			hasElements = false;
-			int startPos = pos;
-			for (int i = colors[k]; i < colors[k + 1]; i++) {
-				// fill data array in COL-MAJOR format
-				if (rowsL[i].size() > 0) {// lower triangular
-					int idx = rowsL[i].front(); // first element
-					rowsL[i].pop_front(); // remove element
-
-					indices[pos] = idx;
-					mdata[pos] = data[i * n + idx];
-
-					pos++;
-					hasElements = true;
-				}
-				else if (rowsU[i].size() > 0) {// upper triangular
-					int idx = rowsU[i].front(); // first element
-					rowsU[i].pop_front(); // remove element
-
-					indices[pos] = idx;
-					mdata[pos] = data[i * n + idx];
-
-					pos++;
-					hasElements = true;
-				}
-				else if (padding[i].size() > 0) {// padding zeroes
-					indices[pos] = -1;
-					mdata[pos] = 0;
-					padding[i].pop_front();
-
-					pos++;
-					hasElements = true;
-				}
-			}
-			if (hasElements) {
-				colOffset[colorOffsetCount[k] + col] = startPos;
-				//std::cout << " colOfsset idx: " << colorOffsetCount[k] + col << std::endl;
-				col++;
-			}
-			else {
-				break;
-			}
-		}
-	}
-
-	/* computing (x,y)=>IDX map */
-	std::vector<std::map<int, int>> rowCol2IdxMap(n);
-	for (int k = 0; k < colorCount; k++) { // color block
-		for (int i = colors[k]; i < colors[k + 1]; i++) { // iterating rows in such color
-			for (int j = 0; j < rowLength[i]; j++) {
-				int idx = colOffset[colorOffsetCount[k] + j] + i - colors[k];
-				rowCol2IdxMap[i].insert(std::pair<int, int>(indices[idx], idx));
-			}
-		}
-	}
-	this->coord2IndexMap = rowCol2IdxMap;
-
-	// ---- DEBUG ----
-	//for (int i = 0; i < n; i++) { // iterating rows in such color
-	//	for (std::map<int, int>::iterator it = rowCol2IdxMap[i].begin(); it != rowCol2IdxMap[i].end(); ++it) {
-	//		std::cout << it->first << ">" << it->second << '\t';
-	//	}
-	//	std::cout << std::endl;
-	//}
-	// ---- DEBUG END ----
-
-	/* computing dependencies */
-	DependeciesMap dependencies(n);
-	dependencies_analysis(data, n, &dependencies);
-
-	// fix dependencies' indices
-	//std::cout << "\nFixing dependencies..." << std::endl;
-	DependeciesMap dependenciesCPJDS(n);
-	for (int i = 0; i < n; i++) {
-		std::vector<Dependencies> dv = dependencies[i];
-
-		for (int j = 0; j < dv.size(); j++) {
-			Dependencies d = dv[j];
-			// this code was removed, as all non-zeroes must be listed, regardless of having dependencies or not
-			//if (d.dependencies.empty()) {
-			//	std::cout << "skipping dependency..." << std::endl;
-			//	continue;
-			//}
-			Dependencies dCPJDS;
-			int coli = d.lower.first;
-			int colj = d.lower.second;
-			//dCPJDS.lower.first = coli % n;
-			//dCPJDS.lower.second = colj % n;
-			for (int k = 0; k < d.dependencies.size(); k++) {
-				int row = d.dependencies[k];
-				// convert to data array index
-				int idxi = coordinates2Index(row, coli);
-				int idxj = coordinates2Index(row, colj);
-				dCPJDS.dependencies.push_back(idxi);
-				dCPJDS.dependencies.push_back(idxj);
-			}
-			dCPJDS.lower = std::pair<int, int>(coli, colj);
-			dCPJDS.dependenciesSize = d.dependenciesSize;
-			dependenciesCPJDS[i].push_back(dCPJDS);
-		}
-	}
-
-	//// ---- DEBUG ----
-	//std::cout << "Dependencies" << std::endl;
-	//for (int i = 0; i < n; i++) { // iterating rows
-	//	std::vector<Dependencies> dvCPJDS = dependenciesCPJDS[i];
-	//	for (int j = 0; j < dvCPJDS.size(); j++) {
-	//		Dependencies d = dvCPJDS[j];
-	//		std::cout << "row " << i << ": (" << d.lower.first << ", " << d.lower.second << ") - " << d.dependenciesSize << std::endl;
-	//		for (int k = 0; k < d.dependencies.size(); k += 2) {
-	//			std::cout << mdata[d.dependencies[k]] << ", " << mdata[d.dependencies[k + 1]] << std::endl;
-	//		}
-	//		std::cout << std::endl;
-	//	}
-	//}
-	//std::cout << std::endl;
-	//// ---- DEBUG END ----
-
-	// make all dependecies' arrays for the same row have the same size
-	// (it is supposed that dependencies's array size is smaller than warp size - however, warp will not be filled)
-	//std::vector<std::vector<std::deque<int>>> rowsDeps(n);
-	for (int i = 0; i < n; i++) { // iterating rows
-		std::vector<Dependencies> * dvCPJDS = &(dependenciesCPJDS[i]);
-
-		int maxSize = 0;
-		for (int j = 0; j < (*dvCPJDS).size(); j++) { // for each non-zero element with dependency..
-			int thisDepSize = (*dvCPJDS)[j].dependencies.size();
-			if (thisDepSize > maxSize) { // ...check size, to find largest...
-				maxSize = thisDepSize;
-			}
-		}
-		for (int j = 0; j < (*dvCPJDS).size(); j++) { // ... and pad the others
-			int thisDepSize = (*dvCPJDS)[j].dependencies.size();
-			for (int k = thisDepSize; k < maxSize; k++) {
-				(*dvCPJDS)[j].dependencies.push_back(-1);
-			}
-		}
-	}
-
-	//// ---- DEBUG ----
-	//std::cout << "Dependencies (padded)" << std::endl;
-	//for (int i = 0; i < n; i++) { // iterating rows
-	//	std::vector<Dependencies> dvCPJDS = dependenciesCPJDS[i];
-	//	for (int j = 0; j < dvCPJDS.size(); j++) {
-	//		Dependencies d = dvCPJDS[j];
-	//		std::cout << "row " << i << ": (" << d.lower.first << ", " << d.lower.second << ") - " << d.dependenciesSize << std::endl;
-	//		for (int k = 0; k < d.dependencies.size(); k += 2) {
-	//			if (mdata[d.dependencies[k]] > -1) {
-	//				std::cout << mdata[d.dependencies[k]];
-	//			}
-	//			else {
-	//				std::cout << "x";
-	//			}
-	//			std::cout << ", ";
-	//			if (mdata[d.dependencies[k + 1]] > -1) {
-	//				std::cout << mdata[d.dependencies[k + 1]];
-	//			}
-	//			else {
-	//				std::cout << "x";
-	//			}
-	//			std::cout << std::endl;
-	//		}
-	//		std::cout << std::endl;
-	//	}
-	//}
-	//std::cout << std::endl;
-	//// ---- DEBUG END ----
-
-	// create dependencies's arrays in CPJDS format
-	std::vector<int> depsArrDiag;
-	std::vector<int> depsArrRow;
-	std::vector<int> depsIdxArr(n);
-	std::vector<int> depsLowerArr;
-	std::vector<int> depsUpperArr;
-	std::vector<int> depsNNZArr(n + 1);
-	std::vector<int> depsSizeArr(n);
-	for (int i = 0; i < n; i++) { // iterating rows
-		std::vector<Dependencies> dvCPJDS = dependenciesCPJDS[i];
-
-		// initial index
-		depsIdxArr[i] = depsArrRow.size(); // size of depsArrRow = size of depsArrDiag
-
-		int depsSize = 0;
-		if (dvCPJDS.size() > 0) {
-			depsSize = dvCPJDS[0].dependencies.size() / 2; // all dvCPJDS have same size (padded in previous step)
-														   // also, dependenciesCPJDS.dependencies array is doubled as it contains both row and diagonal elements
-		}
-		// size
-		depsSizeArr[i] = depsSize;
-
-		// adding elements to "global" array, column-major
-		for (int j = 0; j < depsSize; j++) {
-			for (int k = 0; k < dvCPJDS.size(); k++) {
-				depsArrDiag.push_back(dvCPJDS[k].dependencies[2 * j]);
-				depsArrRow.push_back(dvCPJDS[k].dependencies[2 * j + 1]);
-			}
-		}
-
-		depsNNZArr[i] = depsLowerArr.size(); // size of depsLowerArr = size of depsUpperArr
-											 // element's indices (lower and upper)
-		for (int j = 0; j < dvCPJDS.size(); j++) {
-			depsLowerArr.push_back(coord2IndexMap[dvCPJDS[j].lower.first][dvCPJDS[j].lower.second]);
-			depsUpperArr.push_back(coord2IndexMap[dvCPJDS[j].lower.second][dvCPJDS[j].lower.first]);
-		}
-	}
-	depsNNZArr[n] = depsLowerArr.size(); // size of depsLowerArr = size of depsUpperArr
-
-										 //// ---- DEBUG ----
-										 //std::cout << "Dependencies (padded, single array)" << std::endl;
-										 //for (int i = 0; i < n; i++) { // iterating rows
-										 //	int depsSize = depsSizeArr[i];
-										 //	if (depsSize > 0) {
-										 //		std::cout << "row " << i << std::endl;
-										 //		// adding elements to "global" array, column-major
-										 //		for (int j = 0; j < depsSize; j++) {
-										 //			if (depsArrDiag[depsIdxArr[i] + j] > -1) {
-										 //				std::cout << mdata[depsArrDiag[depsIdxArr[i] + j]];
-										 //			}
-										 //			else {
-										 //				std::cout << "x";
-										 //			}
-										 //			std::cout << "\t";
-										 //		}
-										 //		std::cout << std::endl;
-										 //
-										 //		for (int j = 0; j < depsSize; j++) {
-										 //			if (depsArrRow[depsIdxArr[i] + j] > -1) {
-										 //				std::cout << mdata[depsArrRow[depsIdxArr[i] + j]];
-										 //			}
-										 //			else {
-										 //				std::cout << "x";
-										 //			}
-										 //			std::cout << "\t";
-										 //		}
-										 //		std::cout << std::endl;
-										 //
-										 //		// element's indices (lower and upper)
-										 //		for (int j = 0; j < dependenciesCPJDS[i].size(); j++) {
-										 //			depsLowerArr[depsNNZArr[i] + j];
-										 //			depsUpperArr[depsNNZArr[i] + j];
-										 //		}
-										 //	}
-										 //}
-										 //std::cout << std::endl;
-										 //std::cout << "Dependencies (dependencies)" << std::endl;
-										 //for (int i = 0; i < n; i++) { // iterating rows
-										 //	if (dependenciesCPJDS[i].size() > 0) {
-										 //		std::cout << "row " << i << std::endl;
-										 //		for (int j = 0; j < dependenciesCPJDS[i].size(); j++) {
-										 //			std::cout << depsLowerArr[depsNNZArr[i] + j] << "(" << mdata[depsLowerArr[depsNNZArr[i] + j]] << ")" << "\t";
-										 //		}
-										 //		std::cout << std::endl;
-										 //		for (int j = 0; j < dependenciesCPJDS[i].size(); j++) {
-										 //			std::cout << depsUpperArr[depsNNZArr[i] + j] << "(" << mdata[depsUpperArr[depsNNZArr[i] + j]] << ")" << "\t";
-										 //		}
-										 //		std::cout << std::endl;
-										 //	}
-										 //}
-										 //std::cout << std::endl;
-										 //// ---- DEBUG END ----
-
-										 // create arrays in specified formats (MatrixDependencies e ElementDependencies)
-										 // element and diagonal rows dependency's index in data array
-	int * dependencyRowDataIndex = new int[depsArrRow.size()];
-	int * dependencyDiagDataIndex = new int[depsArrDiag.size()];
-	// dependency's array initial index (index in dependencyRowDataIndex and dependencyDiagDataIndex)
-	int * dependencyArrayInitialIndex = new int[depsIdxArr.size()];
-	// lower and upper triangulars non-zero elements (with dependencies) index in data array
-	int * dependencyLowerDataIndex = new int[depsLowerArr.size()];
-	int * dependencyUpperDataIndex = new int[depsUpperArr.size()];
-	// data array index for lower and upper triangular's elements (index in dependencyLowerDataIndex and dependencyUpperDataIndex)
-	int * nnzElementDataIndex = new int[depsNNZArr.size()];
-	// dependency's count
-	int * dependenciesSize = new int[depsSizeArr.size()];
-	// preconditioner data
-	int * pdata = new int[total];
-
-	// copy arrays
-	for (int i = 0; i < depsArrRow.size(); i++) dependencyRowDataIndex[i] = depsArrRow[i];
-	for (int i = 0; i < depsArrDiag.size(); i++) dependencyDiagDataIndex[i] = depsArrDiag[i];
-	for (int i = 0; i < depsIdxArr.size(); i++) dependencyArrayInitialIndex[i] = depsIdxArr[i];
-	for (int i = 0; i < depsLowerArr.size(); i++) dependencyLowerDataIndex[i] = depsLowerArr[i];
-	for (int i = 0; i < depsUpperArr.size(); i++) dependencyUpperDataIndex[i] = depsUpperArr[i];
-	for (int i = 0; i < depsNNZArr.size(); i++) nnzElementDataIndex[i] = depsNNZArr[i];
-	for (int i = 0; i < depsSizeArr.size(); i++) dependenciesSize[i] = depsSizeArr[i];
-	for (int i = 0; i < total; i++) pdata[i] = 0;
-
-	//// sanity check
-	//std::cout << "dependency lower and upper indices sanity check...." << std::endl;
-	//for (int i = 0; i < depsLowerArr.size(); i++) {
-	//	for (int j = i + 1; j < depsLowerArr.size(); j++) {
-	//		if (depsLowerArr[i] == depsLowerArr[j]) {
-	//			std::cout << "repeated lower indices..." << std::endl;
-	//		}
-	//	}
-	//}
-	//for (int i = 0; i < depsUpperArr.size(); i++) {
-	//	for (int j = i + 1; j < depsUpperArr.size(); j++) {
-	//		if (depsUpperArr[i] == depsUpperArr[j]) {
-	//			std::cout << "repeated upper indices..." << std::endl;
-	//		}
-	//	}
-	//}
-	//for (int i = 0; i < depsNNZArr.size(); i++) {
-	//	for (int j = i + 1; j < depsNNZArr.size(); j++) {
-	//		if (depsNNZArr[i] == depsNNZArr[j]) {
-	//			std::cout << "repeated depsNNZArr indices..." << std::endl;
-	//		}
-	//	}
-	//}
-	//std::cout << "dependency lower and upper indices sanity check....done!" << std::endl;
-
-	int depsSize = depsArrRow.size(), // = depsArrDiag.size()
-		idxSize = depsLowerArr.size(); // = depsUpperArr.size()
-
-									   /* matrix data */
-	std::unique_ptr<numType[], DeleterCudaIntPtr> c_mdata(new numType[total]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_indices(new int[total]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_rowLength(new int[n]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_rowSize(new int[n]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_colOffset(new int[offsetSize]);
-	/* matrix colors */
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_colors(new int[colorCount + 1]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_colorsColOffsetSize(new int[colorCount]);
-	/* matrix dependencies*/
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_dependencyRowDataIndex(new int[depsSize]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_dependencyDiagDataIndex(new int[depsSize]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_dependencyLowerDataIndex(new int[idxSize]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_dependencyUpperDataIndex(new int[idxSize]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_dependencyArrayInitialIndex(new int[n]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_dependenciesSize(new int[n]);
-	std::unique_ptr<int[], DeleterCudaIntPtr> c_nnzElementDataIndex(new int[n + 1]);
-	/* preconditioner data */
-	std::unique_ptr<numType[], DeleterCudaIntPtr> c_pdata(new numType[total]);
-
-	// CUDA device memory allocation
-	/* matrix data */
-	cudaMalloc((void**)& c_mdata, total * sizeof(numType));
-	cudaMalloc((void**)& c_indices, total * sizeof(int));
-	cudaMalloc((void**)& c_rowLength, n * sizeof(int));
-	cudaMalloc((void**)& c_rowSize, n * sizeof(int));
-	cudaMalloc((void**)& c_colOffset, offsetSize * sizeof(int));
-	/* matrix colors */
-	cudaMalloc((void**)& c_colors, (colorCount + 1) * sizeof(int));
-	cudaMalloc((void**)& c_colorsColOffsetSize, colorCount * sizeof(int));
-	/* matrix dependencies*/
-	cudaMalloc((void**)& c_dependencyRowDataIndex, depsSize * sizeof(int));
-	cudaMalloc((void**)& c_dependencyDiagDataIndex, depsSize * sizeof(int));
-	cudaMalloc((void**)& c_dependencyLowerDataIndex, idxSize * sizeof(int));
-	cudaMalloc((void**)& c_dependencyUpperDataIndex, idxSize * sizeof(int));
-	cudaMalloc((void**)& c_dependencyArrayInitialIndex, n * sizeof(int));
-	cudaMalloc((void**)& c_dependenciesSize, n * sizeof(int));
-	cudaMalloc((void**)& c_nnzElementDataIndex, (n + 1) * sizeof(int));
-	/* preconditioner data */
-	cudaMalloc((void**)& c_pdata, total * sizeof(numType));
-
-	// CUDA device memory transfer
-	/* matrix data */
-	cudaMemcpy(c_mdata.get(), mdata.get(), (size_t)total * sizeof(numType), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_indices.get(), indices.get(), (size_t)total * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_rowLength.get(), rowLength, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_rowSize.get(), rowSize, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_colOffset.get(), colOffset, (size_t)offsetSize * sizeof(int), cudaMemcpyHostToDevice);
-	/* matrix colors */
-	cudaMemcpy(c_colors.get(), colors.get(), (size_t)(colorCount + 1) * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_colorsColOffsetSize.get(), colorOffsetCount.get(), (size_t)colorCount * sizeof(int), cudaMemcpyHostToDevice);
-	/* matrix dependencies*/
-	cudaMemcpy(c_dependencyRowDataIndex.get(), dependencyRowDataIndex, (size_t)depsSize * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependencyDiagDataIndex.get(), dependencyDiagDataIndex, (size_t)depsSize * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependencyLowerDataIndex.get(), dependencyLowerDataIndex, (size_t)idxSize * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependencyUpperDataIndex.get(), dependencyUpperDataIndex, (size_t)idxSize * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependencyArrayInitialIndex.get(), dependencyArrayInitialIndex, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_dependenciesSize.get(), dependenciesSize, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_nnzElementDataIndex.get(), nnzElementDataIndex, (size_t)(n + 1) * sizeof(int), cudaMemcpyHostToDevice);
-	/* preconditioner data */
-	cudaMemcpy(c_pdata.get(), pdata, (size_t)total * sizeof(numType), cudaMemcpyHostToDevice);
-
-	/* set matrix data */
-	(*M).matrixData.data = std::move(c_mdata);
-	(*M).matrixData.indices = std::move(c_indices);
-	(*M).matrixData.rowLength = std::move(c_rowLength);
-	(*M).matrixData.rowSize = std::move(c_rowSize);
-	(*M).matrixData.colOffset = std::move(c_colOffset);
-	(*M).matrixData.n = n;
-	(*M).matrixData.nnz = nnz;
-	(*M).matrixData.elCount = total;
-	(*M).matrixData.offsetCount = offsetSize;
-	/* set matrix colors (CPU MEMORY!) */
-	(*M).matrixColors.colors = colors;
-	(*M).matrixColors.colorCount = colorCount;
-	(*M).matrixColors.colorsColOffsetSize = std::move(colorOffsetCount);
-	(*M).matrixColors.colors_d = std::move(c_colors);
-	(*M).matrixColors.colorsColOffsetSize_d = std::move(c_colorsColOffsetSize);
-	/* set matrix dependencies*/
-	(*M).matrixDependencies.dependencyRowDataIndex = std::move(c_dependencyRowDataIndex);
-	(*M).matrixDependencies.dependencyDiagDataIndex = std::move(c_dependencyDiagDataIndex);
-	(*M).matrixDependencies.dependencyLowerDataIndex = std::move(c_dependencyLowerDataIndex);
-	(*M).matrixDependencies.dependencyUpperDataIndex = std::move(c_dependencyUpperDataIndex);
-	(*M).matrixDependencies.dependencyArrayInitialIndex = std::move(c_dependencyArrayInitialIndex);
-	(*M).matrixDependencies.dependenciesSize = std::move(c_dependenciesSize);
-	(*M).matrixDependencies.nnzElementDataIndex = std::move(c_nnzElementDataIndex);
-	(*M).matrixDependencies.depsSize = depsSize;
-	(*M).matrixDependencies.idxSize = idxSize;
-	//(*M).dependenciesSupportData = dependenciesSupportData; // -- removed
-	/* set preconditioner data */
-	(*M).preconditionedData = std::move(c_pdata);
-	// OBS: is color-data needed in GPU memory?
-
-	// setting CPU aux data
-	(*M).cpuData.data = std::move(mdata);
-	(*M).cpuData.indices = std::move(indices);//indices;
-	(*M).cpuData.precond = std::unique_ptr<numType[]>(new numType[total]); for (int i = 0; i < total; i++) (*M).cpuData.precond[i] = 0;
-
-	// free CPU memory used for initializing GPU data
-	/* matrix data */
-	delete rowLength;
-	delete rowSize;
-	delete colOffset;
-	/* matrix dependencies*/
-	delete dependencyRowDataIndex;
-	delete dependencyDiagDataIndex;
-	delete dependencyArrayInitialIndex;
-	delete dependencyLowerDataIndex;
-	delete dependencyUpperDataIndex;
-	delete nnzElementDataIndex;
-	delete dependenciesSize;
-	/* preconditioner data */
-	delete pdata;
-
-	std::vector<int> csr2cpjds_map;
-	std::vector<int> csr2cpjds_map_upper;
-	std::vector<int> csr2cpjds_idx;
-	std::vector<int> csr2cpjds_row;
-	int elCount = 0;
-	for (int col = 0; col < n; col++) { // column
-		for (int row = col; row < n; row++) { // row
-			int dataIdx = coordinates2Index(row, col);
-			if (dataIdx >= 0) {
-				csr2cpjds_map.push_back(dataIdx);
-				csr2cpjds_idx.push_back(col); // nao esta sendo usado
-				csr2cpjds_row.push_back(row);
-				elCount++;
-			}
-
-			// upper triangular
-			int dataIdxUpper = coordinates2Index(col, row);
-			if (dataIdxUpper >= 0) {
-				csr2cpjds_map_upper.push_back(dataIdxUpper);
-			}
-		}
-	}
-
-	MatrixCPJDS2CSR csrMap;
-	csrMap.n = n;
-	csrMap.nnz = elCount;
-	csrMap.csr2cpjds = csr2cpjds_map;
-	csrMap.csr2cpjds_upper = csr2cpjds_map_upper;
-	csrMap.indices = csr2cpjds_idx;
-	csrMap.row = csr2cpjds_row;
-	(*M).csrMap = csrMap;
-
-	return 0;
 }
 #endif

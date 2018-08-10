@@ -6,6 +6,7 @@
 #include "solver.h"
 #include "cuda/solvercuda.h"
 #include <chrono>
+#include <fstream>
 
 extern "C" {
 	#include "mm/mmio.h"
@@ -25,8 +26,16 @@ struct raw_matrix {
 };
 typedef std::vector<double> raw_vector;
 
-void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit);
-void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit);
+void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
+void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated);
+
+void saveDenseVectorMtx(const std::string filename, raw_vector &vec) {
+	std::ofstream myfile;
+	myfile.open(filename);
+	myfile << "%%MatrixMarket matrix array real general" << std::endl << vec.size() << " 1" << std::endl;
+	for (auto val : vec) myfile << val << std::endl;
+	myfile.close();
+}
 
 int main(int argc, char *argv[])
 {
@@ -35,6 +44,7 @@ int main(int argc, char *argv[])
 	args::HelpFlag help(parser, "help", "Display this help menu", { 'h', "help" });
 	args::CompletionFlag completion(parser, { "complete" });
 	args::ValueFlag<std::string> bfname(parser, "filename", "b vector file", { 'b' });
+	args::ValueFlag<std::string> xfname(parser, "filename", "Output x filename prefix", { "output" });
 	args::ValueFlag<double> res(parser, "number", "Residual for CG convergence", { "res" });
 	args::ValueFlag<int> maxits(parser, "number", "Maximum number of CG iterations", { "maxits" });
 	args::Positional<std::string> Afname(parser, "filename", "A matrix file");
@@ -110,13 +120,18 @@ int main(int argc, char *argv[])
 	//mm_write_mtx_crd_size(stdout, M, N, nz);
 	//std::cout << b.transpose() << std::endl;
 
-	runEigenCGTest(A, b, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
-	runCudaCGTest(A, b, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
+	raw_vector x(M);
+	runEigenCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
+	if(xfname) saveDenseVectorMtx(args::get(xfname) + "_serial.mtx", x);
+	runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, false);
+	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cuda.mtx", x);
+	runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, true);
+	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccuda.mtx", x);
 
 	return 0;
 }
 
-void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit) {
+void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
 	std::cout << "Creating Eigen sparse matrix and preconditioner" << std::endl;
 	
 	// Convert matrix data
@@ -154,15 +169,13 @@ void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit) {
 	///************************/
 	///* now write out result */
 	///************************/
-	vectorx x = solver.getX();
+	vectorx xeig = solver.getX();
 	std::chrono::duration<double> time_executor = t2 - t1;
 	std::cout << "Serial executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " <<  totalIts << " iterations." << std::endl;
-	//for (int i = 0; i < M; i++) {
-	//	std::cout << i + 1 << "\t" << x[i] << std::endl;
-	//}
+	for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
 }
 
-void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit) {
+void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated) {
 	// Convert matrix data
 	std::vector<Eigen::Triplet<Scalar>> tripletList;
 	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<Scalar>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
@@ -183,9 +196,9 @@ void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit) {
 	std::chrono::duration<double> time_analyser = t2 - t1;
 	std::cout << "Cuda analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 
-	std::cout << "Starting Cuda CG with res = " << res << " and max iterations = " << maxit << std::endl;
+	std::cout << "Starting " << (isConsolidated ? "consolidated" : "") << " Cuda CG with res = " << res << " and max iterations = " << maxit << std::endl;
 	// Create solver
-	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, false);
+	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, isConsolidated);
 
 	// Execute solver iterations
 	t1 = std::chrono::high_resolution_clock::now();
@@ -202,7 +215,8 @@ void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit) {
 	///************************/
 	///* now write out result */
 	///************************/
-	Eigen::VectorXf x = solvercuda.getX();
+	Eigen::VectorXf xeig = solvercuda.getX();
 	std::chrono::duration<double> time_executor = t2 - t1;
-	std::cout << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " << totalIts << " iterations." << std::endl;
+	std::cout << (isConsolidated ? "Consolidated " : "") << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " << totalIts << " iterations." << std::endl;
+	for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
 }

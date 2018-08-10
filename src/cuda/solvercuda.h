@@ -26,6 +26,7 @@ class CGCUDA_Solver {
 
 		static numType createPreconditioner(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
 		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
+		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness);
 		static cgl::Vector *createCurrentVector(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 		
 		double getResidueSquaredNorm() const;

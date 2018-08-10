@@ -119,6 +119,7 @@ public:
 
 	/* provided M matrix is filled with a complete CPJDS matrix */
 	int buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
+	int buidMatrixCPJDS(MatrixCPJDS * M);
 
 	/* this method allows the conversion os (row, col) coordinates to the index in the data and indices arrays */
 	int coordinates2Index(int row, int col);

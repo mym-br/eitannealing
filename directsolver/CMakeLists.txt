@@ -13,6 +13,21 @@ set(directsolver_SRCS
   src/mm/mmio.c
   ../src/incomplete_cholesky.cpp
   ../src/solver.cpp
+  ../src/cuda/solvercuda.cu
+  ../src/cuda/solvercuda.cpp
+  ../src/cuda/matrix-cpjds.cpp
+  ../src/cuda/matrix-cpjds.cu
+  ../src/cuda/number.cpp
+  ../src/cuda/number.cu
+  ../src/cuda/vector.cpp
+  ../src/cuda/vector.cu
+  ../src/cuda/utils.cpp
+  ../src/cuda/color.cpp
+  ../src/cuda/analysis.cpp
+  ../src/cuda/solver-pcg.cu
+  ../src/cuda/solvercuda.cu
+  ../src/cuda/solvercuda.cpp
+
 )
 
 set(libs ${CMAKE_THREAD_LIBS_INIT} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})

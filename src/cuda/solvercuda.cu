@@ -65,6 +65,11 @@ MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<double> *A,
 	return mgr;
 }
 
+MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness) {
+	MatrixCPJDSManager *mgr = new MatrixCPJDSManager(A);
+	mgr->buidMatrixCPJDS(stiffness);
+	return mgr;
+}
 double CGCUDA_Solver::getResidueSquaredNorm() const {
 	return solver->getRmod();
 }

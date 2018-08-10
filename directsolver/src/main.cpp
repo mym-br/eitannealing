@@ -4,6 +4,7 @@
 #include "basematrix.h"
 #include "incomplete_cholesky.h"
 #include "solver.h"
+#include "cuda/solvercuda.h"
 #include <chrono>
 
 extern "C" {
@@ -23,7 +24,9 @@ struct raw_matrix {
 	std::vector<std::tuple<int, int, double>> elements;
 };
 typedef std::vector<double> raw_vector;
+
 void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit);
+void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit);
 
 int main(int argc, char *argv[])
 {
@@ -108,7 +111,8 @@ int main(int argc, char *argv[])
 	//std::cout << b.transpose() << std::endl;
 
 	runEigenCGTest(A, b, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
-	
+	runCudaCGTest(A, b, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
+
 	return 0;
 }
 
@@ -132,7 +136,6 @@ void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit) {
 	std::chrono::duration<double> time_analyser = t2 - t1;
 	std::cout << "Serial analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 
-	// TODO: Read res and maxit parameters
 	std::cout << "Starting CG with res = " << res << " and max iterations = " << maxit << std::endl;
 	// Create solver
 	CG_Solver solver(A, b, L);
@@ -157,4 +160,49 @@ void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit) {
 	//for (int i = 0; i < M; i++) {
 	//	std::cout << i + 1 << "\t" << x[i] << std::endl;
 	//}
+}
+
+void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, double res, int maxit) {
+	// Convert matrix data
+	std::vector<Eigen::Triplet<Scalar>> tripletList;
+	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<Scalar>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
+	auto t1 = std::chrono::high_resolution_clock::now();
+	// Create sparse matrix
+	matrix A(Araw.M, Araw.N);
+	A.setFromTriplets(tripletList.begin(), tripletList.end());
+	A.makeCompressed();
+	std::unique_ptr<MatrixCPJDS> stiffness = std::unique_ptr<MatrixCPJDS>(new MatrixCPJDS);
+	std::unique_ptr<MatrixCPJDSManager> mgr = std::unique_ptr<MatrixCPJDSManager>(CGCUDA_Solver::createManager(&A, stiffness.get()));
+	// Create vector on GPU
+	std::unique_ptr<numType[]> bdata(new numType[braw.size()]);
+	for (int i = 0; i < braw.size(); i++) bdata[i] = braw[i];
+	Vector *b = CGCUDA_Solver::createCurrentVector(bdata.get() , *mgr, stiffness->matrixData.n, braw.size());
+	// Create preconditioner
+	numType lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_analyser = t2 - t1;
+	std::cout << "Cuda analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
+
+	std::cout << "Starting Cuda CG with res = " << res << " and max iterations = " << maxit << std::endl;
+	// Create solver
+	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, false);
+
+	// Execute solver iterations
+	t1 = std::chrono::high_resolution_clock::now();
+	int totalIts = 3;
+	double curRes = std::numeric_limits<double>::max();
+	//for (int i = 0; i < 100; i++) {
+	while (curRes > res && totalIts < maxit) {
+		solvercuda.do_iteration();
+		curRes = sqrt(solvercuda.getResidueSquaredNorm());
+		totalIts++;
+	}
+	t2 = std::chrono::high_resolution_clock::now();
+
+	///************************/
+	///* now write out result */
+	///************************/
+	Eigen::VectorXf x = solvercuda.getX();
+	std::chrono::duration<double> time_executor = t2 - t1;
+	std::cout << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " << totalIts << " iterations." << std::endl;
 }

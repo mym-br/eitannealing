@@ -8,6 +8,8 @@
 #include "number.h"
 #include "../circularbuff.h"
 
+#define CALCULATE_ERRORS
+
 using namespace cgl;
 
 class PCGSolverCPJDS {
@@ -63,14 +65,20 @@ public:
 	//void doIteration2(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
 	//void doIteration3(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
 
-	Vector * getX() {
+	virtual Vector * getX() {
 		return this->x;
 	}
 
 	void streamInit();
 	void streamDestroy();
 
-	double getRmod() { return rmod_prev->transf2CPU(); }
+	virtual double getRmod() { 
+		#ifndef CALCULATE_ERRORS
+		return rmod_prev->transf2CPU();
+		#else
+		return rmod2_1;
+		#endif
+	}
 	double getR0norm() { return r0norm; }
 	double getCurrentErr() {
 		if (it>2) return this->err[it - 1];
@@ -86,7 +94,7 @@ protected:
 
 class PCGSolverCPJDS2 : public PCGSolverCPJDS {
 public:
-	PCGSolverCPJDS2(MatrixCPJDSManager * mgr, MatrixCPJDS *M, Vector * b) : PCGSolverCPJDS(mgr, M, b) {}
+	PCGSolverCPJDS2(MatrixCPJDSManager * mgr, MatrixCPJDS *M, Vector * b) : PCGSolverCPJDS(mgr, M, b) { this->x_1 = new Vector(M->matrixData.n); }
 
 	void init(Vector *x0);
 	void doIteration(int iteration = -1);
@@ -94,5 +102,17 @@ public:
 	void doIteration1(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
 	void doIteration2(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
 	void doIteration3(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
+	double getRmod() { 
+		#ifndef CALCULATE_ERRORS
+		return rmod->transf2CPU(); 
+		#else
+		return rmod2_1;
+		#endif
+	}
+	Vector * getX() {
+		return this->x_1;
+	}
+private:
+	Vector * x_1;
 };
 #endif /* SOLVERPCG_H */

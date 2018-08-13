@@ -12,12 +12,9 @@
 
 #include "settings.h"
 #include "utils.h"
-
 //#include "preconditioner.h"
 
 using namespace cgl;
-
-#define CALCULATE_ERRORS
 
 // multiplicacao matriz vetor e subtracao (r = b - A * x)
 // solver triangular inferior e superior (usando apenas o primeiro bloco)
@@ -693,7 +690,7 @@ __global__ void cpcg_inner(int size, numType * r, numType * z, numType * partial
 
 void PCGSolverCPJDS2::init(Vector *x0) {
 	//m_preconditioner(A, PCGSolverCPJDS::streams[PCGSolverCPJDS::mainStream]);
-	x->reset(stream);
+	x->reset(stream); x_1->reset(stream);
 	r->reset(stream);
 	z->reset(stream);
 	p->reset(stream);
@@ -753,6 +750,7 @@ void PCGSolverCPJDS2::doIteration0(numType * aData, numType * precond, int * aIn
 	numType * rmodData = rmod->getData();
 	numType * rmod_prevData = rmod_prev->getData();
 	numType * gammaData = gamma->getData();
+	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
@@ -802,6 +800,7 @@ void PCGSolverCPJDS2::doIteration1(numType * aData, numType * precond, int * aIn
 	numType * rmod_prevData = rmod_prev->getData();
 	numType * gammaData = gamma->getData();
 	it++;
+	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
@@ -859,6 +858,7 @@ void PCGSolverCPJDS2::doIteration2(numType * aData, numType * precond, int * aIn
 	numType * rmod_prevData = rmod_prev->getData();
 	numType * gammaData = gamma->getData();
 	it++;
+	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
@@ -921,6 +921,7 @@ void PCGSolverCPJDS2::doIteration3(numType * aData, numType * precond, int * aIn
 	numType * rmod_prevData = rmod_prev->getData();
 	numType * gammaData = gamma->getData();
 	it++;
+	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
@@ -947,9 +948,9 @@ void PCGSolverCPJDS2::doIteration3(numType * aData, numType * precond, int * aIn
 	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
 
 #ifdef CALCULATE_ERRORS
-	rmod2_1 = rmod2;
+	rmod2_1 = rmod2; 
 	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
-	rmod2 = *data_h;
+	rmod2 = *data_h; 
 
 	// Error calculations
 	beta = rmod2 / rmod2_1;
@@ -994,6 +995,7 @@ void PCGSolverCPJDS2::doIteration(int iteration) {
 	numType * zData = z->getData();
 	numType * rData = r->getData();
 	numType * xData = x->getData();
+	numType * x2Data = x_1->getData();
 	numType * pData = p->getData();
 	numType * qData = q->getData();
 
@@ -1003,6 +1005,8 @@ void PCGSolverCPJDS2::doIteration(int iteration) {
 
 	numType * partialData = partial->getData();
 	it++;
+
+	cudaMemcpy(x2Data, xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)

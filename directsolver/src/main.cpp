@@ -132,8 +132,6 @@ int main(int argc, char *argv[])
 }
 
 void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
-	std::cout << "Creating Eigen sparse matrix and preconditioner" << std::endl;
-	
 	// Convert matrix data
 	std::vector<Eigen::Triplet<Scalar>> tripletList;
 	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<Scalar>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
@@ -152,16 +150,17 @@ void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double re
 	std::cout << "Serial analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 
 	std::cout << "Starting CG with res = " << res << " and max iterations = " << maxit << std::endl;
+	res = res > 0 ? res * res : -1;
 	// Create solver
+	t1 = std::chrono::high_resolution_clock::now();
 	CG_Solver solver(A, b, L);
 	// Execute solver iterations
-	t1 = std::chrono::high_resolution_clock::now();
 	int totalIts = 3; 
-	double curRes = std::numeric_limits<double>::max();
+	double curRes = solver.getResidueSquaredNorm();
 	//for (int i = 0; i < 100; i++) {
 	while(curRes > res && totalIts < maxit) {
 		solver.do_iteration();
-		curRes = sqrt(solver.getResidueSquaredNorm());
+		curRes = solver.getResidueSquaredNorm();
 		totalIts++;
 	}
 	t2 = std::chrono::high_resolution_clock::now();
@@ -197,17 +196,17 @@ void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res
 	std::cout << "Cuda analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 
 	std::cout << "Starting " << (isConsolidated ? "consolidated" : "") << " Cuda CG with res = " << res << " and max iterations = " << maxit << std::endl;
+	res = res > 0 ? res * res : -1;
 	// Create solver
-	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, isConsolidated);
-
-	// Execute solver iterations
 	t1 = std::chrono::high_resolution_clock::now();
+	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, isConsolidated);
+	// Execute solver iterations
 	int totalIts = 3;
-	double curRes = std::numeric_limits<double>::max();
+	double curRes = solvercuda.getResidueSquaredNorm();
 	//for (int i = 0; i < 100; i++) {
 	while (curRes > res && totalIts < maxit) {
 		solvercuda.do_iteration();
-		curRes = sqrt(solvercuda.getResidueSquaredNorm());
+		curRes = solvercuda.getResidueSquaredNorm();
 		totalIts++;
 	}
 	t2 = std::chrono::high_resolution_clock::now();

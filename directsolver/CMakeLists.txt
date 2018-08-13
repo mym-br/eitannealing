@@ -10,6 +10,7 @@ include_directories(${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src ../src ../src
 
 set(directsolver_SRCS 
   src/main.cpp
+  src/conversions.cpp
   src/mm/mmio.c
   ../src/incomplete_cholesky.cpp
   ../src/solver.cpp
@@ -27,6 +28,11 @@ set(directsolver_SRCS
   ../src/cuda/solver-pcg.cu
   ../src/cuda/solvercuda.cu
   ../src/cuda/solvercuda.cpp
+  ../src/problem.cpp
+  ../src/threedim/initproblem3D.cpp
+  ../src/threedim/nodecoeficients3D.cpp
+  ../src/twodim/initproblem2D.cpp
+  ../src/twodim/nodecoeficients2D.cpp
 
 )
 

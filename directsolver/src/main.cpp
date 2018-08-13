@@ -2,11 +2,14 @@
 #include <iostream>
 #include "args/args.hxx"
 #include "basematrix.h"
+#include "conversions.h"
 #include "incomplete_cholesky.h"
 #include "solver.h"
 #include "cuda/solvercuda.h"
 #include <chrono>
 #include <fstream>
+
+using namespace EITFILECONVERISONS;
 
 extern "C" {
 	#include "mm/mmio.h"
@@ -15,6 +18,7 @@ extern "C" {
 #define DEFAULTMAXITS 100
 
 struct raw_matrix {
+	raw_matrix() {}
 	raw_matrix(int _M, int _N) : M(_M), N(_N) {}
 	void addElement(std::tuple<int, int, double> el) { elements.push_back(el); }
 	std::vector<std::tuple<int, int, double>>::iterator begin() { return elements.begin(); }
@@ -26,8 +30,22 @@ struct raw_matrix {
 };
 typedef std::vector<double> raw_vector;
 
-void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
-void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated);
+/*
+* Get File extension from File path or File Name
+*/
+std::string getFileExtension(std::string filePath)
+{
+	// Find the last position of '.' in given string
+	std::size_t pos = filePath.rfind('.');
+
+	// If last '.' is found
+	if (pos != std::string::npos) {
+		// return the substring
+		return filePath.substr(pos);
+	}
+	// In case of no extension return empty string
+	return "";
+}
 
 void saveDenseVectorMtx(const std::string filename, raw_vector &vec) {
 	std::ofstream myfile;
@@ -36,6 +54,9 @@ void saveDenseVectorMtx(const std::string filename, raw_vector &vec) {
 	for (auto val : vec) myfile << val << std::endl;
 	myfile.close();
 }
+
+void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
+void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated);
 
 int main(int argc, char *argv[])
 {
@@ -47,35 +68,49 @@ int main(int argc, char *argv[])
 	args::ValueFlag<std::string> xfname(parser, "filename", "Output x filename prefix", { "output" });
 	args::ValueFlag<double> res(parser, "number", "Residual for CG convergence", { "res" });
 	args::ValueFlag<int> maxits(parser, "number", "Maximum number of CG iterations", { "maxits" });
-	args::Positional<std::string> Afname(parser, "filename", "A matrix file");
+	args::Flag convertonly(parser, "flag", "Skip tests (only converts mesh file to mtx)", { "conversiononly" });
+	args::Positional<std::string> Afname(parser, "filename", "A matrix file. Supported files: .mtx or .msh (with automatic conversion)");
 	try { parser.ParseCLI(argc, argv); }
 	catch (args::Completion e) { std::cout << e.what(); return 0; }
 	catch (args::Help) { std::cout << parser; return 0; }
 	catch (args::ParseError e) { std::cerr << e.what() << std::endl << parser; return 1; }
 
 	// Open matrix file
-	FILE *f;
-	if ((f = fopen(args::get(Afname).c_str(), "r")) == NULL) { std::cerr << "Could not read file " << args::get(Afname) << std::endl; return 1; }
-	MM_typecode matcode;
-	if (mm_read_banner(f, &matcode) != 0) { std::cerr << "Could not process Matrix Market banner.\n" << std::endl; return 1; }
-	
-	// Check matrix type
-	if (mm_is_complex(matcode)) { std::cerr << "Sorry, this application does not support Market Market type: [" << mm_typecode_to_str(matcode) << "]" << std::endl; return 1; }
-
-	// Get matrix size
-	int ret_code, M, N, nz;
-	if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0 || M != N) { std::cerr << "Incorrect matrix size"; return 1; }
-	std::cout << "Detected A matrix with size " << M << "x" << N << std::endl;
-
-	// Read matrix
-	int row, col;  Scalar val;
-	raw_matrix A(M,N);
-	for (int i = 0; i < nz; i++) {
-		fscanf(f, "%d %d %lg\n", &row, &col, &val);
-		A.addElement({ row - 1, col - 1, val });  /* adjust from 1-based to 0-based */
+	std::string fileName = args::get(Afname);
+	raw_matrix A;
+	std::string ext = getFileExtension(fileName);
+	if (ext == ".msh") {
+		// convert file
+		fileName = convertMeshFile(fileName);
 	}
-	// Close file
-	fclose(f);
+	else if (ext != ".mtx") { std::cerr << "Wrong input file extension"; return 1; }
+	
+	if (fileName == "") { std::cerr << "Error converting file " << args::get(Afname); return 1; }
+	if (convertonly) { std::cout << "Finished conversion part, skipping the remainder of the program"; return 0; }
+	{
+		FILE *f;
+		if ((f = fopen(fileName.c_str(), "r")) == NULL) { std::cerr << "Could not read market matrix file " << fileName << std::endl; return 1; }
+		MM_typecode matcode;
+		if (mm_read_banner(f, &matcode) != 0) { std::cerr << "Could not process Matrix Market banner" << std::endl; return 1; }
+
+		// Check matrix type
+		if (mm_is_complex(matcode)) { std::cerr << "Sorry, this application does not support Market Market type: [" << mm_typecode_to_str(matcode) << "]" << std::endl; return 1; }
+
+		// Get matrix size
+		int ret_code, M, N, nz;
+		if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0 || M != N) { std::cerr << "Incorrect matrix size"; return 1; }
+		std::cout << "Detected A matrix with size " << M << "x" << N << std::endl;
+
+		// Read matrix
+		int row, col;  Scalar val;
+		A = raw_matrix(M, N);
+		for (int i = 0; i < nz; i++) {
+			fscanf(f, "%d %d %lg\n", &row, &col, &val);
+			A.addElement({ row - 1, col - 1, val });  /* adjust from 1-based to 0-based */
+		}
+		// Close file
+		fclose(f);
+	}
 
 	///************************/
 	///* now write out matrix */
@@ -87,8 +122,11 @@ int main(int argc, char *argv[])
 	//		fprintf(stdout, "%d %d %20.19g\n", it.row() + 1, it.col() + 1, it.value());
 
 	// Create vector
-	raw_vector b(M);
+	raw_vector b(A.M);
 	if (bfname) { 
+		FILE *f;
+		MM_typecode matcode;
+
 		// Open vector file
 		if ((f = fopen(args::get(bfname).c_str(), "r")) == NULL) { std::cerr << "Could not read file " << args::get(bfname) << std::endl; return 1; }
 		if (mm_read_banner(f, &matcode) != 0) { std::cerr << "Could not process Matrix Market banner.\n" << std::endl; return 1; }
@@ -97,10 +135,12 @@ int main(int argc, char *argv[])
 		if (mm_is_complex(matcode)) { std::cerr << "Sorry, this application does not support Market Market type: [" << mm_typecode_to_str(matcode) << "]" << std::endl; return 1; }
 
 		// Get vector size
+		int ret_code, M, N, nz;
 		if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0 || N != 1) { std::cerr << "Incorrect vector size"; return 1; }
 		std::cout << "Detected b vector with size " << M << "x" << N << std::endl;
 
 		// Read vector to Eigen type
+		int row, col;  Scalar val;
 		std::fill(b.begin(), b.end(), 0);
 		for (int i = 0; i < nz; i++)
 		{
@@ -120,7 +160,7 @@ int main(int argc, char *argv[])
 	//mm_write_mtx_crd_size(stdout, M, N, nz);
 	//std::cout << b.transpose() << std::endl;
 
-	raw_vector x(M);
+	raw_vector x(A.M);
 	runEigenCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if(xfname) saveDenseVectorMtx(args::get(xfname) + "_serial.mtx", x);
 	runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, false);

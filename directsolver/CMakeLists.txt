@@ -28,6 +28,8 @@ set(directsolver_SRCS
   ../src/cuda/solver-pcg.cu
   ../src/cuda/solvercuda.cu
   ../src/cuda/solvercuda.cpp
+  ../src/cuda/solvercublas.cu
+  ../src/cuda/solvercublas.cpp
   ../src/problem.cpp
   ../src/threedim/initproblem3D.cpp
   ../src/threedim/nodecoeficients3D.cpp

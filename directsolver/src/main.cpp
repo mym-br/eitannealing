@@ -6,6 +6,7 @@
 #include "incomplete_cholesky.h"
 #include "solver.h"
 #include "cuda/solvercuda.h"
+#include "cuda/solvercublas.h"
 #include <chrono>
 #include <fstream>
 
@@ -57,6 +58,7 @@ void saveDenseVectorMtx(const std::string filename, raw_vector &vec) {
 
 void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
 void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated);
+void runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
 
 int main(int argc, char *argv[])
 {
@@ -167,6 +169,8 @@ int main(int argc, char *argv[])
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cuda.mtx", x);
 	runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, true);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccuda.mtx", x);
+	runCusparseCublasCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
+	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cusparse.mtx", x);
 
 	return 0;
 }
@@ -257,5 +261,52 @@ void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res
 	Eigen::VectorXf xeig = solvercuda.getX();
 	std::chrono::duration<double> time_executor = t2 - t1;
 	std::cout << (isConsolidated ? "Consolidated " : "") << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " << totalIts << " iterations." << std::endl;
+	for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
+}
+
+void runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
+	std::vector<Eigen::Triplet<Scalar>> tripletList;
+	for (auto el : Araw) {
+		tripletList.push_back(Eigen::Triplet<Scalar>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
+		if (std::get<0>(el) != std::get<1>(el)) tripletList.push_back(Eigen::Triplet<Scalar>(std::get<1>(el), std::get<0>(el), std::get<2>(el)));
+	}
+	auto t1 = std::chrono::high_resolution_clock::now();
+	// Create sparse matrix
+	Eigen::SparseMatrix<float, Eigen::ColMajor> A(Araw.M, Araw.N);
+	A.setFromTriplets(tripletList.begin(), tripletList.end());
+	A.makeCompressed();
+	Cublas::Matrix *Acublas = Cublas::Matrix::createCublasMatrix(&A);
+	// Create b vector
+	std::unique_ptr<numType[]> bdata(new numType[braw.size()]);
+	for (int i = 0; i < braw.size(); i++) bdata[i] = braw[i];
+	// Create Cublas preconditioner
+	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_analyser = t2 - t1;
+	std::cout << "Cublas analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
+
+	std::cout << "Starting Cublas CG with res = " << res << " and max iterations = " << maxit << std::endl;
+	res = res > 0 ? res * res : -1;
+	// Create solver
+	t1 = std::chrono::high_resolution_clock::now();
+	Cublas::CG_Solver solvercublas(Acublas, bdata.get(), precondcublas);
+	// Execute solver iterations
+	// TODO: implement residue square norm for cublas solver
+	int totalIts = 3;
+	double curRes = std::numeric_limits<double>::max();//double curRes = solvercublas.getResidueSquaredNorm();
+	//for (int i = 0; i < 100; i++) {
+	while (curRes > res && totalIts < maxit) {
+		solvercublas.doIteration();
+		//curRes = solvercublas.getResidueSquaredNorm();
+		totalIts++;
+	}
+	t2 = std::chrono::high_resolution_clock::now();
+
+	///************************/
+	///* now write out result */
+	///************************/
+	std::unique_ptr<numType[]> xeig(solvercublas.getX());
+	std::chrono::duration<double> time_executor = t2 - t1;
+	std::cout << "Cublas executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " << totalIts << " iterations." << std::endl;
 	for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
 }

@@ -10,6 +10,7 @@ include_directories(${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src ../src ../src
 
 set(directsolver_SRCS 
   src/main.cpp
+  src/cudacg.cu
   src/conversions.cpp
   src/mm/mmio.c
   ../src/incomplete_cholesky.cpp

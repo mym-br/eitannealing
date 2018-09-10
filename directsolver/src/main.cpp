@@ -59,9 +59,9 @@ void saveDenseVectorMtx(const std::string filename, raw_vector &vec) {
 	myfile.close();
 }
 
-void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
-void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated);
-void runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
+std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
+std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated);
+std::tuple<long, long> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
 
 int main(int argc, char *argv[])
 {
@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
 	args::CompletionFlag completion(parser, { "complete" });
 	args::ValueFlag<std::string> bfname(parser, "filename", "b vector file", { 'b' });
 	args::ValueFlag<std::string> xfname(parser, "filename", "Output x filename prefix", { "output" });
+	args::ValueFlag<std::string> resultsfname(parser, "compilation", "Results compilation filename prefix (append)", { "compilation" });
 	args::ValueFlag<double> res(parser, "number", "Residual for CG convergence", { "res" });
 	args::ValueFlag<int> maxits(parser, "number", "Maximum number of CG iterations", { "maxits" });
 	args::Flag convertonly(parser, "flag", "Skip tests (only converts mesh file to mtx)", { "conversiononly" });
@@ -166,19 +167,25 @@ int main(int argc, char *argv[])
 	//std::cout << b.transpose() << std::endl;
 
 	raw_vector x(A.M);
-	runEigenCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
+	auto[analysertime, executiontime] = runEigenCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if(xfname) saveDenseVectorMtx(args::get(xfname) + "_serial.mtx", x);
-	runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, false);
+	auto[analysertimeCuda, executiontimeCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, false);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cuda.mtx", x);
-	runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, true);
+	auto[analysertimeCCuda, executiontimeCCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, true);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccuda.mtx", x);
-	runCusparseCublasCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
+	auto[analysertimeCublas, executiontimeCublas] = runCusparseCublasCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cusparse.mtx", x);
+
+	if(resultsfname) {
+		// Append execution times to compilation file args::get(resultsfname)
+		std::ofstream outfile(args::get(resultsfname), std::ios_base::app);
+		outfile << fileName << "\t" << A.elements.size() << "\t" << analysertime << "\t" << executiontime << "\t" << analysertimeCuda  << "\t" << executiontimeCuda  << "\t" << analysertimeCCuda  << "\t" << executiontimeCCuda << "\t" << analysertimeCublas << "\t" << executiontimeCublas  << std::endl;
+	}
 
 	return 0;
 }
 
-void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
+std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
 	// Convert matrix data
 	std::vector<Eigen::Triplet<Scalar>> tripletList;
 	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<Scalar>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
@@ -219,9 +226,11 @@ void runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double re
 	std::chrono::duration<double> time_executor = t2 - t1;
 	std::cout << "Serial executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " <<  totalIts << " iterations." << std::endl;
 	for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
+
+	return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
 }
 
-void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated) {
+std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated) {
 	// Convert matrix data
 	std::vector<Eigen::Triplet<Scalar>> tripletList;
 	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<Scalar>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
@@ -266,14 +275,16 @@ void runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res
 		std::chrono::duration<double> time_executor = t2 - t1;
 		std::cout << (isConsolidated ? "Consolidated " : "") << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " << totalIts << " iterations." << std::endl;
 		for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
+		return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
 	}
 	catch (const std::exception& e) { 
 		for (int i = 0; i < x.size(); i++) x[i] = 0;
 		std::cerr << "Failed to process " << (isConsolidated ? "consolidated " : "") << "cuda executor. Message: " << e.what();
+		return std::make_tuple(-1,-1);
 	}
 }
 
-void runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
+std::tuple<long, long> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
 	std::vector<int> unsorted_mmrow;
 	std::vector<int> unsorted_J;
 	std::vector<float> unsorted_val;
@@ -317,7 +328,9 @@ void runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, 
 	for (int i = 0; i < braw.size(); i++) rhs[i] = braw[i];
 
 	std::vector<float> xcublas(Araw.N);
-	runCusparseCublasCG(I, J, val, rhs, xcublas, Araw.M, Araw.N, nz, res, maxit);
+	auto ans = runCusparseCublasCG(I, J, val, rhs, xcublas, Araw.M, Araw.N, nz, res, maxit);
 
 	for (int i = 0; i < x.size(); i++) x[i] = xcublas[i];
+
+	return ans;
 }

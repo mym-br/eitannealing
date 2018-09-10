@@ -20,7 +20,7 @@ extern "C" {
 #include "mm/mmio.h"
 }
 
-void runCusparseCublasCG(std::vector<int> &I, std::vector<int> &J, std::vector<float> &val, std::vector<float> &rhs, std::vector<float> &x, int M, int N, int nz, float tol, int max_iter) {
+std::tuple<long, long> runCusparseCublasCG(std::vector<int> &I, std::vector<int> &J, std::vector<float> &val, std::vector<float> &rhs, std::vector<float> &x, int M, int N, int nz, float tol, int max_iter) {
 	int *d_col, *d_row;
 	float r0, r1, alpha, beta;
 	float *d_val, *d_x;
@@ -202,4 +202,6 @@ void runCusparseCublasCG(std::vector<int> &I, std::vector<int> &J, std::vector<f
 	cudaFree(d_zm1);
 	cudaFree(d_zm2);
 	cudaFree(d_rm2);
+
+	return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
 }

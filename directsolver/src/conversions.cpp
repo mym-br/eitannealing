@@ -45,7 +45,7 @@ namespace EITFILECONVERISONS {
 		for (int k = 0; k < m->outerSize(); ++k)
 			for (matrix::InnerIterator it(*m, k); it; ++it)
 				if(it.row() >= it.col())
-					fprintf(f, "%d %d %10.3g\n", it.row() + 1, it.col() + 1, it.value());
+					fprintf(f, "%d %d %10.16g\n", it.row() + 1, it.col() + 1, it.value());
 	}
 
 	std::string convertMeshFile(const std::string filename) {

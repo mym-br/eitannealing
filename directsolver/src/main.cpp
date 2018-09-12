@@ -142,16 +142,29 @@ int main(int argc, char *argv[])
 
 		// Get vector size
 		int ret_code, M, N, nz;
-		if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0 || N != 1) { std::cerr << "Incorrect vector size"; return 1; }
+		if (
+			(mm_is_coordinate(matcode) && (ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0) ||
+			(mm_is_array(matcode) && (ret_code = mm_read_mtx_array_size(f, &M, &N)) != 0) ||
+			N != 1) {
+			std::cerr << "Incorrect vector size"; return 1; 
+		}
 		std::cout << "Detected b vector with size " << M << "x" << N << std::endl;
 
 		// Read vector to Eigen type
 		int row, col;  Scalar val;
-		std::fill(b.begin(), b.end(), 0);
-		for (int i = 0; i < nz; i++)
-		{
-			fscanf(f, "%d %d %lg\n", &row, &col, &val);
-			b[row - 1] = val;  /* adjust from 1-based to 0-based */
+		if (mm_is_coordinate(matcode)) {
+			std::fill(b.begin(), b.end(), 0);
+			for (int i = 0; i < nz; i++)
+			{
+				fscanf(f, "%d %d %lg\n", &row, &col, &val);
+				b[row - 1] = val;  /* adjust from 1-based to 0-based */
+			}
+		}
+		else {
+			for (int i = 0; i < M; i++) {
+				fscanf(f, "%lg\n", &val);
+				b[i] = val;
+			}
 		}
 	}
 	else {
@@ -224,7 +237,7 @@ std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_ve
 	///************************/
 	vectorx xeig = solver.getX();
 	std::chrono::duration<double> time_executor = t2 - t1;
-	std::cout << "Serial executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " <<  totalIts << " iterations." << std::endl;
+	std::cout << "Serial executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << sqrt(curRes) << " after " <<  totalIts << " iterations." << std::endl;
 	for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
 
 	return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
@@ -273,7 +286,7 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 	try {
 		Eigen::VectorXf xeig = solvercuda.getX();
 		std::chrono::duration<double> time_executor = t2 - t1;
-		std::cout << (isConsolidated ? "Consolidated " : "") << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << curRes << " after " << totalIts << " iterations." << std::endl;
+		std::cout << (isConsolidated ? "Consolidated " : "") << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << sqrt(curRes) << " after " << totalIts << " iterations." << std::endl;
 		for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
 		return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
 	}

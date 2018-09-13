@@ -9,6 +9,8 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <device_launch_parameters.h>
+#include <iostream>
+#include <iomanip>
 
 #include "settings.h"
 #include "utils.h"
@@ -369,11 +371,13 @@ __global__ void cpcg_mult_subtr_solver(int size, numType * aData, numType * prec
 	//	printf("r[%d] = %g\n", r[row]);
 	//}
 
-	__syncthreads();
+	//__syncthreads();
 
 	// lower triangular solver
-	partial[row] = 0.0;
+	//partial[row] = 0.0;
 	if (blockIdx.x == 0) {
+		partial[row] = 0.0;
+		__syncthreads();
 		for (int k = 0; k < colorCount; k++) {
 
 			int colorStart = colors[k];
@@ -406,7 +410,6 @@ __global__ void cpcg_mult_subtr_solver(int size, numType * aData, numType * prec
 		__syncthreads();
 		//obs: most threads will just pass by, but that's ok, as we need only the number of threads equal to the
 		//largest color group size - as long as it fits in a single block (we need it to use __syncthreads)
-
 		// upper triangular kernel
 		for (int k = colorCount - 1; k >= 0; k--) {
 

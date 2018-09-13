@@ -79,8 +79,6 @@ std::tuple<long, long> runCusparseCublasCG(std::vector<int> &I, std::vector<int>
 	--------------------------------------------
 	Follows the description by Golub & Van Loan, "Matrix Computations 3rd ed.", Algorithm 10.3.1  */
 
-	printf("\nConvergence of conjugate gradient using incomplete LU preconditioning: \n");
-
 	int nzILU0 = 2 * N - 1;
 	valsILU0 = (float *)malloc(nz * sizeof(float));
 

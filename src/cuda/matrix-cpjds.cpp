@@ -132,5 +132,5 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
 	this->auxv = std::unique_ptr<numType[]>(new numType[this->n]);
 	this->auxi = std::unique_ptr<int[]>(new int[this->n]);
 
-	blocks = (int)ceil((double)n / BLOCKSIZE);
+	blocks = (int)ceil((double)this->n / BLOCKSIZE);
 }

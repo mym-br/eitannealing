@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <numeric>
 
-using namespace EITFILECONVERISONS;
+using namespace EITFILECONVERSIONS;
 
 extern "C" {
 	#include "mm/mmio.h"
@@ -33,6 +33,14 @@ struct raw_matrix {
 	std::vector<std::tuple<int, int, double>> elements;
 };
 typedef std::vector<double> raw_vector;
+
+
+void saveVals(const char* fname, matrix &mat, bool symm = false) {
+	FILE *f;
+	if ((f = fopen(fname, "w")) == NULL) { std::cerr << "Could not open market matrix file to write" << *fname << std::endl; return; }
+	EITFILECONVERSIONS::saveMtx(&mat, f, symm);
+	fclose(f);
+}
 
 /*
 * Get File extension from File path or File Name

@@ -7,7 +7,7 @@ extern "C" {
 	#include "mm/mmio.h"
 }
 
-namespace EITFILECONVERISONS {
+namespace EITFILECONVERSIONS {
 	/*
 	* Get File name without extension from File path or File Name
 	*/
@@ -26,7 +26,7 @@ namespace EITFILECONVERISONS {
 	}
 
 
-	void saveMtx(matrix *m, FILE *f) {
+	void saveMtx(matrix *m, FILE *f, bool symmetric) {
 		MM_typecode matcode;
 		int i;
 
@@ -34,7 +34,8 @@ namespace EITFILECONVERISONS {
 		mm_set_matrix(&matcode);
 		mm_set_coordinate(&matcode);
 		mm_set_real(&matcode);
-		mm_set_symmetric(&matcode);
+		if(symmetric) mm_set_symmetric(&matcode);
+		else mm_set_general(&matcode);
 
 		mm_write_banner(f, matcode);
 		mm_write_mtx_crd_size(f, m->rows(), m->cols(), m->nonZeros());

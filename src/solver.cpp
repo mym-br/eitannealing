@@ -10,6 +10,15 @@
 //#include "nodecoefficients.h"
 #include <fstream>
 
+CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b, const SparseIncompleteLLT &pre, double res) :
+	A(_A),
+	b(b),
+	x(Eigen::VectorXd::Zero(_A.rows())),
+	precond(pre)
+{
+	this->init(res);
+}
+
 CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
 	A(_A),
 	b(b), 
@@ -27,7 +36,7 @@ CG_Solver::CG_Solver(matrix &A_, Eigen::VectorXd &b, const Eigen::VectorXd &x0, 
 }
 
 // Setup and calculate the 1st iteraction	
-void CG_Solver::init()
+void CG_Solver::init(double res)
 {
 	r.resize(A.rows());
 	beta = 0;
@@ -58,6 +67,7 @@ void CG_Solver::init()
 	// Now do the first 3 iterations
 
 	x += gamma*p;	// 1...
+	if (rmod < res) { it = 1; return; }
 	r = r - gamma*q;
 	z = r;
 	precond.solveInPlace(z);
@@ -92,6 +102,7 @@ void CG_Solver::init()
 	eta_[1] = leta;*/
 
 	x += gamma*p;	// 2...
+	if (rmod < res) { it = 2; return; }
 	r = r - gamma*q;
 	z = r;
 	precond.solveInPlace(z);

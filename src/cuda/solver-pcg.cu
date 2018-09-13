@@ -69,13 +69,13 @@ PCGSolverCPJDS::PCGSolverCPJDS(MatrixCPJDSManager * mgr, MatrixCPJDS *M, Vector 
 	streamInit();
 }
 
-void PCGSolverCPJDS::init() {
+void PCGSolverCPJDS::init(double res) {
 	x->reset(stream);
-	this->init(x);
+	this->init(x, res);
 }
 
 // Setup and calculate the 1st iteration	
-void PCGSolverCPJDS::init(Vector *x0) {
+void PCGSolverCPJDS::init(Vector *x0, double res) {
 	numType *data_h = new numType[1];
 	//m_preconditioner(A, PCGSolverCPJDS::streams[PCGSolverCPJDS::mainStream]);
 	x->reset();
@@ -144,6 +144,7 @@ void PCGSolverCPJDS::init(Vector *x0) {
 	rmod2_1 = rmod2;
 	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
+	if (rmod2 < res) { it = 1; return; }
 
 	// Error calculations
 	beta = rmod2 / rmod2_1;
@@ -182,6 +183,7 @@ void PCGSolverCPJDS::init(Vector *x0) {
 	rmod2_1 = rmod2;
 	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
+	if (rmod2 < res) { it = 2; return; }
 
 	// Error calculations
 	beta = rmod2 / rmod2_1;
@@ -691,7 +693,7 @@ __global__ void cpcg_inner(int size, numType * r, numType * z, numType * partial
 	__syncthreads();
 }
 
-void PCGSolverCPJDS2::init(Vector *x0) {
+void PCGSolverCPJDS2::init(Vector *x0, double res) {
 	//m_preconditioner(A, PCGSolverCPJDS::streams[PCGSolverCPJDS::mainStream]);
 	x->reset(stream); x_1->reset(stream);
 	r->reset(stream);
@@ -738,7 +740,9 @@ void PCGSolverCPJDS2::init(Vector *x0) {
 
 	doIteration0((*A).matrixData.data.get(), (*A).preconditionedData.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(), zData, rData, xData, pData, qData, partialData);
 	doIteration1((*A).matrixData.data.get(), (*A).preconditionedData.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(), zData, rData, xData, pData, qData, partialData);
+	if (rmod2 < res) { it = 1; return; }
 	doIteration2((*A).matrixData.data.get(), (*A).preconditionedData.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(), zData, rData, xData, pData, qData, partialData);
+	if (rmod2 < res) { it = 2; return; }
 	doIteration3((*A).matrixData.data.get(), (*A).preconditionedData.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(), zData, rData, xData, pData, qData, partialData);
 
 #ifdef CALCULATE_ERRORS

@@ -228,9 +228,9 @@ std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_ve
 	res = res > 0 ? res * res : -1;
 	// Create solver
 	t1 = std::chrono::high_resolution_clock::now();
-	CG_Solver solver(A, b, L);
+	CG_Solver solver(A, b, L, res);
 	// Execute solver iterations
-	int totalIts = 3; 
+	int totalIts = solver.getIteration();
 	double curRes = solver.getResidueSquaredNorm();
 	//for (int i = 0; i < 100; i++) {
 	while(curRes > res && totalIts < maxit) {
@@ -276,9 +276,9 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 	res = res > 0 ? res * res : -1;
 	// Create solver
 	t1 = std::chrono::high_resolution_clock::now();
-	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, isConsolidated);
+	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, res, isConsolidated);
 	// Execute solver iterations
-	int totalIts = 3;
+	int totalIts = solvercuda.getIteration();
 	double curRes = solvercuda.getResidueSquaredNorm();
 	//for (int i = 0; i < 100; i++) {
 	while (curRes > res && totalIts < maxit) {

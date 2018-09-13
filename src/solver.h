@@ -63,7 +63,7 @@ class CG_Solver {
 		
 
 
-		void init();
+		void init(double res = -1);
 						
 		void saveVals(const char* fname, double val, bool app = true);
 
@@ -87,6 +87,7 @@ class CG_Solver {
 			} else return 0;
 		}
 
+		CG_Solver(matrix &A, Eigen::VectorXd &b, const SparseIncompleteLLT &precond, double res);
 		CG_Solver(matrix &A, Eigen::VectorXd &b, const SparseIncompleteLLT &precond);
 		CG_Solver(matrix &A, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &precond);
 		void do_iteration();

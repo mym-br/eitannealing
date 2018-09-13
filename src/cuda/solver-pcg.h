@@ -57,8 +57,8 @@ public:
 		streamDestroy();
 	}
 
-	void init();
-	virtual void init(Vector *x0);
+	void init(double res = -1);
+	virtual void init(Vector *x0, double res = -1);
 	virtual  void doIteration(int iteration = -1);
 	//void doIteration0(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
 	//void doIteration1(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
@@ -96,7 +96,7 @@ class PCGSolverCPJDS2 : public PCGSolverCPJDS {
 public:
 	PCGSolverCPJDS2(MatrixCPJDSManager * mgr, MatrixCPJDS *M, Vector * b) : PCGSolverCPJDS(mgr, M, b) { this->x_1 = new Vector(M->matrixData.n); }
 
-	void init(Vector *x0);
+	void init(Vector *x0, double res = -1);
 	void doIteration(int iteration = -1);
 	void doIteration0(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);
 	void doIteration1(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData);

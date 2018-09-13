@@ -6,6 +6,13 @@
 
 using namespace cgl;
 
+CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, double res, bool consolidatedKernels) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
+	size = stiffness->matrixData.n;
+	if (consolidatedKernels) solver = new PCGSolverCPJDS2(mgr, stiffness, bVec);
+	else solver = new PCGSolverCPJDS(mgr, stiffness, bVec);
+	solver->init(res);
+}
+
 CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, bool consolidatedKernels) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
 	size = stiffness->matrixData.n;
 	if(consolidatedKernels) solver = new PCGSolverCPJDS2(mgr, stiffness, bVec);

@@ -271,6 +271,10 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> time_analyser = t2 - t1;
 	std::cout << "Cuda analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
+	//// Output cpjds matrices and vector to mtx files
+	//matrix mPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.data); saveVals("Acpjds.mtx", mPrint, true);
+	//matrix precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.mtx", precondPrint);
+	//matrix bPrint(stiffness->matrixData.n, 1); for (int i = 0; i < braw.size(); i++) bPrint.coeffRef(mgr->original2PaddedIdx[i], 0) = braw[i]; saveVals("bcpjds.mtx", bPrint);
 
 	std::cout << "Starting " << (isConsolidated ? "consolidated" : "") << " Cuda CG with res = " << res << " and max iterations = " << maxit << std::endl;
 	res = res > 0 ? res * res : -1;
@@ -300,7 +304,7 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 	}
 	catch (const std::exception& e) { 
 		for (int i = 0; i < x.size(); i++) x[i] = 0;
-		std::cerr << "Failed to process " << (isConsolidated ? "consolidated " : "") << "cuda executor. Message: " << e.what();
+		std::cerr << "Failed to process " << (isConsolidated ? "consolidated " : "") << "cuda executor. Message: " << e.what() << std::endl;
 		return std::make_tuple(-1,-1);
 	}
 }

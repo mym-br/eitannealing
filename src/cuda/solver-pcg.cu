@@ -376,17 +376,8 @@ __global__ void cpcg_mult_subtr_solver(int size, numType * aData, numType * prec
 		r[row] = b[row] - sum; // coalesced, resultado da multiplicacao matriz-vetor, ja subtraindo b
 	}
 
-	//if (row == 0) {
-	//	printf("b[%d] = %g\n", b[row]);
-	//	printf("r[%d] = %g\n", r[row]);
-	//}
-
-	//__syncthreads();
-
 	// lower triangular solver
 	if (blockIdx.x == 0) {
-		z[row] = 0.0;
-		__syncthreads();
 		for (int k = 0; k < colorCount; k++) {
 
 			int colorStart = colors[k];
@@ -415,8 +406,6 @@ __global__ void cpcg_mult_subtr_solver(int size, numType * aData, numType * prec
 			}
 			__syncthreads();// make all threads in the first block stop and wait - the others can be discarded
 		}
-
-		__syncthreads();
 		//obs: most threads will just pass by, but that's ok, as we need only the number of threads equal to the
 		//largest color group size - as long as it fits in a single block (we need it to use __syncthreads)
 		// upper triangular kernel
@@ -449,9 +438,6 @@ __global__ void cpcg_mult_subtr_solver(int size, numType * aData, numType * prec
 			}
 			__syncthreads();// make all threads in the first block stop and wait - the others can be discarded
 		}
-
-		__syncthreads();
-
 		//obs: it is a shame we lost all threads not in the first blocks, as because of that we cannot copy z to p here
 	}
 }
@@ -672,80 +658,72 @@ __global__ void cpcg_tot_esc_add_sub_solver(int size, numType * precondData, int
 		x[row] += alpha * p[row];
 		// r -= alpha * q
 		r[row] -= alpha * q[row];
-	}
 
-	__syncthreads();
+		// lower triangular solver
+		if (blockIdx.x == 0) {
+			for (int k = 0; k < colorCount; k++) {
 
-	// lower triangular solver
-	if (blockIdx.x == 0) {
-		z[row] = 0.0;
-		__syncthreads();
-		for (int k = 0; k < colorCount; k++) {
+				int colorStart = colors[k];
+				int colorEnd = colors[k + 1];
+				int colorColOffset = colorsColOffset[k];
 
-			int colorStart = colors[k];
-			int colorEnd = colors[k + 1];
-			int colorColOffset = colorsColOffset[k];
+				for (row = tidx + colorStart; row < colorEnd; row += BLOCKSIZE) {
+					int rowStep = (row - colorStart);
+					int rowSize = aRowSize[row];
 
-			for (row = tidx + colorStart; row < colorEnd; row += BLOCKSIZE) {
-				int rowStep = (row - colorStart);
-				int rowSize = aRowSize[row];
-
-				numType sum = 0;
-				//__syncthreads();
-
-				for (int j = 1; j < rowSize; j++) { // first element is main diagonal
-					// colorColOffset already includes colorOffset (thus, color's first row)
-					int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
-
-					numType rowData = precondData[offset]; // coalesced
-					int idx = aIndices[offset]; // coalesced
-					if (idx < row) { // main diagonal can be skiped
-						sum += rowData * z[idx];
-					}
+					numType sum = 0;
 					//__syncthreads();
-				}
-				z[row] = (r[row] - sum) / precondData[aColOffset[colorColOffset] + rowStep];
-			}
-			__syncthreads();// make all threads in the first block stop and wait - the others can be discarded
-		}
 
-		__syncthreads();
-		//obs: most threads will just pass by, but that's ok, as we need only the number of threads equal to the
-		//largest color group size - as long as it fits in a single block (we need it to use __syncthreads)
-		// upper triangular kernel
-		for (int k = colorCount - 1; k >= 0; k--) {
+					for (int j = 1; j < rowSize; j++) { // first element is main diagonal
+						// colorColOffset already includes colorOffset (thus, color's first row)
+						int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
 
-			int colorStart = colors[k];
-			int colorEnd = colors[k + 1];
-			int colorColOffset = colorsColOffset[k];
-
-			for (row = tidx + colorStart; row < colorEnd; row += BLOCKSIZE) {
-				int rowStep = (row - colorStart);
-				int rowSize = aRowSize[row];
-
-				numType sum = 0;
-				//__syncthreads();
-
-				for (int j = 1; j < rowSize; j++) { // first element is main diagonal
-					// colorColOffset already includes colorOffset (thus, color's first row)
-					int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
-
-					numType rowData = precondData[offset]; // coalesced
-					int idx = aIndices[offset]; // coalesced
-					if (idx > row && idx > -1) { // main diagonal can be skiped
-						sum += rowData * z[idx];
+						numType rowData = precondData[offset]; // coalesced
+						int idx = aIndices[offset]; // coalesced
+						if (idx < row) { // main diagonal can be skiped
+							sum += rowData * z[idx];
+						}
+						//__syncthreads();
 					}
-					//__syncthreads();
+					z[row] = (r[row] - sum) / precondData[aColOffset[colorColOffset] + rowStep];
 				}
-				// using partial result from previous (lower triangular) solver
-				z[row] = (z[row] - sum) / precondData[aColOffset[colorColOffset] + rowStep];// resultado do solver linear
+				__syncthreads();// make all threads in the first block stop and wait - the others can be discarded
 			}
-			__syncthreads();// make all threads in the first block stop and wait - the others can be discarded
+
+			//obs: most threads will just pass by, but that's ok, as we need only the number of threads equal to the
+			//largest color group size - as long as it fits in a single block (we need it to use __syncthreads)
+			// upper triangular kernel
+			for (int k = colorCount - 1; k >= 0; k--) {
+
+				int colorStart = colors[k];
+				int colorEnd = colors[k + 1];
+				int colorColOffset = colorsColOffset[k];
+
+				for (row = tidx + colorStart; row < colorEnd; row += BLOCKSIZE) {
+					int rowStep = (row - colorStart);
+					int rowSize = aRowSize[row];
+
+					numType sum = 0;
+					//__syncthreads();
+
+					for (int j = 1; j < rowSize; j++) { // first element is main diagonal
+						// colorColOffset already includes colorOffset (thus, color's first row)
+						int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
+
+						numType rowData = precondData[offset]; // coalesced
+						int idx = aIndices[offset]; // coalesced
+						if (idx > row && idx > -1) { // main diagonal can be skiped
+							sum += rowData * z[idx];
+						}
+						//__syncthreads();
+					}
+					// using partial result from previous (lower triangular) solver
+					z[row] = (z[row] - sum) / precondData[aColOffset[colorColOffset] + rowStep];// resultado do solver linear
+				}
+				__syncthreads();// make all threads in the first block stop and wait - the others can be discarded
+			}
+			//obs: it is a shame we lost all threads not in the first blocks, as because of that we cannot copy z to p here
 		}
-
-		__syncthreads();
-
-		//obs: it is a shame we lost all threads not in the first blocks, as because of that we cannot copy z to p here
 	}
 }
 
@@ -869,7 +847,7 @@ void PCGSolverCPJDS2::doIteration0(numType * aData, numType * precond, int * aIn
 	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, precond, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			xData, rData, zData, pData, qData, rmodData, gammaData, partialData, blocks);
-	
+
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
 	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);

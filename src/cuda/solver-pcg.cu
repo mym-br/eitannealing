@@ -116,7 +116,6 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	r->inner(z, rmod); // rmod = z.dot(r); isto nao deveria ser recalculado
 	mgr->mult(*A, p, q); // q = A * p;
 	p->inner(q, gamma); // gamma = q.dot(p);
-
 	#ifdef CALCULATE_ERRORS
 	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
 	rmod2_1 = rmod2 = *data_h;
@@ -567,9 +566,13 @@ __global__ void cpcg_tot_esc_add_mmv_inner(int size, numType * aData, int * aInd
 	const numType beta = total / rmod_prev[0]; //rmod_prev must be initialized with non-zero
 	if (row < size) {
 		// p = z + beta * p
-		p[row] = z[row] + beta * p[row];
+		p[row] = beta * p[row];
 	}
-
+	__syncthreads();
+	if (row < size) {
+		// p = z + beta * p
+		p[row] = z[row] + p[row];
+	}
 	__syncthreads();
 
 	// matrix-vector multiplication
@@ -587,7 +590,7 @@ __global__ void cpcg_tot_esc_add_mmv_inner(int size, numType * aData, int * aInd
 		int colorColOffset = colorsColOffset[colorIdx];
 
 		// row size (length + padding zeros)
-		int rowSize = aRowSize[row];
+		int rowSize = aRowLength[row];
 
 		numType sum = 0;
 		//__syncthreads();

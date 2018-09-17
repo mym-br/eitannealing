@@ -74,9 +74,9 @@ public:
 
 	virtual double getRmod() { 
 		#ifndef CALCULATE_ERRORS
-		return rmod_prev->transf2CPU();
+		return rmod->transf2CPU();
 		#else
-		return rmod2_1;
+		return rmod2;
 		#endif
 	}
 	double getR0norm() { return r0norm; }
@@ -106,7 +106,7 @@ public:
 		#ifndef CALCULATE_ERRORS
 		return rmod->transf2CPU(); 
 		#else
-		return rmod2_1;
+		return rmod2;
 		#endif
 	}
 	Vector * getX() {

@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 		// Get matrix size
 		int ret_code, M, N, nz;
 		if ((ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0 || M != N) { std::cerr << "Incorrect matrix size"; return 1; }
-		std::cout << "Detected A matrix with size " << M << "x" << N << std::endl;
+		std::cout << "Detected A matrix with size " << M << "x" << N << " from file " << fileName << std::endl;
 
 		// Read matrix
 		int row, col;  Scalar val;

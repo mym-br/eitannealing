@@ -122,6 +122,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	gamma2_1 = gamma2;
 	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
+	if (rmod2 < res) { it = 0; return; }
 
 	// Error calculations
 	r0norm2 = rmod2;
@@ -151,7 +152,6 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	rmod2_1 = rmod2;
 	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
-	if (rmod2 < res) { it = 1; return; }
 
 	// Error calculations
 	beta = rmod2 / rmod2_1;
@@ -166,6 +166,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	gamma2_1 = gamma2;
 	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
+	if (rmod2 < res) { it = 1; return; }
 
 	// Update values for next iteration
 	gamma2 = rmod2 / gamma2;
@@ -190,7 +191,6 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	rmod2_1 = rmod2;
 	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
-	if (rmod2 < res) { it = 2; return; }
 
 	// Error calculations
 	beta = rmod2 / rmod2_1;
@@ -210,6 +210,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	gamma2_1 = gamma2;
 	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
+	if (rmod2 < res) { it = 2; return; }
 
 	// Update values for next iteration
 	gamma2 = rmod2 / gamma2;
@@ -217,6 +218,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 #endif
 
 	x->scalarAdd(rmod, gamma, p, NULL); // 3...
+	if (rmod2 < res) { rmod2_1 = rmod2; it = 2; return; }
 	r->scalarSubtr(rmod, gamma, q, NULL); //r -= alpha * q; alpha = rmod / gamma
 	// M * z = r -> solve for z, having M = L * Lt
 	// L * Lt * z = r

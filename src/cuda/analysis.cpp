@@ -293,6 +293,13 @@ std::unique_ptr<numType[]> fillPadding(matrix * data, int colorCount, std::uniqu
 		}
 	}
 	//LOGM2(newData, newSize, newSize, "Padded reordered matrix (cols):", LOGCPU);
+	// "fix" main diagonal
+	for (int i = 0; i < newSize; i++) {
+		if (MOD(newData[i * newSize + i]) < EPS) {
+			newData[i * newSize + i] = 1;
+		}
+	}
+	//LOGM2(newData, newSize, newSize, "Padded reordered matrix:", LOGCPU);
 
 	sizePadding = newSize;
 	return newData;

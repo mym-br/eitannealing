@@ -7,7 +7,7 @@
 
 #define numType float
 
-#define EPS 1E-7
+#define EPS 1E-17
 
 #define MOD(val) (val > 0 ? val : -val)
 

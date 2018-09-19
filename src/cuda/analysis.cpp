@@ -24,6 +24,37 @@ namespace analysis {
 	}
 }
 
+void fixIndicesMapPadding2(int size, std::unique_ptr<int[]> &reorderIdx, std::unique_ptr<int[]> &unorderIdx,
+	int sizePadded, std::unique_ptr<int[]> &reorderIdxFixed, std::unique_ptr<int[]> &unorderIdxFixed,
+	int colorCount, std::unique_ptr<int[]> &colorOff, std::vector<int> &colorsOffPaddedVec) {
+	for (int i = 0; i < size; i++) { // initiating
+		unorderIdx[i] = -1;
+	}
+	for (int i = 0; i < size; i++) { // initiating
+		unorderIdx[reorderIdx[i]] = i;
+	}
+	for (int i = 0; i < size; i++) { // initiating
+		if (unorderIdx[i] < 0) {
+			std::cout << "damn, something went wrong!" << std::endl;
+		}
+	}
+
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < colorCount; j++) {
+			if (unorderIdx[i] >= colorOff[j] && unorderIdx[i] < colorOff[j + 1]) {
+				unorderIdxFixed[i] = unorderIdx[i] + (colorsOffPaddedVec[j] - colorOff[j]);
+				break;
+			}
+		}
+	}
+	for (int i = 0; i < sizePadded; i++) { // initiating
+		reorderIdxFixed[i] = -1;
+	}
+	for (int i = 0; i < size; i++) { // translating
+		reorderIdxFixed[unorderIdxFixed[i]] = i;
+	}
+}
+
 void fixIndicesMapPadding(int size, std::unique_ptr<int[]> &reorderIdx, std::unique_ptr<int[]> &unorderIdx,
 							int sizePadded, std::unique_ptr<int[]> &reorderIdxFixed, std::unique_ptr<int[]> &unorderIdxFixed,
 							int colorCount, std::unique_ptr<int[]> &colorOff) {
@@ -70,7 +101,7 @@ void fixIndicesMapPadding(int size, std::unique_ptr<int[]> &reorderIdx, std::uni
 	delete newOff;
 }
 
-void swap(matrix * arr, int a, int b, std::unique_ptr<int[]> &newIdx) {
+void swap(Eigen::SparseMatrix<numType, Eigen::ColMajor> * arr, int a, int b, std::unique_ptr<int[]> &newIdx) {
 	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> perm(arr->cols());
 	perm.setIdentity();
 	perm.indices().coeffRef(a) = b;
@@ -85,11 +116,11 @@ void swap(matrix * arr, int a, int b, std::unique_ptr<int[]> &newIdx) {
 	}
 }
 
-std::unique_ptr<int[]> colorSort(matrix * data, int &colorCount, std::unique_ptr<int[]> &newIdx) {
+std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, int &colorCount, std::unique_ptr<int[]> &newIdx) {
 	return colorSort(data, colorCount, newIdx, true);
 }
 
-std::unique_ptr<int[]> colorSort(matrix * data, int &colorCount, std::unique_ptr<int[]> &newIdx, bool reorderByLowerTriangular) {
+std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, int &colorCount, std::unique_ptr<int[]> &newIdx, bool reorderByLowerTriangular) {
 	int n = data->cols();
 	for (int i = 0; i < n; i++) {
 		newIdx[i] = i;
@@ -168,14 +199,14 @@ std::unique_ptr<int[]> colorSort(matrix * data, int &colorCount, std::unique_ptr
 	if (reorderByLowerTriangular) { // matrix should be reordered by its lower triangular rows' length
 									// calculate lower triangular RL		
 		for (int col = 0; col<data->outerSize(); ++col)
-			for (matrix::InnerIterator it(*data, col); it; ++it) {
+			for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, col); it; ++it) {
 				if (MOD(it.value()) > EPS) reorderRL[it.row()]++;
 			}
 	}
 	else { // matrix should be reordered by full matrix rows' length
 		   // calculate full matrix RL
 		for (int col = 0; col<data->outerSize(); ++col)
-			for (matrix::InnerIterator it(*data, col); it; ++it) {
+			for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, col); it; ++it) {
 				if (MOD(it.value()) > EPS) {
 					reorderRL[it.row()]++;
 					if (it.row() != it.col()) reorderRL[it.col()]++;
@@ -225,7 +256,49 @@ std::unique_ptr<int[]> colorSort(matrix * data, int &colorCount, std::unique_ptr
 }
 
 
-std::unique_ptr<numType[]> fillPadding(matrix * data, int colorCount, std::unique_ptr<int[]> &colorOff, int &sizePadding) {
+std::unique_ptr<Eigen::SparseMatrix<numType>> fillPadding2(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, int colorCount, std::unique_ptr<int[]> &colorOff, std::vector<int> &colorsOffPadded, int &sizePadding) {
+	// Copy original matrix
+	int oldSize = data->cols();
+	std::unique_ptr<Eigen::SparseMatrix<numType>> paddedMatrix(new Eigen::SparseMatrix<numType>(*data));
+
+	colorsOffPadded.resize(colorCount + 1); // New color vector with padding
+	colorsOffPadded[0] = 0;
+	for (int i = 1; i < colorCount+1; i++) {
+		// Round up color sizes to closest warp multiple
+		colorsOffPadded[i] = colorsOffPadded[i - 1] + ceil((double)(colorOff[i] - colorOff[i - 1]) / WARP_SIZE) * WARP_SIZE;
+	}
+	int newSize = colorsOffPadded[colorCount];
+
+	// Enlarge matrix due to color padding
+	paddedMatrix->conservativeResize(newSize, newSize);
+	// Fill new matrix (add 1 to extra diagonals)
+	for (int i = oldSize; i < newSize; i++) paddedMatrix->coeffRef(i, i) = 1.0;
+
+	// Create permutation vertex for the color padding (insert rows/collumns between colors)
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> perm(newSize);
+	//perm.setIdentity();
+	int accPadding = 0;
+	int lastZeroRowIdx = oldSize;
+	for (int k = 0; k < colorCount; k++) {
+		for (int i = colorOff[k]; i < colorOff[k + 1]; i++) {
+			perm.indices().coeffRef(i) = colorsOffPadded[k] + i - colorOff[k];
+			//std::cout << "perm(" << i + 1 << ") = " << paddedColorOff[k] + i - colorOff[k] + 1 << ";" << std::endl;
+		}
+		for (int i = colorOff[k+1]+ accPadding; i < colorsOffPadded[k + 1]; i++) {
+			perm.indices().coeffRef(lastZeroRowIdx++) = i;
+			//std::cout << "perm(" << lastZeroRowIdx << ") = " << i+1 << ";" << std::endl;
+		}
+		accPadding = colorsOffPadded[k + 1] - colorOff[k + 1];
+	}
+	// Apply permutation to matrix
+	*paddedMatrix = paddedMatrix->selfadjointView<Eigen::Lower>().twistedBy(perm);
+	*paddedMatrix = paddedMatrix->triangularView<Eigen::Lower>();
+
+	sizePadding = newSize;
+	return paddedMatrix;
+}
+
+std::unique_ptr<numType[]> fillPadding(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, int colorCount, std::unique_ptr<int[]> &colorOff, int &sizePadding) {
 	int size = data->cols();
 	std::unique_ptr<int[]> newColorCount(new int[colorCount]);
 	std::unique_ptr<int[]> newOff(new int[colorCount + 1]);
@@ -251,7 +324,7 @@ std::unique_ptr<numType[]> fillPadding(matrix * data, int colorCount, std::uniqu
 	}
 
 	for (int col = 0; col<data->outerSize(); ++col)
-		for (matrix::InnerIterator it(*data, col); it; ++it)
+		for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, col); it; ++it)
 		{
 			int row = it.row();
 			newData[row * newSize + col] = it.value();
@@ -263,8 +336,8 @@ std::unique_ptr<numType[]> fillPadding(matrix * data, int colorCount, std::uniqu
 	for (int k = colorCount - 1; k >= 0; k--) {
 		for (int i = size - 1; i >= 0; i--) {
 			if (i >= colorOff[k] && i < colorOff[k + 1]) {
+				int newRow = (i + newOff[k] - colorOff[k]);
 				for (int j = 0; j < newSize; j++) {
-					int newRow = (i + newOff[k] - colorOff[k]);
 					if (newRow != i) {
 						// move value to correct position
 						newData[newRow * newSize + j] = newData[i * newSize + j];

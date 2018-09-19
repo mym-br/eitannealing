@@ -26,16 +26,16 @@ class CGCUDA_Solver {
 		Vector *getCpjdsX();
 
 		static numType createPreconditioner(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
-		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
-		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness);
+		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<numType> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
+		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<numType> *A, MatrixCPJDS *stiffness);
 		static cgl::Vector *createCurrentVector(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 		
 		double getResidueSquaredNorm() const;
 		double getErrorl2Estimate() const;
 
 		// Debug
-		static Eigen::SparseMatrix<double, 0, int> getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
-		static Eigen::Matrix<double, -1, 1, 0> getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
+		static Eigen::SparseMatrix<numType, 0, int> getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
+		static Eigen::Matrix<numType, -1, 1, 0> getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 
 	private:
 		static void cblas_dscal(int n, numType alpha, numType *x, int inc);

@@ -65,7 +65,7 @@ namespace EITFILECONVERSIONS {
 		for (int i = 0; i < vcond.rows(); i++) vcond[i] = 0.3815;
 		input->assembleProblemMatrix(&vcond[0], &m);
 		input->postAssembleProblemMatrix(&m);
-
+		m->prune(0.0);
 
 		FILE *f;
 		std::string mtxFname = getFilenameOnly(filename) + ".mtx";

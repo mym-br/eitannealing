@@ -4,6 +4,7 @@
 #include "settings.h"
 
 #include <vector>
+#include <deque>
 #include <map>
 #include<memory>
 
@@ -82,10 +83,19 @@ struct MatrixCPJDS {
 	MatrixCPJDS2CSR csrMap;
 };
 
+struct Dependencies {
+	std::vector<int> dependencies;
+	int dependenciesSize;
+	std::pair <int, int> lower; // upper can be calculated from lower
+};
+
+typedef std::vector<std::vector<Dependencies>> DependeciesMap;
+
 // column-major!
 class MatrixCPJDSManager {
 private:
-	std::unique_ptr<numType[]> data;
+	std::unique_ptr<Eigen::SparseMatrix<numType>> data2;
+
 	int n;
 	std::shared_ptr<int[]> colors;
 	int colorCount;
@@ -109,13 +119,17 @@ private:
 	/* cached number of blocks so that it does not need to be computed on demand */
 	int blocks;
 
+	void leftShiftMatrix(std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU);
+	void createDataAndIndicesVectors(numType *mdata, int *indices, int *colOffset, int *colorOffsetCount, std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU, std::vector<std::deque<int>> &padding);
+	void dependencies_analysis2(int n, DependeciesMap * dependenciesMap);
+
 public:
 	/* map (original index)=>(color-sorted-padded index) [size N] */
 	std::unique_ptr<int[]> original2PaddedIdx;
 	/* map (color-sorted-padded index)=>(original index) [size N padded] */
 	std::unique_ptr<int[]> padded2OriginalIdx;
 	// data must be processed and color-sorted
-	MatrixCPJDSManager(Eigen::SparseMatrix<double> *data);
+	MatrixCPJDSManager(Eigen::SparseMatrix<numType> *data);
 
 	/* provided M matrix is filled with a complete CPJDS matrix */
 	int buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);

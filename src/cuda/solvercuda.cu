@@ -66,13 +66,13 @@ std::vector<numType> CGCUDA_Solver::transfX2Cpu() {
 	return mgr->restore(x);
 }
 
-MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients) {
+MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<numType> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients) {
 	MatrixCPJDSManager *mgr = new MatrixCPJDSManager(A);
 	mgr->buidMatrixCPJDS(stiffness, nodeCoef, nodesCount, numcoefficients);
 	return mgr;
 }
 
-MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness) {
+MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<numType> *A, MatrixCPJDS *stiffness) {
 	MatrixCPJDSManager *mgr = new MatrixCPJDSManager(A);
 	mgr->buidMatrixCPJDS(stiffness);
 	return mgr;

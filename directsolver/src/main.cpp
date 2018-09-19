@@ -126,15 +126,6 @@ int main(int argc, char *argv[])
 		fclose(f);
 	}
 
-	///************************/
-	///* now write out matrix */
-	///************************/
-	//mm_write_banner(stdout, matcode);
-	//mm_write_mtx_crd_size(stdout, M, N, nz);
-	//for (int k = 0; k<A.outerSize(); ++k)
-	//	for (matrix::InnerIterator it(A, k); it; ++it)
-	//		fprintf(stdout, "%d %d %20.19g\n", it.row() + 1, it.col() + 1, it.value());
-
 	// Create vector
 	raw_vector b(A.M);
 	if (bfname) { 
@@ -179,13 +170,6 @@ int main(int argc, char *argv[])
 		// TODO: Generate random rhs
 		std::fill(b.begin(), b.end(), 1);
 	}
-
-	///************************/
-	///* now write out vector */
-	///************************/
-	//mm_write_banner(stdout, matcode);
-	//mm_write_mtx_crd_size(stdout, M, N, nz);
-	//std::cout << b.transpose() << std::endl;
 
 	raw_vector x(A.M);
 	auto[analysertime, executiontime] = runEigenCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
@@ -253,11 +237,11 @@ std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_ve
 
 std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated) {
 	// Convert matrix data
-	std::vector<Eigen::Triplet<Scalar>> tripletList;
-	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<Scalar>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
+	std::vector<Eigen::Triplet<numType>> tripletList;
+	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<numType>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
 	auto t1 = std::chrono::high_resolution_clock::now();
 	// Create sparse matrix
-	matrix A(Araw.M, Araw.N);
+	Eigen::SparseMatrix<numType> A(Araw.M, Araw.N);
 	A.setFromTriplets(tripletList.begin(), tripletList.end());
 	A.makeCompressed();
 	std::unique_ptr<MatrixCPJDS> stiffness = std::unique_ptr<MatrixCPJDS>(new MatrixCPJDS);
@@ -296,7 +280,7 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 	///* now write out result */
 	///************************/
 	try {
-		Eigen::VectorXf xeig = solvercuda.getX();
+		Eigen::Matrix<numType, Eigen::Dynamic, 1> xeig = solvercuda.getX();
 		std::chrono::duration<double> time_executor = t2 - t1;
 		std::cout << (isConsolidated ? "Consolidated " : "") << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << sqrt(curRes) << " after " << totalIts << " iterations." << std::endl;
 		for (int i = 0; i < x.size(); i++) x[i] = xeig[i];

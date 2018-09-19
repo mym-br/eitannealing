@@ -10,6 +10,6 @@
 #include <Eigen/Core>
 #include "../basematrix.h"
 
-bool graphColoring(matrix * data, std::unique_ptr<int[]> &colors);
+bool graphColoring(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, std::unique_ptr<int[]> &colors);
 
 #endif /* COLOR_H */

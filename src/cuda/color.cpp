@@ -14,9 +14,9 @@
 
 /* A utility function to check if the current color assignment
 is safe for vertex v */
-bool isSafe(matrix * data, std::unique_ptr<int[]> &colors, int color, int row) {
+bool isSafe(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, std::unique_ptr<int[]> &colors, int color, int row) {
 	for (int k = 0; k<data->outerSize(); ++k)
-		for (matrix::InnerIterator it(*data, k); it; ++it)
+		for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, k); it; ++it)
 		{
 			if ((it.row() == row && MOD(it.value()) > EPS && colors[it.col()] == color) || 
 				(it.col() == row && MOD(it.value()) > EPS && colors[it.row()] == color) ) {
@@ -27,7 +27,7 @@ bool isSafe(matrix * data, std::unique_ptr<int[]> &colors, int color, int row) {
 }
 
 /* A recursive utility function to solve m coloring problem */
-bool graphColoringUtil(matrix * data, std::unique_ptr<int[]> &colors, int row) {
+bool graphColoringUtil(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, std::unique_ptr<int[]> &colors, int row) {
 	int dim = data->cols();
 	/* base case: If all vertices are assigned a color then
 	return true */
@@ -59,7 +59,7 @@ bool graphColoringUtil(matrix * data, std::unique_ptr<int[]> &colors, int row) {
 	return true;
 }
 
-bool graphColoring(matrix * data, std::unique_ptr<int[]> &colors) {
+bool graphColoring(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, std::unique_ptr<int[]> &colors) {
 	int dim = data->cols();
 	// Initialize all color values as 0. This initialization is needed
 	// correct functioning of isSafe()

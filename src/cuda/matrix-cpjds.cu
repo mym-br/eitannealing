@@ -21,14 +21,6 @@
 void DeleterCudaIntPtr::operator()(int* ptr) { cudaFree(ptr); };
 void DeleterCudaIntPtr::operator()(numType* ptr) { cudaFree(ptr); };
 
-struct Dependencies {
-	std::vector<int> dependencies;
-	int dependenciesSize;
-	std::pair <int, int> lower; // upper can be calculated from lower
-};
-
-typedef std::vector<std::vector<Dependencies>> DependeciesMap;
-
 //void dependencies_analysis(numType * data, int n, DependeciesMap * dependenciesMap) {
 void dependencies_analysis(std::unique_ptr<numType[]> &data, int n, DependeciesMap * dependenciesMap) {
 	for (int i = 0; i < n; i++) { // for each row...
@@ -115,21 +107,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 
 	// left-shift each rows' non-zeroes
 	std::vector<std::deque<int>> rowsL(n), rowsU(n), padding(n);
-	for (int i = 0; i < n; i++) {
-		// saving diagonal Aii's index is not needed (Aii is expected to be positive)
-		// lower triangular: add rest of the line with column < row
-		for (int j = 0; j < i; j++) {
-			if (MOD(data[i * n + j]) > EPS) { // DATA IS ROW-MAJOR!!!
-				rowsL[i].push_back(j); // adding Aij to each row array, if non-zero
-			}
-		}
-		// upper triangular: add rest of the line with column > row
-		for (int j = i + 1; j < n; j++) {
-			if (MOD(data[i * n + j]) > EPS) { // DATA IS ROW-MAJOR!!!
-				rowsU[i].push_back(j); // adding Aij to each row array, if non-zero
-			}
-		}
-	}
+	leftShiftMatrix(rowsL, rowsU);
 
 	// row's length (equivalent to number of non-zeroes)
 	int * rowLength = new int[n];
@@ -185,69 +163,12 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	colorOffsetCount[colorCount] = offsetSize;
 
 	// offset arrays (each color has a different size, computed above)
-	int * colOffset = new int[offsetSize];
+	std::unique_ptr<int[]> colOffset(new int[offsetSize]);
 
 	// data and indices arrays
 	std::unique_ptr<numType[]> mdata(new numType[total]);
 	std::unique_ptr<int[]> indices(new int[total]);
-
-	int pos = 0;
-	// each block is built in color order
-	for (int k = 0; k < colorCount; k++) {
-		bool hasElements = true;
-		int col = 0;
-		// insert diagonal in first column
-		colOffset[colorOffsetCount[k] + col] = pos;
-		for (int i = colors[k]; i < colors[k + 1]; i++) {
-			indices[pos] = i;
-			mdata[pos] = data[i * n + i];
-			pos++;
-		}
-		col++;
-		while (true) { // iterate over all rows in color block for as long as it has elements
-			hasElements = false;
-			int startPos = pos;
-			for (int i = colors[k]; i < colors[k + 1]; i++) {
-				// fill data array in COL-MAJOR format
-				if (rowsL[i].size() > 0) {// lower triangular
-					int idx = rowsL[i].front(); // first element
-					rowsL[i].pop_front(); // remove element
-
-					indices[pos] = idx;
-					mdata[pos] = data[i * n + idx];
-
-					pos++;
-					hasElements = true;
-				}
-				else if (rowsU[i].size() > 0) {// upper triangular
-					int idx = rowsU[i].front(); // first element
-					rowsU[i].pop_front(); // remove element
-
-					indices[pos] = idx;
-					mdata[pos] = data[i * n + idx];
-
-					pos++;
-					hasElements = true;
-				}
-				else if (padding[i].size() > 0) {// padding zeroes
-					indices[pos] = -1;
-					mdata[pos] = 0;
-					padding[i].pop_front();
-
-					pos++;
-					hasElements = true;
-				}
-			}
-			if (hasElements) {
-				colOffset[colorOffsetCount[k] + col] = startPos;
-				//std::cout << " colOfsset idx: " << colorOffsetCount[k] + col << std::endl;
-				col++;
-			}
-			else {
-				break;
-			}
-		}
-	}
+	createDataAndIndicesVectors(mdata.get(), indices.get(), colOffset.get(), colorOffsetCount.get(), rowsL, rowsU, padding);
 
 	/* computing (x,y)=>IDX map */
 	std::vector<std::map<int, int>> rowCol2IdxMap(n);
@@ -263,7 +184,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 
 	/* computing dependencies */
 	DependeciesMap dependencies(n);
-	dependencies_analysis(data, n, &dependencies);
+	dependencies_analysis2(n, &dependencies);
 
 	// fix dependencies' indices
 	//std::cout << "\nFixing dependencies..." << std::endl;
@@ -431,7 +352,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	cudaMemcpy(c_indices.get(), indices.get(), (size_t)total * sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(c_rowLength.get(), rowLength, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(c_rowSize.get(), rowSize, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(c_colOffset.get(), colOffset, (size_t)offsetSize * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_colOffset.get(), colOffset.get(), (size_t)offsetSize * sizeof(int), cudaMemcpyHostToDevice);
 	/* matrix colors */
 	cudaMemcpy(c_colors.get(), colors.get(), (size_t)(colorCount + 1) * sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(c_colorsColOffsetSize.get(), colorOffsetCount.get(), (size_t)colorCount * sizeof(int), cudaMemcpyHostToDevice);
@@ -485,7 +406,6 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	/* matrix data */
 	delete rowLength;
 	delete rowSize;
-	delete colOffset;
 	/* matrix dependencies*/
 	delete dependencyRowDataIndex;
 	delete dependencyDiagDataIndex;

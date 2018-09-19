@@ -84,7 +84,7 @@ Vector * MatrixCPJDSManager::mask() {
 	return mask;
 }
 
-MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
+MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<numType> *pdata) {
 	int n = pdata->cols();
 	int colorCount = 0;
 	std::unique_ptr<int[]> reorderIdx(new int[n]); // map for original index -> color-sorted index
@@ -99,12 +99,11 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
 	int nPadded = n;
 	// padding-fill for warps
 	//std::cout << "--Padding-filling--" << std::endl;
-	this->data = fillPadding(pdata, colorCount, colorsOff, nPadded);
+	std::vector<int> colorsOffPaddedVec; this->data2 = fillPadding2(pdata, colorCount, colorsOff, colorsOffPaddedVec, nPadded);
 	this->n = nPadded;
 	this->nOrig = n;
 
 	// corrigir offsets no vetor de cores
-	//int * colorsOffPadded = new int[colorCount + 1];
 	std::shared_ptr<int[]> colorsOffPadded(new int[colorCount + 1]);
 	int newSize = 0;
 	for (int i = 0; i < colorCount; i++) {
@@ -112,7 +111,6 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
 		newSize += (int)ceil((double)(colorsOff[i + 1] - colorsOff[i]) / WARP_SIZE) * WARP_SIZE;
 	}
 	colorsOffPadded[colorCount] = newSize;
-
 	this->colorCount = colorCount;
 	this->colors = colorsOffPadded;
 
@@ -133,4 +131,78 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
 	this->auxi = std::unique_ptr<int[]>(new int[this->n]);
 
 	blocks = (int)ceil((double)this->n / BLOCKSIZE);
+}
+
+void MatrixCPJDSManager::leftShiftMatrix(std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU) {
+	for (int k = 0; k < data2->outerSize(); ++k)
+		for (Eigen::SparseMatrix<numType>::InnerIterator it(*data2, k); it; ++it)
+		{
+			if (it.row() == it.col()) continue;
+			rowsL[it.row()].push_back(it.col()); // adding non zero Aij to each row array
+			rowsU[it.col()].push_back(it.row()); // adding non zero Aij to each row array
+		}
+}
+
+void MatrixCPJDSManager::createDataAndIndicesVectors(numType *mdata, int *indices, int *colOffset, int *colorOffsetCount, std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU, std::vector<std::deque<int>> &padding) {
+	int pos = 0;
+	// each block is built in color order
+	for (int k = 0; k < colorCount; k++) {
+		bool hasElements = true;
+		int col = 0;
+		// insert diagonal in first column
+		colOffset[colorOffsetCount[k] + col] = pos;
+		for (int i = colors[k]; i < colors[k + 1]; i++) {
+			indices[pos] = i;
+			mdata[pos] = data2->coeff(i,i);
+			pos++;
+		}
+		col++;
+		while (true) { // iterate over all rows in color block for as long as it has elements
+			hasElements = false;
+			int startPos = pos;
+			for (int i = colors[k]; i < colors[k + 1]; i++) {
+				// fill data array in COL-MAJOR format
+				if (rowsL[i].size() > 0) {// lower triangular
+					int idx = rowsL[i].front(); // first element
+					rowsL[i].pop_front(); // remove element
+
+					indices[pos] = idx;
+					mdata[pos] = data2->coeff(i, idx);
+
+					pos++;
+					hasElements = true;
+				}
+				else if (rowsU[i].size() > 0) {// upper triangular
+					int idx = rowsU[i].front(); // first element
+					rowsU[i].pop_front(); // remove element
+
+					indices[pos] = idx;
+					mdata[pos] = data2->coeff(idx, i);
+
+					pos++;
+					hasElements = true;
+				}
+				else if (padding[i].size() > 0) {// padding zeroes
+					indices[pos] = -1;
+					mdata[pos] = 0;
+					padding[i].pop_front();
+
+					pos++;
+					hasElements = true;
+				}
+			}
+			if (hasElements) {
+				colOffset[colorOffsetCount[k] + col] = startPos;
+				//std::cout << " colOfsset idx: " << colorOffsetCount[k] + col << std::endl;
+				col++;
+			}
+			else {
+				break;
+			}
+		}
+	}
+}
+
+void MatrixCPJDSManager::dependencies_analysis2(int n, DependeciesMap * dependenciesMap) {
+	// TODO: implement dependencie analysis on the eigen sparse matrix
 }

@@ -3,10 +3,11 @@
 
 #include <string>
 #include "basematrix.h"
+#include "../src/cuda/settings.h"
 
 namespace EITFILECONVERSIONS {
 	std::string convertMeshFile(const std::string filename);
-	void saveMtx(matrix *m, FILE *f, bool symmetric = true);
+	void saveMtx(Eigen::SparseMatrix<numType> *m, FILE *f, bool symmetric = true);
 }
 
 #endif // CONVERSIONS_H

@@ -26,7 +26,8 @@ namespace EITFILECONVERSIONS {
 	}
 
 
-	void saveMtx(matrix *m, FILE *f, bool symmetric) {
+	void saveMtx(Eigen::SparseMatrix<numType> *m, FILE *f, bool symmetric) {
+		m->makeCompressed();
 		MM_typecode matcode;
 		int i;
 
@@ -44,7 +45,7 @@ namespace EITFILECONVERSIONS {
 		of a vector has index 1, not 0.  */
 
 		for (int k = 0; k < m->outerSize(); ++k)
-			for (matrix::InnerIterator it(*m, k); it; ++it)
+			for (Eigen::SparseMatrix<numType>::InnerIterator it(*m, k); it; ++it)
 				if(it.row() >= it.col())
 					fprintf(f, "%d %d %10.16g\n", it.row() + 1, it.col() + 1, it.value());
 	}
@@ -67,10 +68,11 @@ namespace EITFILECONVERSIONS {
 		input->postAssembleProblemMatrix(&m);
 		m->prune(0.0);
 
+		Eigen::SparseMatrix<numType> mcasted = m->cast<numType>();
 		FILE *f;
 		std::string mtxFname = getFilenameOnly(filename) + ".mtx";
 		if ((f = fopen(mtxFname.c_str(), "w")) == NULL) { std::cerr << "Could not open market matrix file to write" << mtxFname << std::endl; return ""; }
-		saveMtx(m,f);
+		saveMtx(&mcasted,f);
 		fclose(f);
 
 		return mtxFname;

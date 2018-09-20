@@ -17,12 +17,11 @@
 
 /* this method allows the conversion os (row, col) coordinates to the index in the data and indices arrays */
 int MatrixCPJDSManager::coordinates2Index(int row, int col) {
-	std::map<int, int> columnsMap = coord2IndexMap[row];
-	if (columnsMap.find(col) == columnsMap.end()) {
+	if (coord2IndexMap[row]->find(col) == coord2IndexMap[row]->end()) {
 		return -1;
 	}
 	else {
-		return columnsMap[col];
+		return (*coord2IndexMap[row])[col];
 	}
 }
 
@@ -205,4 +204,36 @@ void MatrixCPJDSManager::createDataAndIndicesVectors(numType *mdata, int *indice
 
 void MatrixCPJDSManager::dependencies_analysis2(int n, DependeciesMap * dependenciesMap) {
 	// TODO: implement dependencie analysis on the eigen sparse matrix
+}
+
+void MatrixCPJDSManager::createCsr2CpjdsMap(MatrixCPJDS2CSR &csrMap) {
+	std::vector<int> csr2cpjds_map;
+	std::vector<int> csr2cpjds_map_upper;
+	std::vector<int> csr2cpjds_idx;
+	std::vector<int> csr2cpjds_row;
+	int elCount = 0;
+	for (int col = 0; col<data2->outerSize(); ++col)
+		for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data2, col); it; ++it) {
+			int row = it.row();
+			int col = it.col();
+			int dataIdx = (*coord2IndexMap[row])[col];
+			if (dataIdx >= 0) {
+				csr2cpjds_map.push_back(dataIdx);
+				csr2cpjds_idx.push_back(col); // nao esta sendo usado
+				csr2cpjds_row.push_back(row);
+				elCount++;
+			}
+			// upper triangular
+			int dataIdxUpper = (*coord2IndexMap[col])[row];
+			if (dataIdxUpper >= 0) {
+				csr2cpjds_map_upper.push_back(dataIdxUpper);
+			}
+		}
+
+	csrMap.n = n;
+	csrMap.nnz = elCount;
+	csrMap.csr2cpjds = csr2cpjds_map;
+	csrMap.csr2cpjds_upper = csr2cpjds_map_upper;
+	csrMap.indices = csr2cpjds_idx;
+	csrMap.row = csr2cpjds_row;
 }

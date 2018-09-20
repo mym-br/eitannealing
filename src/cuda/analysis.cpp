@@ -101,13 +101,10 @@ void fixIndicesMapPadding(int size, std::unique_ptr<int[]> &reorderIdx, std::uni
 	delete newOff;
 }
 
-void swap(Eigen::SparseMatrix<numType, Eigen::ColMajor> * arr, int a, int b, std::unique_ptr<int[]> &newIdx) {
-	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> perm(arr->cols());
-	perm.setIdentity();
-	perm.indices().coeffRef(a) = b;
-	perm.indices().coeffRef(b) = a;
-	*arr = (*arr).selfadjointView<Eigen::Lower>().twistedBy(perm);
-	*arr = (*arr).triangularView<Eigen::Lower>();
+void swap(Eigen::SparseMatrix<numType, Eigen::ColMajor> * arr, Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> &perm,  int a, int b, std::unique_ptr<int[]> &newIdx) {
+	int permCoeffA = perm.indices().coeff(a);
+	perm.indices().coeffRef(a) = perm.indices().coeff(b);
+	perm.indices().coeffRef(b) = permCoeffA;
 
 	if (newIdx != NULL) {
 		int aux_int = newIdx[a];
@@ -129,7 +126,6 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 	std::unique_ptr<int[]> colors(new int[n]);
 	bool result = graphColoring(data, colors);
 	if (!result) return NULL;
-	//std::vector<int> teste = std::vector<int>(colors, colors + n);
 	//LOGV2(colors, n, "Color:", LOGCPU);
 
 	// find max color index (which equals to the number of colors)
@@ -172,6 +168,8 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 
 	// populate colors sizes array
 	std::unique_ptr<int[]> colorsOff(new int[(colorCount) + 1]);
+	Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> perm(data->cols());
+	perm.setIdentity();
 	int offset = 0;
 	for (int i = 0; i < (colorCount); i++) {
 		colorsOff[i] = offset;
@@ -179,7 +177,7 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 			if (colors[offset + j] != reorderA[i]) {
 				int idx = analysis::find(colors, n, reorderA[i], offset + j + 1);
 				if (idx > -1) {
-					swap(data, offset + j, idx, newIdx);
+					swap(data, perm, offset + j, idx, newIdx);
 					int aux = colors[offset + j];
 					colors[offset + j] = colors[idx];
 					colors[idx] = aux;
@@ -189,7 +187,9 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 		offset += colorsCount[reorderA[i] - 1];
 	}
 	colorsOff[(colorCount)] = n;
-
+	*data = (*data).selfadjointView<Eigen::Lower>().twistedBy(perm.inverse());
+	*data = (*data).triangularView<Eigen::Lower>();
+	
 	std::unique_ptr<int[]> reorderIdx(new int[n]);
 	std::unique_ptr<int[]> reorderRL(new int[n]);
 	for (int i = 0; i < n; i++) {
@@ -213,7 +213,6 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 				}
 			}
 	}
-	std::vector<int> teste = std::vector<int>(reorderRL.get(), reorderRL.get() + n);
 
 	int maxIdx = 0;
 	for (int i = 0; i < (colorCount); i++) {
@@ -232,8 +231,9 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 			std::cout << "invalid reordered index" << std::endl;
 		}
 	}
-
+	
 	std::unique_ptr<int[]> swapIdx(new int[n]);
+	perm.setIdentity();
 	for (int i = 0; i < n; i++) {
 		swapIdx[i] = i;
 	}
@@ -243,7 +243,7 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 			if (whereIdx != -1) { // if index was found...
 				int a = i,
 					b = whereIdx;
-				swap(data, a, b, newIdx);
+				swap(data, perm, a, b, newIdx);
 
 				int aux = swapIdx[whereIdx];
 				swapIdx[whereIdx] = swapIdx[i];
@@ -251,6 +251,8 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 			}
 		}
 	}
+	*data = (*data).selfadjointView<Eigen::Lower>().twistedBy(perm.inverse());
+	*data = (*data).triangularView<Eigen::Lower>();
 
 	return colorsOff;
 }

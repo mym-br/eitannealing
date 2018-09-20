@@ -101,7 +101,7 @@ private:
 	int colorCount;
 
 	/* map (row,col)=>data_array_idx */
-	std::vector<std::map<int, int>> coord2IndexMap;
+	std::vector<std::unique_ptr<std::map<int, int>>> coord2IndexMap;
 	/* original matrix size, before padding */
 	int nOrig;
 
@@ -122,7 +122,7 @@ private:
 	void leftShiftMatrix(std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU);
 	void createDataAndIndicesVectors(numType *mdata, int *indices, int *colOffset, int *colorOffsetCount, std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU, std::vector<std::deque<int>> &padding);
 	void dependencies_analysis2(int n, DependeciesMap * dependenciesMap);
-
+	void createCsr2CpjdsMap(MatrixCPJDS2CSR &csrMap);
 public:
 	/* map (original index)=>(color-sorted-padded index) [size N] */
 	std::unique_ptr<int[]> original2PaddedIdx;

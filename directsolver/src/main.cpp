@@ -119,7 +119,8 @@ int main(int argc, char *argv[])
 		int row, col;  Scalar val;
 		A = raw_matrix(M, N);
 		for (int i = 0; i < nz; i++) {
-			fscanf(f, "%d %d %lg\n", &row, &col, &val);
+			if (mm_is_pattern(matcode)) { fscanf(f, "%d %d\n", &row, &col, &val); val = 1.0; }
+			else fscanf(f, "%d %d %lg\n", &row, &col, &val);
 			A.addElement({ row - 1, col - 1, val });  /* adjust from 1-based to 0-based */
 		}
 		// Close file

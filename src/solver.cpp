@@ -54,7 +54,8 @@ void CG_Solver::init(double res)
 	r0norm2 = rmod;
 	r0norm = sqrt(rmod);
 	alpha = 1/gamma;
-
+	
+	if (rmod < res) { it = 0; return; }
 	// ########## LANCZOS
 	/*v = r/r0norm;
 	vt = A*v;
@@ -91,6 +92,7 @@ void CG_Solver::init(double res)
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
 
+	if (rmod < res) { it = 1; return; }
 	/* ########## LANCZOS
 	leta = vt.norm();
 	v_1 = v;
@@ -129,6 +131,8 @@ void CG_Solver::init(double res)
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
+	if (rmod < res) { it = 2; return; }
+
 	/* ########## LANCZOS
 	leta = vt.norm();
 	v_1 = v;

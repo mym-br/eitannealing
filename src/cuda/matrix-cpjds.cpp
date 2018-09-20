@@ -87,49 +87,34 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<numType> *pdata) {
 	int n = pdata->cols();
 	int colorCount = 0;
 	std::unique_ptr<int[]> reorderIdx(new int[n]); // map for original index -> color-sorted index
-								   // color-sort stiffness matrix
-	LOG("--Color sorting--");
+
+	// color-sort stiffness matrix
 	std::unique_ptr<int[]> colorsOff = colorSort(pdata, colorCount, reorderIdx, false);
-	if (colorsOff == NULL) {
-		LOG("Erro no color-sort.");
-		return;
-	}
+	if (colorsOff == NULL) return;
 
-	int nPadded = n;
 	// padding-fill for warps
-	//std::cout << "--Padding-filling--" << std::endl;
-	std::vector<int> colorsOffPaddedVec; this->data2 = fillPadding2(pdata, colorCount, colorsOff, colorsOffPaddedVec, nPadded);
-	this->n = nPadded;
-	this->nOrig = n;
-
-	// corrigir offsets no vetor de cores
+	int nPadded = n;
 	std::shared_ptr<int[]> colorsOffPadded(new int[colorCount + 1]);
-	int newSize = 0;
-	for (int i = 0; i < colorCount; i++) {
-		colorsOffPadded[i] = newSize;
-		newSize += (int)ceil((double)(colorsOff[i + 1] - colorsOff[i]) / WARP_SIZE) * WARP_SIZE;
-	}
-	colorsOffPadded[colorCount] = newSize;
+	this->data2 = fillPadding(pdata, colorCount, colorsOff, colorsOffPadded, nPadded);
+	this->n = nPadded;
+	this->blocks = (int)ceil((double)nPadded / BLOCKSIZE);
+	this->nOrig = n;
 	this->colorCount = colorCount;
-	this->colors = colorsOffPadded;
+	this->colors = colorsOffPadded; 
 
 	// map for color-sorted index -> original index
 	std::unique_ptr<int[]> unorderIdx(new int[n]);
+
 	// fill padding reorder indices array
 	std::unique_ptr<int[]> reorderIdxPadded(new int[nPadded]);
 	std::unique_ptr<int[]> unorderIdxPadded(new int[n]);
-	fixIndicesMapPadding(n, reorderIdx, unorderIdx, nPadded, reorderIdxPadded, unorderIdxPadded, colorCount, colorsOff);
-
+	fixIndicesMapPadding(n, reorderIdx, unorderIdx, nPadded, reorderIdxPadded, unorderIdxPadded, colorCount, colorsOff, colorsOffPadded);
 	this->padded2OriginalIdx = std::move(reorderIdxPadded);
 	this->original2PaddedIdx = std::move(unorderIdxPadded);
-	//LOGV2(padded2OriginalIdx, nPadded, "Padded 2 Original", LOGCPU);
-	//LOGV2(original2PaddedIdx, n, "Original 2 Padded", LOGCPU);
 
-
+	// create auxliary vectors
 	this->auxv = std::unique_ptr<numType[]>(new numType[this->n]);
 	this->auxi = std::unique_ptr<int[]>(new int[this->n]);
-
-	blocks = (int)ceil((double)this->n / BLOCKSIZE);
 }
 
 void MatrixCPJDSManager::leftShiftMatrix(std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU) {

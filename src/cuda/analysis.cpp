@@ -24,40 +24,9 @@ namespace analysis {
 	}
 }
 
-void fixIndicesMapPadding2(int size, std::unique_ptr<int[]> &reorderIdx, std::unique_ptr<int[]> &unorderIdx,
-	int sizePadded, std::unique_ptr<int[]> &reorderIdxFixed, std::unique_ptr<int[]> &unorderIdxFixed,
-	int colorCount, std::unique_ptr<int[]> &colorOff, std::vector<int> &colorsOffPaddedVec) {
-	for (int i = 0; i < size; i++) { // initiating
-		unorderIdx[i] = -1;
-	}
-	for (int i = 0; i < size; i++) { // initiating
-		unorderIdx[reorderIdx[i]] = i;
-	}
-	for (int i = 0; i < size; i++) { // initiating
-		if (unorderIdx[i] < 0) {
-			std::cout << "damn, something went wrong!" << std::endl;
-		}
-	}
-
-	for (int i = 0; i < size; i++) {
-		for (int j = 0; j < colorCount; j++) {
-			if (unorderIdx[i] >= colorOff[j] && unorderIdx[i] < colorOff[j + 1]) {
-				unorderIdxFixed[i] = unorderIdx[i] + (colorsOffPaddedVec[j] - colorOff[j]);
-				break;
-			}
-		}
-	}
-	for (int i = 0; i < sizePadded; i++) { // initiating
-		reorderIdxFixed[i] = -1;
-	}
-	for (int i = 0; i < size; i++) { // translating
-		reorderIdxFixed[unorderIdxFixed[i]] = i;
-	}
-}
-
 void fixIndicesMapPadding(int size, std::unique_ptr<int[]> &reorderIdx, std::unique_ptr<int[]> &unorderIdx,
-							int sizePadded, std::unique_ptr<int[]> &reorderIdxFixed, std::unique_ptr<int[]> &unorderIdxFixed,
-							int colorCount, std::unique_ptr<int[]> &colorOff) {
+	int sizePadded, std::unique_ptr<int[]> &reorderIdxFixed, std::unique_ptr<int[]> &unorderIdxFixed,
+	int colorCount, std::unique_ptr<int[]> &colorOff, std::shared_ptr<int[]> colorsOffPadded) {
 	for (int i = 0; i < size; i++) { // initiating
 		unorderIdx[i] = -1;
 	}
@@ -70,23 +39,10 @@ void fixIndicesMapPadding(int size, std::unique_ptr<int[]> &reorderIdx, std::uni
 		}
 	}
 
-	int * newOff = new int[colorCount + 1];
-	int newSize = 0;
-	for (int i = 0; i < colorCount; i++) {
-		newOff[i] = newSize;
-		newSize += ceil((double)(colorOff[i + 1] - colorOff[i]) / WARP_SIZE) * WARP_SIZE;
-	}
-	newOff[colorCount] = newSize;
-	//LOGV2(newOff, colorCount + 1, "Matrix padding insert position:", LOGCPU);
-
-	if (newSize != sizePadded) {
-		LOG("Incorrect padded size!");
-	}
-
 	for (int i = 0; i < size; i++) {
 		for (int j = 0; j < colorCount; j++) {
 			if (unorderIdx[i] >= colorOff[j] && unorderIdx[i] < colorOff[j + 1]) {
-				unorderIdxFixed[i] = unorderIdx[i] + (newOff[j] - colorOff[j]);
+				unorderIdxFixed[i] = unorderIdx[i] + (colorsOffPadded[j] - colorOff[j]);
 				break;
 			}
 		}
@@ -97,8 +53,6 @@ void fixIndicesMapPadding(int size, std::unique_ptr<int[]> &reorderIdx, std::uni
 	for (int i = 0; i < size; i++) { // translating
 		reorderIdxFixed[unorderIdxFixed[i]] = i;
 	}
-
-	delete newOff;
 }
 
 void swap(Eigen::SparseMatrix<numType, Eigen::ColMajor> * arr, Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> &perm,  int a, int b, std::unique_ptr<int[]> &newIdx) {
@@ -258,12 +212,11 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 }
 
 
-std::unique_ptr<Eigen::SparseMatrix<numType>> fillPadding2(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, int colorCount, std::unique_ptr<int[]> &colorOff, std::vector<int> &colorsOffPadded, int &sizePadding) {
+std::unique_ptr<Eigen::SparseMatrix<numType>> fillPadding(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, int colorCount, std::unique_ptr<int[]> &colorOff, std::shared_ptr<int[]> colorsOffPadded, int &sizePadding) {
 	// Copy original matrix
 	int oldSize = data->cols();
 	std::unique_ptr<Eigen::SparseMatrix<numType>> paddedMatrix(new Eigen::SparseMatrix<numType>(*data));
 
-	colorsOffPadded.resize(colorCount + 1); // New color vector with padding
 	colorsOffPadded[0] = 0;
 	for (int i = 1; i < colorCount+1; i++) {
 		// Round up color sizes to closest warp multiple
@@ -298,84 +251,4 @@ std::unique_ptr<Eigen::SparseMatrix<numType>> fillPadding2(Eigen::SparseMatrix<n
 
 	sizePadding = newSize;
 	return paddedMatrix;
-}
-
-std::unique_ptr<numType[]> fillPadding(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, int colorCount, std::unique_ptr<int[]> &colorOff, int &sizePadding) {
-	int size = data->cols();
-	std::unique_ptr<int[]> newColorCount(new int[colorCount]);
-	std::unique_ptr<int[]> newOff(new int[colorCount + 1]);
-	std::unique_ptr<int[]> insCount(new int[colorCount]);
-	int newSize = 0, oldSize = 0;
-	for (int i = 0; i < colorCount; i++) {
-		newOff[i] = newSize;
-		newColorCount[i] = ceil((double)(colorOff[i + 1] - colorOff[i]) / WARP_SIZE) * WARP_SIZE;
-		newSize += newColorCount[i];
-		oldSize += (colorOff[i + 1] - colorOff[i]);
-		insCount[i] = newColorCount[i] - (colorOff[i + 1] - colorOff[i]);
-	}
-	newOff[colorCount] = newSize;
-	//LOGV2(newOff, colorCount + 1, "Matrix padding insert position:", LOGCPU);
-	//LOGV2(insCount, colorCount, "Matrix padding count:", LOGCPU);
-
-	std::unique_ptr<numType[]> newData(new numType[newSize * newSize]);
-	for (int i = 0; i < newSize; i++) {
-		for (int j = 0; j < newSize; j++) {
-			newData[i * newSize + j] = 0;
-		}
-		newData[i * newSize + i] = 1;
-	}
-
-	for (int col = 0; col<data->outerSize(); ++col)
-		for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, col); it; ++it)
-		{
-			int row = it.row();
-			newData[row * newSize + col] = it.value();
-			newData[col * newSize + row] = it.value();
-		}
-	//LOGM2(newData, newSize, newSize, "Copied padded matrix:", LOGCPU);
-
-	// insert rows
-	for (int k = colorCount - 1; k >= 0; k--) {
-		for (int i = size - 1; i >= 0; i--) {
-			if (i >= colorOff[k] && i < colorOff[k + 1]) {
-				int newRow = (i + newOff[k] - colorOff[k]);
-				for (int j = 0; j < newSize; j++) {
-					if (newRow != i) {
-						// move value to correct position
-						newData[newRow * newSize + j] = newData[i * newSize + j];
-						// reset previous position
-						newData[i * newSize + j] = 0;
-					}
-				}
-			}
-		}
-	}
-	//LOGM2(newData, newSize, newSize, "Padded reordered matrix (rows):", LOGCPU);
-	// insert columns
-	for (int k = colorCount - 1; k >= 0; k--) {
-		for (int j = size - 1; j >= 0; j--) {
-			if (j >= colorOff[k] && j < colorOff[k + 1]) {
-				for (int i = 0; i < newSize; i++) {
-					int newColumn = (j + newOff[k] - colorOff[k]);
-					if (newColumn != j) {
-						// move value to correct position
-						newData[i * newSize + newColumn] = newData[i * newSize + j];
-						// reset previous position
-						newData[i * newSize + j] = 0;
-					}
-				}
-			}
-		}
-	}
-	//LOGM2(newData, newSize, newSize, "Padded reordered matrix (cols):", LOGCPU);
-	// "fix" main diagonal
-	for (int i = 0; i < newSize; i++) {
-		if (MOD(newData[i * newSize + i]) < EPS) {
-			newData[i * newSize + i] = 1;
-		}
-	}
-	//LOGM2(newData, newSize, newSize, "Padded reordered matrix:", LOGCPU);
-
-	sizePadding = newSize;
-	return newData;
 }

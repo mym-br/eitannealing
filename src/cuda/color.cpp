@@ -15,11 +15,11 @@
 /* A utility function to check if the current color assignment
 is safe for vertex v */
 bool isSafe(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, std::unique_ptr<int[]> &colors, int color, int row) {
-	for (int k = 0; k<data->outerSize(); ++k)
+	for (int k = 0; k<= row; ++k)
 		for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, k); it; ++it)
 		{
-			if ((it.row() == row && MOD(it.value()) > EPS && colors[it.col()] == color) || 
-				(it.col() == row && MOD(it.value()) > EPS && colors[it.row()] == color) ) {
+			if (it.row() > row) continue;
+			if ((it.row() == row && colors[it.col()] == color) || (it.col() == row && colors[it.row()] == color) ) {
 				return false;
 			}
 		}

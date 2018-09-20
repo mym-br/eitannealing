@@ -35,7 +35,7 @@ struct raw_matrix {
 typedef std::vector<double> raw_vector;
 
 
-void saveVals(const char* fname, matrix &mat, bool symm = false) {
+void saveVals(const char* fname, Eigen::SparseMatrix<numType> &mat, bool symm = false) {
 	FILE *f;
 	if ((f = fopen(fname, "w")) == NULL) { std::cerr << "Could not open market matrix file to write" << *fname << std::endl; return; }
 	EITFILECONVERSIONS::saveMtx(&mat, f, symm);

@@ -236,9 +236,12 @@ std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_ve
 }
 
 std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated) {
-	// Convert matrix data
+	// Convert to full matrix
 	std::vector<Eigen::Triplet<numType>> tripletList;
-	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<numType>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
+	for (auto el : Araw) {
+		tripletList.push_back(Eigen::Triplet<numType>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
+		if(std::get<0>(el) != std::get<1>(el)) tripletList.push_back(Eigen::Triplet<numType>(std::get<1>(el), std::get<0>(el), std::get<2>(el)));
+	}
 	auto t1 = std::chrono::high_resolution_clock::now();
 	// Create sparse matrix
 	Eigen::SparseMatrix<numType> A(Araw.M, Araw.N);

@@ -15,14 +15,12 @@
 /* A utility function to check if the current color assignment
 is safe for vertex v */
 bool isSafe(Eigen::SparseMatrix<numType, Eigen::ColMajor> * data, std::unique_ptr<int[]> &colors, int color, int row) {
-	for (int k = 0; k<= row; ++k)
-		for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, k); it; ++it)
-		{
-			if (it.row() > row) continue;
-			if ((it.row() == row && colors[it.col()] == color) || (it.col() == row && colors[it.row()] == color) ) {
-				return false;
-			}
+	// works only with full matrix. Is there a fast way to do this with a lower triangular matrix?
+	for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, row); it; ++it) {
+		if (colors[it.col()] == color || colors[it.row()] == color) {
+			return false;
 		}
+	}
 	return true;
 }
 

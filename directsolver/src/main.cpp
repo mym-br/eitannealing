@@ -260,9 +260,9 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 	std::chrono::duration<double> time_analyser = t2 - t1;
 	std::cout << "Cuda analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 	//// Output cpjds matrices and vector to mtx files
-	//matrix mPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.data); saveVals("Acpjds.mtx", mPrint, true);
-	//matrix precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.mtx", precondPrint);
-	//matrix bPrint(stiffness->matrixData.n, 1); for (int i = 0; i < braw.size(); i++) bPrint.coeffRef(mgr->original2PaddedIdx[i], 0) = braw[i]; saveVals("bcpjds.mtx", bPrint);
+	//Eigen::SparseMatrix<numType> mPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.data); saveVals("Acpjds.mtx", mPrint, true);
+	//Eigen::SparseMatrix<numType> precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.mtx", precondPrint);
+	//Eigen::SparseMatrix<numType> bPrint(stiffness->matrixData.n, 1); for (int i = 0; i < braw.size(); i++) bPrint.coeffRef(mgr->original2PaddedIdx[i], 0) = braw[i]; saveVals("bcpjds.mtx", bPrint);
 
 	std::cout << "Starting " << (isConsolidated ? "consolidated" : "") << " Cuda CG with res = " << res << " and max iterations = " << maxit << std::endl;
 	res = res > 0 ? res * res : -1;

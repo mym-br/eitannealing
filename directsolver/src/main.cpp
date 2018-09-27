@@ -185,7 +185,12 @@ int main(int argc, char *argv[])
 	if(resultsfname) {
 		// Append execution times to compilation file args::get(resultsfname)
 		std::ofstream outfile(args::get(resultsfname), std::ios_base::app);
-		outfile << fileName << "\t" << A.N << "\t" << A.elements.size() << "\t" << analysertime << "\t" << executiontime << "\t" << analysertimeCuda  << "\t" << executiontimeCuda  << "\t" << analysertimeCCuda  << "\t" << executiontimeCCuda << "\t" << analysertimeCublas << "\t" << executiontimeCublas  << std::endl;
+		outfile << fileName << "\t" << A.N << "\t" << A.elements.size() 
+			<< "\t" << analysertime << "\t" << executiontime 
+			<< "\t" << analysertimeCuda  << "\t" << executiontimeCuda 
+			<< "\t" << analysertimeCCuda  << "\t" << executiontimeCCuda 
+			<< "\t" << analysertimeCublas << "\t" << executiontimeCublas 
+			<< std::endl;
 	}
 
 	return 0;

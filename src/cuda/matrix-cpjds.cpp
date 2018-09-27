@@ -88,10 +88,9 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<numType> *pdata) {
 	int colorCount = 0;
 	std::unique_ptr<int[]> reorderIdx(new int[n]); // map for original index -> color-sorted index
 
-	// color-sort stiffness matrix (faster with full matrix, really?)
+	// color-sort stiffness matrix (faster with full matrix, really? but the output is lower matrix)
 	std::unique_ptr<int[]> colorsOff = colorSort(pdata, colorCount, reorderIdx, false);
 	if (colorsOff == NULL) return;
-	*pdata = pdata->triangularView<Eigen::Lower>(); // transform into lower matrix
 
 	// padding-fill for warps
 	int nPadded = n;

@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "color.h"
 #include <iostream>
+#include <vector>
 
 namespace analysis {
 	int find(std::unique_ptr<int[]> &arr, int n, int val, int offset) {
@@ -13,7 +14,7 @@ namespace analysis {
 		}
 		return -1;
 	}
-	int findMax(std::unique_ptr<int[]> &arr, int n, int offset, int span) {
+	int findMax(std::vector<int> &arr, int n, int offset, int span) {
 		int max = offset;
 		for (int i = offset; i < span + offset && i < n; i++) {
 			if (arr[i] > arr[max]) {
@@ -144,8 +145,8 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 	*data = (*data).selfadjointView<Eigen::Lower>().twistedBy(perm.inverse());
 	*data = (*data).triangularView<Eigen::Lower>();
 	
-	std::unique_ptr<int[]> reorderIdx(new int[n]);
-	std::unique_ptr<int[]> reorderRL(new int[n]);
+	std::vector<int> reorderIdx(n);
+	std::vector<int> reorderRL(n);
 	for (int i = 0; i < n; i++) {
 		reorderIdx[i] = -1;
 		reorderRL[i] = 0;
@@ -154,17 +155,15 @@ std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<numType, Eigen::ColMajor> *
 									// calculate lower triangular RL		
 		for (int col = 0; col<data->outerSize(); ++col)
 			for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, col); it; ++it) {
-				if (MOD(it.value()) > EPS) reorderRL[it.row()]++;
+				reorderRL[it.row()]++;
 			}
 	}
 	else { // matrix should be reordered by full matrix rows' length
 		   // calculate full matrix RL
 		for (int col = 0; col<data->outerSize(); ++col)
 			for (Eigen::SparseMatrix<numType, Eigen::ColMajor>::InnerIterator it(*data, col); it; ++it) {
-				if (MOD(it.value()) > EPS) {
-					reorderRL[it.row()]++;
-					if (it.row() != it.col()) reorderRL[it.col()]++;
-				}
+				reorderRL[it.row()]++;
+				if (it.row() != it.col()) reorderRL[it.col()]++;
 			}
 	}
 

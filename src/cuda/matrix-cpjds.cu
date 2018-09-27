@@ -23,24 +23,24 @@ void DeleterCudaIntPtr::operator()(numType* ptr) { cudaFree(ptr); };
 
 //void dependencies_analysis(numType * data, int n, DependeciesMap * dependenciesMap) {
 void dependencies_analysis(std::unique_ptr<numType[]> &data, int n, DependeciesMap * dependenciesMap) {
-	for (int i = 0; i < n; i++) { // for each row...
-		for (int j = i + 1; j < n; j++) { // ... for every (upper triangle) column in the row
-			//for (int j = 0; j < i; j++) { // ... for every (lower triangle) column in the row
-			if (MOD(data[i * n + j]) > EPS) { // ... if element (i, j) is non-zero, search dependencies
-				Dependencies d;
-				for (int k = 0; k < i; k++) { // check all rows before current row
-					//for (int k = 0; k < j; k++) { // check all columns before current column
-					// check if (k, i) and (k, j) are both non-zero
-					if (MOD(data[k * n + i]) > EPS && MOD(data[k * n + j]) > EPS) {
-						d.dependencies.push_back(k); // push dependency (only row in lower triangular is needed)
-					}
-				}
-				d.lower = std::pair<int, int>(i, j);
-				d.dependenciesSize = d.dependencies.size();
-				(*dependenciesMap)[i].push_back(d);
-			}
-		}
-	}
+	//for (int i = 0; i < n; i++) { // for each row...
+	//	for (int j = i + 1; j < n; j++) { // ... for every (upper triangle) column in the row
+	//		//for (int j = 0; j < i; j++) { // ... for every (lower triangle) column in the row
+	//		if (MOD(data[i * n + j]) > EPS) { // ... if element (i, j) is non-zero, search dependencies
+	//			Dependencies d;
+	//			for (int k = 0; k < i; k++) { // check all rows before current row
+	//				//for (int k = 0; k < j; k++) { // check all columns before current column
+	//				// check if (k, i) and (k, j) are both non-zero
+	//				if (MOD(data[k * n + i]) > EPS && MOD(data[k * n + j]) > EPS) {
+	//					d.dependencies.push_back(k); // push dependency (only row in lower triangular is needed)
+	//				}
+	//			}
+	//			d.lower = std::pair<int, int>(i, j);
+	//			d.dependenciesSize = d.dependencies.size();
+	//			(*dependenciesMap)[i].push_back(d);
+	//		}
+	//	}
+	//}
 }
 
 /* CPJDS matrix element setter */

@@ -8,7 +8,7 @@
 #include "number.h"
 #include "../circularbuff.h"
 
-#define CALCULATE_ERRORS
+//#define CALCULATE_ERRORS
 
 using namespace cgl;
 
@@ -33,12 +33,16 @@ protected:
 	/* array of cuda streams for parallel queueing */
 
 	int size, blocks;
+	double totalItTime, totalTriangularTime, totalSpmvTime;
 
 public:
 	cudaStream_t stream;
 
 	int getIteration() const {
 		return this->it;
+	}
+	std::tuple<double, double, double> getAvgTimes() {
+		return{ totalItTime/(double)it, totalTriangularTime/(double)it, totalSpmvTime/(double)it };
 	}
 
 	PCGSolverCPJDS(MatrixCPJDSManager * mgr, MatrixCPJDS *M, Vector * b);

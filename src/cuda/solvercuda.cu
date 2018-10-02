@@ -47,18 +47,9 @@ int CGCUDA_Solver::getIteration() {
 	return solver->getIteration();
 }
 
-//std::vector<numType> CGCUDA_Solver::getX() {
-//	Vector *x = solver->getX();
-//	
-//	return mgr->restore(x);
-//}
-//
-//Eigen::VectorXd CGCUDA_Solver::getX() {
-//	//	Vector *x = solver->getX();
-//	//	
-//	//	return mgr->restore(x);
-//	//}
-//}
+std::tuple<double, double, double> CGCUDA_Solver::getIterationTimes() {
+	return solver->getAvgTimes();
+}
 
 std::vector<numType> CGCUDA_Solver::transfX2Cpu() {
 	Vector *x = solver->getX();

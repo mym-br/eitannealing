@@ -23,6 +23,7 @@ class CGCUDA_Solver {
 		Eigen::Matrix<numType, -1, 1, 0> getX();
 		int getSize() { return this->size; }
 		int getIteration();
+		std::tuple<double, double, double> getIterationTimes();
 		Vector *getCpjdsX();
 
 		static numType createPreconditioner(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);

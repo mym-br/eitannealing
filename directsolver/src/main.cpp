@@ -34,12 +34,16 @@ struct raw_matrix {
 };
 typedef std::vector<double> raw_vector;
 
-
 void saveVals(const char* fname, Eigen::SparseMatrix<numType> &mat, bool symm = false) {
 	FILE *f;
 	if ((f = fopen(fname, "w")) == NULL) { std::cerr << "Could not open market matrix file to write" << *fname << std::endl; return; }
 	EITFILECONVERSIONS::saveMtx(&mat, f, symm);
 	fclose(f);
+}
+
+void saveVals(const char* fname, Eigen::SparseMatrix<Scalar> &mat, bool symm = false) {
+	Eigen::SparseMatrix<numType> matmcasted = mat.cast<numType>();
+	saveVals(fname, matmcasted, symm);
 }
 
 /*
@@ -212,6 +216,9 @@ std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_ve
 	SparseIncompleteLLT L(A);
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> time_analyser = t2 - t1;
+	//saveVals("A.mtx", A, true); 
+	//matrix Lprint = L.matrixL();  saveVals("L.mtx", Lprint, false);
+	//Eigen::SparseMatrix<numType> bPrint(Araw.N, 1); for (int i = 0; i < b.size(); i++) bPrint.coeffRef(i, 0) = b[i]; saveVals("b.mtx", bPrint);
 	std::cout << "Serial analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 
 	std::cout << "Starting CG with res = " << res << " and max iterations = " << maxit << std::endl;
@@ -292,6 +299,11 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 		Eigen::Matrix<numType, Eigen::Dynamic, 1> xeig = solvercuda.getX();
 		std::chrono::duration<double> time_executor = t2 - t1;
 		std::cout << (isConsolidated ? "Consolidated " : "") << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << sqrt(curRes) << " after " << totalIts << " iterations." << std::endl;
+		auto[cudaItTime, cudaItTriangularTime, cudaItSpmvTime] = solvercuda.getIterationTimes();
+#ifdef CGTIMING
+		if(!isConsolidated) std::cout << "Average iteration time breakdown: " << cudaItTriangularTime << " (triangular solver) " << cudaItSpmvTime << " (spmv) " << cudaItTime - cudaItTriangularTime - cudaItSpmvTime << " (remaining) " << cudaItTime << " (total)." << std::endl;
+		else std::cout << "Average iteration time breakdown: " << cudaItTriangularTime << " (cpcg_tot_esc_add_sub_solver) " << cudaItSpmvTime << " (cpcg_tot_esc_add_mmv_inner) " << cudaItTime - cudaItTriangularTime - cudaItSpmvTime << " (remaining) " << cudaItTime << " (total)." << std::endl;
+#endif // CGTIMING
 		for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
 		return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
 	}

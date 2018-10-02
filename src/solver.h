@@ -16,6 +16,7 @@
 class CG_Solver {
 	protected:
 		int it;
+		double totalItTime, totalTriangularTime, totalSpmvTime;
 		int lastRefresh;
 		bool refresh_at_next;
 		double rmod, rmod_1;
@@ -77,6 +78,10 @@ class CG_Solver {
 			return this->it;
 		}
 		
+		std::tuple<double, double, double> getIterationTimes() {
+			return{ totalItTime / (double)it, totalTriangularTime / (double)it, totalSpmvTime / (double)it };
+		}
+
 		double getResidueSquaredNorm() const {
 			return this->rmod;
 		}

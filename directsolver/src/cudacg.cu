@@ -133,8 +133,21 @@ std::tuple<long, long> runCusparseCublasCG(std::vector<int> &I, std::vector<int>
 	int k = 0;
 	cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
 
+#ifdef CGTIMING
+	double totalItTime, totalTriangularTime, totalSpmvTime;
+	totalItTime = totalTriangularTime = totalSpmvTime = 0;
+	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
+	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
+	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
+	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
+#endif // CGTIMING
+
 	while (r1 > tol*tol && k <= max_iter)
 	{
+#ifdef CGTIMING
+		cudaEventRecord(startTotal);
+		cudaEventRecord(startTri);
+#endif // CGTIMING
 		// Forward Solve, we can re-use infoA since the sparsity pattern of A matches that of L
 		cusparseStatus = cusparseScsrsv_solve(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, &floatone, descrL,
 			d_valsILU0, d_row, d_col, infoA, d_r, d_y);
@@ -142,6 +155,9 @@ std::tuple<long, long> runCusparseCublasCG(std::vector<int> &I, std::vector<int>
 		// Back Substitution
 		cusparseStatus = cusparseScsrsv_solve(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, &floatone, descrU,
 			d_valsILU0, d_row, d_col, info_u, d_y, d_zm1);
+#ifdef CGTIMING
+		cudaEventRecord(stopTri);
+#endif // CGTIMING
 
 		k++;
 
@@ -157,8 +173,13 @@ std::tuple<long, long> runCusparseCublasCG(std::vector<int> &I, std::vector<int>
 			cublasSscal(cublasHandle, N, &beta, d_p, 1);
 			cublasSaxpy(cublasHandle, N, &floatone, d_zm1, 1, d_p, 1);
 		}
-
+#ifdef CGTIMING
+		cudaEventRecord(startSpmv);
+#endif // CGTIMING
 		cusparseScsrmv(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, N, nzILU0, &floatone, descrU, d_val, d_row, d_col, d_p, &floatzero, d_omega);
+#ifdef CGTIMING
+		cudaEventRecord(stopSpmv);
+#endif // CGTIMING
 		cublasSdot(cublasHandle, N, d_r, 1, d_zm1, 1, &numerator);
 		cublasSdot(cublasHandle, N, d_p, 1, d_omega, 1, &denominator);
 		alpha = numerator / denominator;
@@ -168,6 +189,17 @@ std::tuple<long, long> runCusparseCublasCG(std::vector<int> &I, std::vector<int>
 		nalpha = -alpha;
 		cublasSaxpy(cublasHandle, N, &nalpha, d_omega, 1, d_r, 1);
 		cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
+#ifdef CGTIMING
+		cudaEventRecord(stopTotal);
+#endif // CGTIMING
+#ifdef CGTIMING
+		cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
+		float msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
+		cudaEventElapsedTime(&msTotal, startTotal, stopTotal); cudaEventElapsedTime(&msTri, startTri, stopTri); cudaEventElapsedTime(&msSpmv, startSpmv, stopSpmv);
+		totalItTime += (float)(1e3 * msTotal);
+		totalTriangularTime += (float)(1e3 * msTri);
+		totalSpmvTime += (float)(1e3 *  msSpmv);
+#endif // CGTIMING
 	}
 	cudaMemcpy(x.data(), d_x, N * sizeof(float), cudaMemcpyDeviceToHost); 
 	t2 = std::chrono::high_resolution_clock::now();
@@ -177,6 +209,11 @@ std::tuple<long, long> runCusparseCublasCG(std::vector<int> &I, std::vector<int>
 	///************************/
 	std::chrono::duration<double> time_executor = t2 - t1;
 	std::cout << "Cublas executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << sqrt(r1) << " after " << k << " iterations." << std::endl;
+
+#ifdef CGTIMING
+	totalItTime /= (double)k; totalTriangularTime /= (double)k; totalSpmvTime /= (double)k;
+	std::cout << "Average cublas/cusparse iteration time breakdown: " << totalTriangularTime << " (triangular solver) " << totalSpmvTime << " (spmv) " << totalItTime - totalTriangularTime - totalSpmvTime << " (remaining) " << totalItTime << " (total)." << std::endl;
+#endif // CGTIMING
 
 	/* Destroy parameters */
 	cusparseDestroySolveAnalysisInfo(infoA);

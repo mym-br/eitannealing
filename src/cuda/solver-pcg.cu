@@ -16,6 +16,12 @@
 #include "utils.h"
 //#include "preconditioner.h"
 
+void checkedCudaEventRecord(cudaEvent_t &event) {
+#ifdef CGTIMING 
+	cudaEventRecord(event);
+#endif
+}
+
 using namespace cgl;
 
 // multiplicacao matriz vetor e subtracao (r = b - A * x)
@@ -102,6 +108,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
 #endif // CGTIMING
+
 	numType *data_h = new numType[1];
 	//m_preconditioner(A, PCGSolverCPJDS::streams[PCGSolverCPJDS::mainStream]);
 	x->reset();
@@ -151,33 +158,23 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	#endif
 
 	// Now do the first 3 iterations
-#ifdef CGTIMING
-	cudaEventRecord(startTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTotal);
 	x->scalarAdd(rmod, gamma, p, NULL); // 1...
 	r->scalarSubtr(rmod, gamma, q, NULL); //r -= alpha * q; alpha = rmod / gamma
 	// M * z = r -> solve for z, having M = L * Lt
 	// L * Lt * z = r
-#ifdef CGTIMING
-	cudaEventRecord(startTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTri);
 	mgr->solve(*A, r, u); // solving L * u = r
 	mgr->solve_t(*A, u, z); // now solve Lt * z = u
-#ifdef CGTIMING
-	cudaEventRecord(stopTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTri);
 	std::swap(rmod_prev, rmod); //rmod_1 = rmod;
 	z->inner(r, rmod); // rmod = z.dot(r);
 	p->scalar(rmod, rmod_prev, u); // p = z + beta * p; beta = rmod / rmod_prev
 	u->sum(z, p);
 	r->inner(z, rmod); // rmod = z.dot(r); isto nao deveria ser recalculado
-#ifdef CGTIMING
-	cudaEventRecord(startSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(startSpmv);
 	mgr->mult(*A, p, q); // q = A * p;
-#ifdef CGTIMING
-	cudaEventRecord(stopSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopSpmv);
 	p->inner(q, gamma); // gamma = q.dot(p);
 
 #ifdef CALCULATE_ERRORS
@@ -204,9 +201,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	gamma2 = rmod2 / gamma2;
 	alpha = 1 / gamma2 + beta / gamma2_1;
 #endif
-#ifdef CGTIMING
-	cudaEventRecord(stopTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTotal);
 #ifdef CGTIMING
 	cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
 	float msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
@@ -216,33 +211,23 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	totalSpmvTime += (float)(1e3 *  msSpmv);
 #endif // CGTIMING
 
-#ifdef CGTIMING
-	cudaEventRecord(startTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTotal);
 	x->scalarAdd(rmod, gamma, p, NULL); // 2...
 	r->scalarSubtr(rmod, gamma, q, NULL); //r -= alpha * q; alpha = rmod / gamma
 	// M * z = r -> solve for z, having M = L * Lt
 	// L * Lt * z = r
-#ifdef CGTIMING
-	cudaEventRecord(startTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTri);
 	mgr->solve(*A, r, u); // solving L * u = r
 	mgr->solve_t(*A, u, z); // now solve Lt * z = u
-#ifdef CGTIMING
-	cudaEventRecord(stopTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTri);
 	std::swap(rmod_prev, rmod); //rmod_1 = rmod;
 	z->inner(r, rmod); // rmod = z.dot(r);
 	p->scalar(rmod, rmod_prev, u); // p = z + beta * p; beta = rmod / rmod_prev
 	u->sum(z, p);
 	r->inner(z, rmod); // rmod = z.dot(r); isto nao deveria ser recalculado
-#ifdef CGTIMING
-	cudaEventRecord(startSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(startSpmv);
 	mgr->mult(*A, p, q); // q = A * p;
-#ifdef CGTIMING
-	cudaEventRecord(stopSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopSpmv);
 	p->inner(q, gamma); // gamma = q.dot(p);
 
 #ifdef CALCULATE_ERRORS
@@ -274,9 +259,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	gamma2 = rmod2 / gamma2;
 	alpha = 1 / gamma2 + beta / gamma2_1;
 #endif
-#ifdef CGTIMING
-	cudaEventRecord(stopTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTotal);
 #ifdef CGTIMING
 	cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
 	msTotal = msTri = msSpmv = 0;
@@ -286,34 +269,24 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	totalSpmvTime += (float)(1e3 *  msSpmv);
 #endif // CGTIMING
 
-#ifdef CGTIMING
-	cudaEventRecord(startTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTotal);
 	x->scalarAdd(rmod, gamma, p, NULL); // 3...
 	if (rmod2 < res) { rmod2_1 = rmod2; it = 2; return; }
 	r->scalarSubtr(rmod, gamma, q, NULL); //r -= alpha * q; alpha = rmod / gamma
 	// M * z = r -> solve for z, having M = L * Lt
 	// L * Lt * z = r
-#ifdef CGTIMING
-	cudaEventRecord(startTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTri);
 	mgr->solve(*A, r, u); // solving L * u = r
 	mgr->solve_t(*A, u, z); // now solve Lt * z = u
-#ifdef CGTIMING
-	cudaEventRecord(stopTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTri);
 	std::swap(rmod_prev, rmod); //rmod_1 = rmod;
 	z->inner(r, rmod); // rmod = z.dot(r);
 	p->scalar(rmod, rmod_prev, u); // p = z + beta * p; beta = rmod / rmod_prev
 	u->sum(z, p);
 	r->inner(z, rmod); // rmod = z.dot(r); isto nao deveria ser recalculado
-#ifdef CGTIMING
-	cudaEventRecord(startSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(startSpmv);
 	mgr->mult(*A, p, q); // q = A * p;
-#ifdef CGTIMING
-	cudaEventRecord(stopSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopSpmv);
 	p->inner(q, gamma); // gamma = q.dot(p);
 
 #ifdef CALCULATE_ERRORS
@@ -345,9 +318,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	gamma2 = rmod2 / gamma2;
 	alpha = 1 / gamma2 + beta / gamma2_1;
 #endif
-#ifdef CGTIMING
-	cudaEventRecord(stopTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTotal);
 #ifdef CGTIMING
 	cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
 	msTotal = msTri = msSpmv = 0;
@@ -375,35 +346,25 @@ void PCGSolverCPJDS::doIteration(int iteration) {
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
 #endif // CGTIMING
 
-#ifdef CGTIMING
-	cudaEventRecord(startTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTotal);
 	numType *data_h = new numType[1];
 	it++;
 	x->scalarAdd(rmod, gamma, p, NULL);
 	r->scalarSubtr(rmod, gamma, q, NULL); //r -= alpha * q; alpha = rmod / gamma
 	// M * z = r -> solve for z, having M = L * Lt
 	// L * Lt * z = r
-#ifdef CGTIMING
-	cudaEventRecord(startTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTri);
 	mgr->solve(*A, r, u); // solving L * u = r
 	mgr->solve_t(*A, u, z); // now solve Lt * z = u
-#ifdef CGTIMING
-	cudaEventRecord(stopTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTri);
 	std::swap(rmod_prev, rmod); //rmod_1 = rmod;
 	z->inner(r, rmod); // rmod = z.dot(r);
 	p->scalar(rmod, rmod_prev, u); // p = z + beta * p; beta = rmod / rmod_prev
 	u->sum(z, p);
 	r->inner(z, rmod); // rmod = z.dot(r); isto nao deveria ser recalculado
-#ifdef CGTIMING
-	cudaEventRecord(startSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(startSpmv);
 	mgr->mult(*A, p, q); // q = A * p;
-#ifdef CGTIMING
-	cudaEventRecord(stopSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopSpmv);
 	p->inner(q, gamma); // gamma = q.dot(p);
 
 #ifdef CALCULATE_ERRORS
@@ -442,9 +403,7 @@ void PCGSolverCPJDS::doIteration(int iteration) {
 	alpha = 1 / gamma2 + beta / gamma2_1;
 #endif
 	delete data_h;
-#ifdef CGTIMING
-	cudaEventRecord(stopTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTotal);
 #ifdef CGTIMING
 	cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
 	float msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
@@ -1115,7 +1074,7 @@ void PCGSolverCPJDS2::doIteration1(numType * aData, numType * precond, int * aIn
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
-	cudaEventRecord(startTotal);
+	checkedCudaEventRecord(startTotal);
 #endif // CGTIMING
 	it++;
 	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
@@ -1124,15 +1083,11 @@ void PCGSolverCPJDS2::doIteration1(numType * aData, numType * precond, int * aIn
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
 	// matriz-vetor (q = A * p)
 	// produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
-#ifdef CGTIMING
-	cudaEventRecord(startSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(startSpmv);
 	cpcg_tot_esc_add_mmv_inner << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			zData, pData, qData, rmodData, rmod_prevData, partialData, partialData2, blocks);
-#ifdef CGTIMING
-	cudaEventRecord(stopSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopSpmv);
 
 	// totalizacao (intra-bloco, gamma = pt.(A*p))
 	// escalar e vetor soma (x += (rmod/gamma) * p)
@@ -1140,15 +1095,11 @@ void PCGSolverCPJDS2::doIteration1(numType * aData, numType * precond, int * aIn
 	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
 	// solver triangular superior (z = inv(M) * r)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-#ifdef CGTIMING
-	cudaEventRecord(startTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTri);
 	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, precond, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			xData, rData, zData, pData, qData, rmodData, rmod_prevData, gammaData, partialData2, blocks);
-#ifdef CGTIMING
-	cudaEventRecord(stopTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTri);
 
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
@@ -1180,9 +1131,7 @@ void PCGSolverCPJDS2::doIteration1(numType * aData, numType * precond, int * aIn
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
 	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
 
-#ifdef CGTIMING
-	cudaEventRecord(stopTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTotal);
 #ifdef CGTIMING
 	cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
 	float msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
@@ -1205,7 +1154,7 @@ void PCGSolverCPJDS2::doIteration2(numType * aData, numType * precond, int * aIn
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
-	cudaEventRecord(startTotal);
+	checkedCudaEventRecord(startTotal);
 #endif // CGTIMING
 	it++;
 	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
@@ -1214,15 +1163,11 @@ void PCGSolverCPJDS2::doIteration2(numType * aData, numType * precond, int * aIn
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
 	// matriz-vetor (q = A * p)
 	// produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
-#ifdef CGTIMING
-	cudaEventRecord(startSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(startSpmv);
 	cpcg_tot_esc_add_mmv_inner << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			zData, pData, qData, rmodData, rmod_prevData, partialData, partialData2, blocks);
-#ifdef CGTIMING
-	cudaEventRecord(stopSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopSpmv);
 
 	// totalizacao (intra-bloco, gamma = pt.(A*p))
 	// escalar e vetor soma (x += (rmod/gamma) * p)
@@ -1230,15 +1175,11 @@ void PCGSolverCPJDS2::doIteration2(numType * aData, numType * precond, int * aIn
 	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
 	// solver triangular superior (z = inv(M) * r)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-#ifdef CGTIMING
-	cudaEventRecord(startTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTri);
 	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, precond, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			xData, rData, zData, pData, qData, rmodData, rmod_prevData, gammaData, partialData2, blocks);
-#ifdef CGTIMING
-	cudaEventRecord(stopTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTri);
 
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
@@ -1275,9 +1216,7 @@ void PCGSolverCPJDS2::doIteration2(numType * aData, numType * precond, int * aIn
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
 	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
 
-#ifdef CGTIMING
-	cudaEventRecord(stopTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTotal);
 #ifdef CGTIMING
 	cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
 	float msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
@@ -1300,7 +1239,7 @@ void PCGSolverCPJDS2::doIteration3(numType * aData, numType * precond, int * aIn
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
-	cudaEventRecord(startTotal);
+	checkedCudaEventRecord(startTotal);
 #endif // CGTIMING
 	it++;
 	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
@@ -1309,15 +1248,11 @@ void PCGSolverCPJDS2::doIteration3(numType * aData, numType * precond, int * aIn
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
 	// matriz-vetor (q = A * p)
 	// produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
-#ifdef CGTIMING
-	cudaEventRecord(startSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(startSpmv);
 	cpcg_tot_esc_add_mmv_inner << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			zData, pData, qData, rmodData, rmod_prevData, partialData, partialData2, blocks);
-#ifdef CGTIMING
-	cudaEventRecord(stopSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopSpmv);
 
 	// totalizacao (intra-bloco, gamma = pt.(A*p))
 	// escalar e vetor soma (x += (rmod/gamma) * p)
@@ -1325,15 +1260,11 @@ void PCGSolverCPJDS2::doIteration3(numType * aData, numType * precond, int * aIn
 	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
 	// solver triangular superior (z = inv(M) * r)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-#ifdef CGTIMING
-	cudaEventRecord(startTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTri);
 	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, precond, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			xData, rData, zData, pData, qData, rmodData, rmod_prevData, gammaData, partialData2, blocks);
-#ifdef CGTIMING
-	cudaEventRecord(stopTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTri);
 
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
@@ -1371,9 +1302,7 @@ void PCGSolverCPJDS2::doIteration3(numType * aData, numType * precond, int * aIn
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
 	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
 
-#ifdef CGTIMING
-	cudaEventRecord(stopTotal);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTotal);
 #ifdef CGTIMING
 	cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
 	float msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
@@ -1417,7 +1346,7 @@ void PCGSolverCPJDS2::doIteration(int iteration) {
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
-	cudaEventRecord(startTotal);
+	checkedCudaEventRecord(startTotal);
 #endif // CGTIMING
 
 	it++;
@@ -1427,15 +1356,11 @@ void PCGSolverCPJDS2::doIteration(int iteration) {
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
 	// matriz-vetor (q = A * p)
 	// produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
-#ifdef CGTIMING
-	cudaEventRecord(startSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(startSpmv);
 	cpcg_tot_esc_add_mmv_inner << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, (*A).matrixData.data.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(),
 			zData, pData, qData, rmodData, rmod_prevData, partialData, partialData2, blocks);
-#ifdef CGTIMING
-	cudaEventRecord(stopSpmv);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopSpmv);
 
 	// totalizacao (intra-bloco, gamma = pt.(A*p))
 	// escalar e vetor soma (x += (rmod/gamma) * p)
@@ -1443,15 +1368,11 @@ void PCGSolverCPJDS2::doIteration(int iteration) {
 	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
 	// solver triangular superior (z = inv(M) * r)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-#ifdef CGTIMING
-	cudaEventRecord(startTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(startTri);
 	cpcg_tot_esc_add_sub_solver << <blocks, BLOCKSIZE, 0, stream >> >
 		(size, (*A).preconditionedData.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(),
 			xData, rData, zData, pData, qData, rmodData, rmod_prevData, gammaData, partialData2, blocks);
-#ifdef CGTIMING
-	cudaEventRecord(stopTri);
-#endif // CGTIMING
+	checkedCudaEventRecord(stopTri);
 
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
@@ -1507,10 +1428,8 @@ void PCGSolverCPJDS2::doIteration(int iteration) {
 	// produto interno (rmod = zt . r, somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
 	cpcg_inner << <blocks, BLOCKSIZE, 0, stream >> >(size, rData, zData, partialData, blocks);
+	checkedCudaEventRecord(stopTotal);
 
-#ifdef CGTIMING
-	cudaEventRecord(stopTotal);
-#endif // CGTIMING
 #ifdef CGTIMING
 	cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
 	float msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;

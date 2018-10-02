@@ -11,6 +11,12 @@
 #include <fstream>
 #include <chrono>
 
+void checkedRegisterTimestamp(std::chrono::high_resolution_clock::time_point &t) {
+#ifdef CGTIMING 
+	t = std::chrono::high_resolution_clock::now();
+#endif
+}
+
 CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b, const SparseIncompleteLLT &pre, double res) :
 	A(_A),
 	b(b),
@@ -43,6 +49,10 @@ CG_Solver::CG_Solver(matrix &A_, Eigen::VectorXd &b, const Eigen::VectorXd &x0, 
 // Setup and calculate the 1st iteraction	
 void CG_Solver::init(double res)
 {
+#ifdef CGTIMING
+	std::chrono::high_resolution_clock::time_point t1, t2, tri_t1, tri_t2, spmv_t1, spmv_t2;
+#endif // CGTIMING
+
 	r.resize(A.rows());
 	beta = 0;
 	r = b - A*x;
@@ -71,20 +81,14 @@ void CG_Solver::init(double res)
 
 
 	// Now do the first 3 iterations
-#ifdef CGTIMING
-	auto t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(t1);
 	x += gamma*p;	// 1...
 	if (rmod < res) { it = 1; return; }
 	r = r - gamma*q;
 	z = r;
-#ifdef CGTIMING
-	auto tri_t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(tri_t1);
 	precond.solveInPlace(z);
-#ifdef CGTIMING
-	auto tri_t2 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(tri_t2);
 	rmod_1 = rmod;
 	//rmod = r.squaredNorm();
 	rmod = z.dot(r);
@@ -100,22 +104,20 @@ void CG_Solver::init(double res)
 #endif // CALCULATE_ERRORS
 	//p = r + beta*p;
 	p = z + beta*p;
-#ifdef CGTIMING
-	auto spmv_t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(spmv_t1);
 	q.noalias() = A*p;
-#ifdef CGTIMING
-	auto spmv_t2 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(spmv_t2);
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
+	checkedRegisterTimestamp(t2);
+
 #ifdef CGTIMING
-	auto t2 = std::chrono::high_resolution_clock::now();
 	totalItTime += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 	totalTriangularTime += std::chrono::duration_cast<std::chrono::microseconds>(tri_t2 - tri_t1).count();
 	totalSpmvTime += std::chrono::duration_cast<std::chrono::microseconds>(spmv_t2 - spmv_t1).count();
 #endif // CGTIMING
+
 	if (rmod < res) { it = 1; return; }
 	/* ########## LANCZOS
 	leta = vt.norm();
@@ -126,20 +128,14 @@ void CG_Solver::init(double res)
 	vt -= lalpha*v + leta*v_1;
 	alpha_[1] = lalpha;
 	eta_[1] = leta;*/
-#ifdef CGTIMING
-	t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(t1);
 	x += gamma*p;	// 2...
 	if (rmod < res) { it = 2; return; }
 	r = r - gamma*q;
 	z = r;
-#ifdef CGTIMING
-	tri_t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(tri_t1);
 	precond.solveInPlace(z);
-#ifdef CGTIMING
-	tri_t2 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(tri_t2);
 	rmod_1 = rmod;
 	//rmod = r.squaredNorm();
 	rmod = z.dot(r);
@@ -161,22 +157,20 @@ void CG_Solver::init(double res)
 
 	//p = r + beta*p;
 	p = z + beta*p;
-#ifdef CGTIMING
-	spmv_t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(spmv_t1);
 	q.noalias() = A*p;
-#ifdef CGTIMING
-	spmv_t2 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(spmv_t2);
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
+	checkedRegisterTimestamp(t2);
+
 #ifdef CGTIMING
-	t2 = std::chrono::high_resolution_clock::now();
 	totalItTime += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 	totalTriangularTime += std::chrono::duration_cast<std::chrono::microseconds>(tri_t2 - tri_t1).count();
 	totalSpmvTime += std::chrono::duration_cast<std::chrono::microseconds>(spmv_t2 - spmv_t1).count();
 #endif // CGTIMING
+
 	if (rmod < res) { it = 2; return; }
 
 	/* ########## LANCZOS
@@ -189,19 +183,13 @@ void CG_Solver::init(double res)
 	alpha_[2] = lalpha;
 	eta_[2] = leta;*/
 
-#ifdef CGTIMING
-	t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(t1);
 	x += gamma*p;	// ...and 3!
 	r = r - gamma*q;
 	z = r;
-#ifdef CGTIMING
-	tri_t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(tri_t1);
 	precond.solveInPlace(z);
-#ifdef CGTIMING
-	tri_t2 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(tri_t2);
 	rmod_1 = rmod;
 	//rmod = r.squaredNorm();
 	rmod = z.dot(r);
@@ -223,17 +211,14 @@ void CG_Solver::init(double res)
 #endif // CALCULATE_ERRORS
 	//p = r + beta*p;
 	p = z + beta*p;
-#ifdef CGTIMING
-	spmv_t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(spmv_t1);
 	q.noalias() = A*p;
-#ifdef CGTIMING
-	spmv_t2 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(spmv_t2);
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
 	it = 3;
+	checkedRegisterTimestamp(t2);
 	/* ########## LANCZOS
 	leta = vt.norm();
 	v_1 = v;
@@ -248,8 +233,8 @@ void CG_Solver::init(double res)
 	err[1] = w[0]*w[0]+wt[1]*wt[1];
 	err[2] = w[0]*w[0]+w[1]*w[1]+wt[2]*wt[2];
 #endif // CALCULATE_ERRORS
+
 #ifdef CGTIMING
-	t2 = std::chrono::high_resolution_clock::now();
 	totalItTime += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 	totalTriangularTime += std::chrono::duration_cast<std::chrono::microseconds>(tri_t2 - tri_t1).count();
 	totalSpmvTime += std::chrono::duration_cast<std::chrono::microseconds>(spmv_t2 - spmv_t1).count();
@@ -257,7 +242,11 @@ void CG_Solver::init(double res)
 }
 		
 void CG_Solver::do_iteration() {
-	auto t1 = std::chrono::high_resolution_clock::now();
+#ifdef CGTIMING
+	std::chrono::high_resolution_clock::time_point t1, t2, tri_t1, tri_t2, spmv_t1, spmv_t2;
+#endif // CGTIMING
+
+	checkedRegisterTimestamp(t1);
 	it++;
 
 	x += gamma*p;
@@ -268,13 +257,9 @@ void CG_Solver::do_iteration() {
 		r = r - gamma*q;
 	}
 	z = r;
-#ifdef CGTIMING
-	auto tri_t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(tri_t1);
 	precond.solveInPlace(z);
-#ifdef CGTIMING
-	auto tri_t2 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(tri_t2);
 	rmod_1 = rmod;
 	//rmod = r.squaredNorm();
 	rmod = z.dot(r);
@@ -294,22 +279,20 @@ void CG_Solver::do_iteration() {
 
 	//p = r + beta*p;
 	p = z + beta*p;
-#ifdef CGTIMING
-	auto spmv_t1 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(spmv_t1);
 	q.noalias() = A*p;
-#ifdef CGTIMING
-	auto spmv_t2 = std::chrono::high_resolution_clock::now();
-#endif // CGTIMING
+	checkedRegisterTimestamp(spmv_t2);
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
+	checkedRegisterTimestamp(t2);
+
 #ifdef CGTIMING
-	auto t2 = std::chrono::high_resolution_clock::now();
 	totalItTime += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 	totalTriangularTime += std::chrono::duration_cast<std::chrono::microseconds>(tri_t2 - tri_t1).count();
 	totalSpmvTime += std::chrono::duration_cast<std::chrono::microseconds>(spmv_t2 - spmv_t1).count();
 #endif // CGTIMING
+
 	/*// Brenziski:
 	rA = A*(b - A*x);
 	c0 = rA.squaredNorm();

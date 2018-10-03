@@ -49,9 +49,7 @@ CG_Solver::CG_Solver(matrix &A_, Eigen::VectorXd &b, const Eigen::VectorXd &x0, 
 // Setup and calculate the 1st iteraction	
 void CG_Solver::init(double res)
 {
-#ifdef CGTIMING
 	std::chrono::high_resolution_clock::time_point t1, t2, tri_t1, tri_t2, spmv_t1, spmv_t2;
-#endif // CGTIMING
 
 	r.resize(A.rows());
 	beta = 0;
@@ -242,9 +240,7 @@ void CG_Solver::init(double res)
 }
 		
 void CG_Solver::do_iteration() {
-#ifdef CGTIMING
 	std::chrono::high_resolution_clock::time_point t1, t2, tri_t1, tri_t2, spmv_t1, spmv_t2;
-#endif // CGTIMING
 
 	checkedRegisterTimestamp(t1);
 	it++;

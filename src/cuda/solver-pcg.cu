@@ -102,8 +102,8 @@ void PCGSolverCPJDS::init(double res) {
 
 // Setup and calculate the 1st iteration	
 void PCGSolverCPJDS::init(Vector *x0, double res) {
-#ifdef CGTIMING
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
+#ifdef CGTIMING
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
@@ -339,8 +339,8 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 }
 
 void PCGSolverCPJDS::doIteration(int iteration) {
-#ifdef CGTIMING
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
+#ifdef CGTIMING
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
@@ -1069,8 +1069,8 @@ void PCGSolverCPJDS2::doIteration1(numType * aData, numType * precond, int * aIn
 	numType * rmod_prevData = rmod_prev->getData();
 	numType * gammaData = gamma->getData();
 
-#ifdef CGTIMING
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
+#ifdef CGTIMING
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
@@ -1149,8 +1149,8 @@ void PCGSolverCPJDS2::doIteration2(numType * aData, numType * precond, int * aIn
 	numType * rmod_prevData = rmod_prev->getData();
 	numType * gammaData = gamma->getData();
 
-#ifdef CGTIMING
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
+#ifdef CGTIMING
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
@@ -1234,8 +1234,8 @@ void PCGSolverCPJDS2::doIteration3(numType * aData, numType * precond, int * aIn
 	numType * rmod_prevData = rmod_prev->getData();
 	numType * gammaData = gamma->getData();
 
-#ifdef CGTIMING
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
+#ifdef CGTIMING
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
@@ -1341,8 +1341,8 @@ void PCGSolverCPJDS2::doIteration(int iteration) {
 	numType * partialData = partial->getData();
 	numType * partialData2 = partial2->getData();
 
-#ifdef CGTIMING
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
+#ifdef CGTIMING
 	cudaEventCreate(&startTotal); cudaEventCreate(&stopTotal);
 	cudaEventCreate(&startTri); cudaEventCreate(&stopTri);
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);

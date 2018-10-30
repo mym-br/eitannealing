@@ -22,7 +22,7 @@
 #include "solver.h"
 #include "nodecoefficients.h"
 #include "solution.h"
-//#include "solution_lb.h"
+#include "solution_lb.h"
 #include "observations.h"
 #include "random.h"
 //#include "sparseincompletelq.h"
@@ -104,7 +104,7 @@ void workProc()
 
 	// Simulated annealing
 	std::unique_ptr<solution> current, next;
-	float kt = 0.05;
+	float kt = 0.001;
 	
 	int totalit;
 	int acceptit;

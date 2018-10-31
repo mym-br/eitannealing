@@ -400,13 +400,13 @@ unsigned long getSeed() {
 	gettimeofday(&tv1, (struct timezone*)0);
 	return (unsigned long)(tv1.tv_sec*1.E3 + tv1.tv_usec);
 #endif
+}
 
 int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
 	QApplication::setApplicationName("EIT Annealing Test");
 	QApplication::setApplicationVersion("0.1");
-	 intCoef::initInstance();
 	 
 
 	// --> Parse command line arguments
@@ -501,7 +501,7 @@ int main(int argc, char *argv[])
 	QTableView list;
 	list.setModel(viewre);
 	class ListViewDelegateRe : public QStyledItemDelegate {
-	protected: QString ListViewDelegateRe::displayText(const QVariant &value, const QLocale &locale) const { return locale.toString(value.toDouble(), 'f', 4); }
+	protected: QString displayText(const QVariant &value, const QLocale &locale) const { return locale.toString(value.toDouble(), 'f', 4); }
 	} *redelegate = new ListViewDelegateRe;
 	list.setItemDelegate(redelegate);
 	list.setWindowTitle("Sol Real");
@@ -518,7 +518,7 @@ int main(int argc, char *argv[])
 		viewim = new solutionView(input->getNumCoefficients());
 		listim.setModel(viewim);
 		class ListViewDelegateIm : public QStyledItemDelegate {
-		protected: QString ListViewDelegateIm::displayText(const QVariant &value, const QLocale &locale) const { return locale.toString(value.toDouble(), 'e', 4); }
+		protected: QString displayText(const QVariant &value, const QLocale &locale) const { return locale.toString(value.toDouble(), 'e', 4); }
 		} *imdelegate = new ListViewDelegateIm;
 		listim.setItemDelegate(imdelegate);
 		listim.setWindowTitle("Sol Imag");

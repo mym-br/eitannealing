@@ -32,7 +32,7 @@ public:
 	int getNObs() { return nobs; }
 	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getTensions() { return tensions; }
 	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getCurrents() { return currents; }
-	const char* getMeshFilename() { return mesh_file; }
+	const char* getMeshFilename() { return mesh_file.c_str(); }
 	_Scalar getCurrentVal(int i) { return currentVals[i]; }
 	int getCurrentsCount() { return (int)currentVals.size(); }
 

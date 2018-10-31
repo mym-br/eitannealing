@@ -27,6 +27,8 @@ set(eitannealingtest_SRCS
   src/gradientnormregularisation.cpp
   src/intcoef.cpp
   src/graphics.cpp
+#  src/main.cpp
+  tests/test_incomplete_lq.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
   tests/test_incomplete_lq.cpp

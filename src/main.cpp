@@ -27,7 +27,6 @@
 #include "problem.h"
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
-//#include "solution_lb.h"
 #include "observations.h"
 #include "random.h"
 //#include "sparseincompletelq.h"

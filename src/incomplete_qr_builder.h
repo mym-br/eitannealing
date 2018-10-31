@@ -15,6 +15,7 @@
 #include "util/fill_with_smallest.hpp"
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+#include "util/eigen_sizestype_adaptor.hpp"
 
 template<class scalar> class SparseIncompleteQRBuilder
 {
@@ -45,12 +46,8 @@ template<class scalar> class SparseIncompleteQRBuilder
                 unsigned long m = a.rows();
                 unsigned long n = a.cols();
                 Eigen::SparseMatrix<scalar, Eigen::ColMajor> RMatrix(n, n);
-                struct _calc_q_cols_size {
-                    unsigned long mr; _calc_q_cols_size(unsigned long n):mr(n){};
-                    typedef unsigned long value_type;
-                    value_type operator[](unsigned long i) const { return (i+1)>mr?mr:(i+1); }
-                };
-                RMatrix.reserve(_calc_q_cols_size(nr));
+                RMatrix.reserve(make_sizestype_adaptor([nr](unsigned long i){return (i+1)>nr?nr:(i+1);}));
+                    
                 // Initialize temp q storage
                 qcols.resize(n);
                 for(auto &x : this->qcols) {

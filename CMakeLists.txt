@@ -14,7 +14,8 @@ set(eitannealingtest_SRCS
 #  src/sparseincompletelq.cpp
   src/graphics.cpp
   src/initproblem.cpp
-  src/main.cpp
+#  src/main.cpp
+  tests/test_incomplete_lq.cpp
   src/nodecoeficients.cpp
   src/solver.cpp
   src/incomplete_cholesky.cpp
@@ -34,5 +35,5 @@ set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
 add_executable(eitannealingtest ${eitannealingtest_SRCS})
-set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 11)
+set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
 target_link_libraries(eitannealingtest ${libs})

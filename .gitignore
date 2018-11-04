@@ -1,1 +1,5 @@
-﻿/.vs
+.vs
+.vscode
+.directory
+.kdev4
+build

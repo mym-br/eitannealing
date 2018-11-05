@@ -41,7 +41,7 @@ template<class scalar> class SparseIncompleteQRBuilder
         //    applies f to each nonzero element of a's i-th column, passing its row number and value.
         // Unsigned long rows() and unsigned long cols()
         template <class columnMajorStorage> Eigen::SparseMatrix<scalar, Eigen::ColMajor>
-        buildRMatrixFromColStorage(const columnMajorStorage &a, unsigned long nr, unsigned long nq)
+        buildRMatrixFromColStorage(columnMajorStorage &&a, unsigned long nr, unsigned long nq)
         {
                 unsigned long m = a.rows();
                 unsigned long n = a.cols();

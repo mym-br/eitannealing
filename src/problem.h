@@ -114,7 +114,6 @@ public:
 	void createCoef2KMatrix() {
 		Scalar *base = skeleton->valuePtr();// coeffRef(0, 0);
 		std::vector<Eigen::Triplet<Scalar> > tripletList;
-		bool groundNodeSet = false;
 		for (int i = 0; i<getNodesCount(); ++i) {
 			for (nodeCoefficients *aux = nodeCoef[i]; aux != NULL; aux = aux->next) {
 				if (aux->node < i) continue; // skip upper triangular

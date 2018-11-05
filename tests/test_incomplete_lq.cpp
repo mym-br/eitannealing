@@ -52,8 +52,7 @@ int main(int argc, char **argv) {
   Eigen::SparseMatrix<double, Eigen::ColMajor> *a;
   prob->assembleProblemMatrix(&cond[0], &a);
   SparseIncompleteQRBuilder<double> builder;
-  upperTriangularElementsMap ut(*a);
-  
-  Eigen::SparseMatrix<double> R = builder.buildRMatrixFromColStorage(symmetric2ColStorage(*a, ut), 6, 12);
+
+  Eigen::SparseMatrix<double> R = builder.buildRMatrixFromColStorage(symmetric2ColStorage<double>(*a, upperTriangularElementsMap(*a)), 6, 12);
   return 0;
 }

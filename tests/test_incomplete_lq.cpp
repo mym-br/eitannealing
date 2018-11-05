@@ -24,8 +24,8 @@ template<class scalar> class symmetric2ColStorage {
     const upperTriangularElementsMap &utmap;
     const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m;
 public:
-    symmetric2ColStorage(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m, const upperTriangularElementsMap &map):m(m), utmap(map){}
-    
+    symmetric2ColStorage(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m, const upperTriangularElementsMap &map): utmap(map), m(m) {}
+
     void iterateOverColumn(unsigned long j, std::function<void(unsigned long, scalar)> &&f) const {
         // 1st iterate over upper elements
         utmap.iterateOverUpperElements(j, [f, this](Eigen::Index i, Eigen::Index offset) {        

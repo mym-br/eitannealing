@@ -23,22 +23,16 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIR} src src/complex)
 
-set(eitannealingtest_SRCS
+set(eitannealing_core_SRCS
   src/gradientnormregularisation.cpp
   src/intcoef.cpp
-  src/graphics.cpp
-#  src/main.cpp
-  tests/test_incomplete_lq.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  tests/test_incomplete_lq.cpp
   src/problem.cpp
   src/solution.cpp
   src/solutionbase.cpp
   src/solver.cpp
   src/mt19937-64/mt19937-64.c
-  src/gmsh/gmshgraphics.cpp
-  src/parameters/parametersparser.cpp
   src/threedim/initproblem3D.cpp
   src/solver_lb.cpp
   src/solution_lb.cpp
@@ -51,6 +45,11 @@ set(eitannealingtest_SRCS
   src/complex/gradientnormregularisationcomplex.cpp
 )
 
+set(eitannealing_gui_SRCS
+  src/graphics.cpp
+  src/gmsh/gmshgraphics.cpp
+)
+
 add_definitions(${Qt5Widgets_DEFINITIONS})
 set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 if(WIN32)
@@ -58,6 +57,9 @@ if(WIN32)
 endif()
 set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
-add_executable(eitannealingtest ${eitannealingtest_SRCS})
+add_subdirectory(tests)
+add_library(eitannealing_core ${eitannealing_core_SRCS})
+add_executable(eitannealingtest src/main.cpp   src/parameters/parametersparser.cpp ${eitannealing_gui_SRCS})
+set_property(TARGET eitannealing_core PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
-target_link_libraries(eitannealingtest ${libs} ${ADDITIONAL_LIBRARIES})
+target_link_libraries(eitannealingtest eitannealing_core ${libs} ${ADDITIONAL_LIBRARIES})

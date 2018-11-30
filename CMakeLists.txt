@@ -12,32 +12,27 @@ if(NOT DEFINED DO_NOT_USE_NATIVE_GMSH)
         message(STATUS "LibGmsh includes found at ${GMSH_INCLUDE_DIR}.")
     else()
         message(STATUS "LibGmsh includes not found, falling back to redist.")
-        set(GMSH_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/gmsh) 
+        set(GMSH_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/gmsh)
     endif()
 else()
-    set(GMSH_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/gmsh) 
+    set(GMSH_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/gmsh)
 endif()
 endif()
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIR} src src/complex)
 
-set(eitannealingtest_SRCS
+set(eit_core_SRCS
   src/gradientnormregularisation.cpp
   src/intcoef.cpp
-  src/graphics.cpp
-#  src/main.cpp
-  tests/test_incomplete_lq.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  tests/test_incomplete_lq.cpp
   src/problem.cpp
   src/solution.cpp
   src/solutionbase.cpp
   src/solver.cpp
   src/mt19937-64/mt19937-64.c
-  src/gmsh/gmshgraphics.cpp
   src/parameters/parametersparser.cpp
   src/threedim/initproblem3D.cpp
   src/solver_lb.cpp
@@ -51,6 +46,11 @@ set(eitannealingtest_SRCS
   src/complex/gradientnormregularisationcomplex.cpp
 )
 
+set(eit_gui_SRCS
+  src/graphics.cpp
+  src/gmsh/gmshgraphics.cpp
+)
+
 add_definitions(${Qt5Widgets_DEFINITIONS})
 set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 if(WIN32)
@@ -58,6 +58,10 @@ if(WIN32)
 endif()
 set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
-add_executable(eitannealingtest ${eitannealingtest_SRCS})
+add_library(eit_core OBJECT ${eit_core_SRCS})
+set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
+set_property(TARGET eit_core PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_executable(eitannealingtest tests/test_incomplete_lq.cpp ${eit_gui_SRCS})
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
-target_link_libraries(eitannealingtest ${libs} ${ADDITIONAL_LIBRARIES})
+target_link_libraries(eitannealingtest $<TARGET_OBJECTS:eit_core> ${libs} ${ADDITIONAL_LIBRARIES})

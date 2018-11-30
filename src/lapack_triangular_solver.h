@@ -48,7 +48,7 @@ void dtptrs_(
 
 	double *B,
 	int LDB,
-	int *INFO)
+	int *INFO);
 
 
 #ifdef __cplusplus

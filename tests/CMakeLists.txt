@@ -1,3 +1,0 @@
-add_executable(incompletelq_test test_incomplete_lq.cpp)
-set_property(TARGET incompletelq_test PROPERTY CXX_STANDARD 17)
-target_link_libraries(incompletelq_test eitannealing_core)

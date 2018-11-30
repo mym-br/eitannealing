@@ -5,22 +5,17 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Threads REQUIRED)
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 
-set(eitannealingtest_SRCS 
+set(eit_core_SRCS
   src/gradientnormregularisation.cpp 
 #  src/sparseincompletelq.cpp
-  src/graphics.cpp
   src/initproblem.cpp
-#  src/main.cpp
-  tests/test_incomplete_lq.cpp
   src/nodecoeficients.cpp
   src/solver.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  src/assembleMatrix.cpp
   src/solution.cpp
   src/mt19937-64/mt19937-64.c
   src/observations.cpp
@@ -30,10 +25,19 @@ set(eitannealingtest_SRCS
   src/intcoef.cpp
 )
 
+set(eit_gui_SRCS
+  src/graphics.cpp
+  src/gmsh/gmshgraphics.cpp
+)
+
 add_definitions(${Qt5Widgets_DEFINITIONS})
 set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
-add_executable(eitannealingtest ${eitannealingtest_SRCS})
+add_library(eit_core OBJECT ${eit_core_SRCS})
+set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
+set_property(TARGET eit_core PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_executable(eitannealingtest tests/test_incomplete_lq.cpp ${eit_gui_SRCS})
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
-target_link_libraries(eitannealingtest ${libs})
+target_link_libraries(eitannealingtest $<TARGET_OBJECTS:eit_core> ${libs} ${ADDITIONAL_LIBRARIES})

@@ -33,19 +33,19 @@ viewport::viewport(int width, int height, const char *title) : scale(width, 70, 
 	this->paintbuff.fill(qRgb(255, 255, 255));
 	// prepare scale
 	this->scale.fill(qRgb(255, 255, 255));
-	
+
 	QLinearGradient color(20,0,this->width()-20,0);
 	
 	color.setColorAt(0, getColorForLevel(mincond));	
 	for(double t=0.125f; t < 1.0f; t+= 0.125f) {
 	    double level = maxcond*t + (1-t)*mincond;
-	    color.setColorAt(t, getColorForLevel(level));	
+	    color.setColorAt(t, getColorForLevel(level));
 	}
 	color.setColorAt(1, getColorForLevel(maxcond));
 	QPainter painter(&scale);
 	painter.setBrush(color);
 	//painter.setPen(Qt::NoPen);
-	painter.drawRect(20, 10, scale.width()-40, 30);	
+	painter.drawRect(20, 10, scale.width()-40, 30);
 	painter.setPen(Qt::SolidLine);
 	for(int i = 0; i <= 4; i++) {
 	  int x = (int)((scale.width()-40)*((float)i/4)+0.5f)+20;
@@ -53,10 +53,10 @@ viewport::viewport(int width, int height, const char *title) : scale(width, 70, 
 	  level = maxcond*level + (1-level)*mincond;
 	  painter.drawLine(x,40,x,45);
 	  painter.drawText(x-25, 45, 51, 20, Qt::AlignHCenter | Qt::AlignTop, QString::number(level));
-	  
+
 	}
-	  
-	
+
+
 }
 
 QColor viewport::getColorForLevel(double level)
@@ -78,11 +78,11 @@ QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 	s2 = solution[node2coefficient[n2]];
 	s3 = solution[node2coefficient[n3]];
 	// Quick hardcoded sort
-	
+
 	if(s1 > s2) {
 	    f_aux = s1; s1 = s2; s2 = f_aux;
 	    aux = n1; n1 = n2; n2 = aux;
-	}	
+	}
 	if(s2 > s3) {
 	    f_aux = s2; s2 = s3; s3 = f_aux;
 	    aux = n2; n2 = n3; n3 = aux;
@@ -90,14 +90,14 @@ QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 		f_aux = s1; s1 = s2; s2 = f_aux;
 		aux = n1; n1 = n2; n2 = aux;
 	    }
-	}	
+	}
 	if((s3-s1)<0.001) {
 		int level = 255*(((s1+s3)/2));
 		return QBrush(getColorForLevel((s1+s3)/2));
 	}
-	
+
 	// Ok, so now we must find both control points
-	// 	let's say p0 = n1		
+	// 	let's say p0 = n1
 	double alpha = (s2-s1)/(s3-s1);	// 0 <= x <= 1
 	Eigen::Vector2d a(
 		nodes[n3].x - nodes[n1].x,
@@ -119,11 +119,11 @@ QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 	QLinearGradient color(
 		translateCoordinate(nodes[n1].x, nodes[n1].y),
 		translateCoordinate(nodes[n1].x+x, nodes[n1].y+y));
-	
-	color.setColorAt(0, getColorForLevel(s1));	
+
+	color.setColorAt(0, getColorForLevel(s1));
 	for(double t=0.125f; t < 1.0f; t+= 0.125f) {
 	    double level = s3*t + (1-t)*s1;
-	    color.setColorAt(t, getColorForLevel(level));	
+	    color.setColorAt(t, getColorForLevel(level));
 	}
 	color.setColorAt(1, getColorForLevel(s3));
 
@@ -149,7 +149,7 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
 		    n = elements[i].a;
 		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		    int level = 255;//*(solution[elements[i].condIndex]-1);		
+		    int level = 255;//*(solution[elements[i].condIndex]-1);
 		    painter.setBrush(getBrushForElement(solution, elements[i].a, elements[i].b, elements[i].c));
 		    painter.drawConvexPolygon(polygon);
 	    }
@@ -169,9 +169,9 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 				    translateCoordinate(base->x, base->y),
 				    translateCoordinate(n3->x, n3->y));
 	    }*/
-	    
+
 	    // Draw perimeter
-	    
+
 	    painter.setPen(Qt::SolidLine);
 	    painter.setBrush(Qt::NoBrush);
 	    for(auto const &edge : perimeter) {
@@ -179,11 +179,11 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 		translateCoordinate(nodes[edge.first].x, nodes[edge.first].y),
 		translateCoordinate(nodes[edge.second].x, nodes[edge.second].y)
 	      );
-	      
+
 	    }
 	}
-	
-	    
+
+
 	// Request an update
 	this->update();
 }
@@ -192,9 +192,9 @@ void viewport::paintEvent ( QPaintEvent * event )
 {
 	QPainter painter(this);
 	painter.drawImage(event->rect(), this->paintbuff, event->rect());
-	
+
 	painter.drawImage(event->rect(), this->scale, event->rect().translated(0,-this->paintbuff.height()));
-	
+
 }
 
 TableViewCopyDataPopupMenu::TableViewCopyDataPopupMenu() {}
@@ -272,6 +272,6 @@ void solutionView::setCurrentSolution(const double *newsol)
 	}
 	emit dataChanged(this->createIndex(0,0, this->sol), this->createIndex(0,this->rows));
 }
- 
-#include "graphics.moc"
+
+
 

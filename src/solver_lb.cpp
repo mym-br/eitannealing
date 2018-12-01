@@ -2,7 +2,7 @@
 #include "problem.h"
 
 LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a):
-    Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(true), x0(Eigen::VectorXd::Zero(_Aii->rows()))
+    Aii(*_Aii), Aic(*_Aic), precond(precond), lowerSafe(true), a(a), x0(Eigen::VectorXd::Zero(_Aii->rows()))
 {
     it = 0;
     // 0
@@ -12,7 +12,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::Vec
 }
 
 LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a, const Eigen::VectorXd &x0):
-    Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(true), x0(x0)
+    Aii(*_Aii), Aic(*_Aic), precond(precond), lowerSafe(true), a(a), x0(x0)
 {
     it = 0;
     // 0

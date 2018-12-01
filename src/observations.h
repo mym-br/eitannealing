@@ -115,7 +115,6 @@ inline void observations<std::complex<double>>::initObs(const char **filecurrent
 	for (int i = 0; i<nobs; i++) {
 		char ch;
 		double valreal, valimag;
-		std::complex<double> currin, currout;
 		currents[i] = current;
 		filecin >> ch >> valreal >> ch >> valimag >> ch;
 		currents[i][baseIndex + i] = std::complex<double>(valreal, valimag);
@@ -124,7 +123,7 @@ inline void observations<std::complex<double>>::initObs(const char **filecurrent
 
 		// read tensions from file
 		tensions[i].resize(n);
-		std::complex<double> val, avg;
+		std::complex<double> avg;
 		avg = 0;
 		for (int j = 0; j<n; j++) {
 			file >> ch >> valreal >> ch >> valimag >> ch;

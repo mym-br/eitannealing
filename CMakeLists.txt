@@ -5,6 +5,7 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(GMSH REQUIRED)
+set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -20,7 +21,6 @@ set(eit_core_SRCS
   src/solutionbase.cpp
   src/solver.cpp
   src/mt19937-64/mt19937-64.c
-  src/parameters/parametersparser.cpp
   src/threedim/initproblem3D.cpp
   src/solver_lb.cpp
   src/solution_lb.cpp
@@ -43,9 +43,6 @@ set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
 set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
 add_library(eit_core OBJECT ${eit_core_SRCS})
-set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
-set_property(TARGET eit_core PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-add_executable(eitannealingtest tests/test_incomplete_lq.cpp ${eit_gui_SRCS})
-set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
+add_executable(eitannealingtest tests/test_incomplete_lq.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS})
 target_link_libraries(eitannealingtest $<TARGET_OBJECTS:eit_core> ${libs} ${ADDITIONAL_LIBRARIES})

@@ -5,7 +5,7 @@ class QCommandLineParser;
 #include<QString>
 
 struct EitAnnealingArgs {
-	EitAnnealingArgs() : seedSpecified(false), calibrationMode(0) {}
+	EitAnnealingArgs() : calibrationMode(0), seedSpecified(false) {}
 
 	QString inputMesh, inputCurrents, inputTensions, inputCurrentsOut;
 	QString outputMesh;

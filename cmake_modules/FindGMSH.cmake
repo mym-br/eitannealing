@@ -33,3 +33,7 @@ if(NOT GMSH_INCLUDE_DIRS)
     endif()
 endif()
 find_package_handle_standard_args(GMSH DEFAULT_MSG GMSH_INCLUDE_DIRS)
+# win32 requires wsock32
+if(WIN32)
+    set(GMSH_LIBRARIES wsock32)
+endif()

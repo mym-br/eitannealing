@@ -39,10 +39,7 @@ set(eit_gui_SRCS
 )
 
 add_definitions(${Qt5Widgets_DEFINITIONS})
-set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-if(WIN32)
-    set(ADDITIONAL_LIBRARIES wsock32)
-endif()
+set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
 set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
 add_library(eit_core OBJECT ${eit_core_SRCS})

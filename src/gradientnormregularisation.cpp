@@ -2,11 +2,6 @@
 #include <string>
 #include <algorithm>
 #include <set>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/construct.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/lambda/control_structures.hpp>
-#include <boost/function.hpp>
 #include <iostream>
 
 #include "gradientnormregularisation.h"
@@ -20,12 +15,12 @@
 //
 //gradientNormRegularisation_old::n2cmatrix *gradientNormRegularisation_old::buildCoefficient2NodeMatrix(genericEletrode **last)
 //{
-//    std::vector<Eigen::Triplet<Scalar>> tripletList; 
+//    std::vector<Eigen::Triplet<Scalar>> tripletList;
 //    for(int i = 0; i<nodes.size()-1; i++)  {
 //      int coefficient = node2coefficient[i];
 //      if(coefficient <32) {// electrode node
 //	auto ee = std::find_if(gelectrodes.begin(), gelectrodes.end(), [i](const genericEletrode &e) {
-//	  return e.baseNode == i;  
+//	  return e.baseNode == i;
 //	});
 //	if(ee!= gelectrodes.end())
 //	  coefficient = node2coefficient[ee->nodesPairs.begin()->first];
@@ -36,10 +31,10 @@
 //    n2cmatrix *m = new n2cmatrix(nodes.size()-1,numcoefficients);
 //    m->setFromTriplets(tripletList.begin(), tripletList.end());
 //    m->makeCompressed();
-//    
+//
 //    // now get last electrode
 //    *last = &(*std::find_if(gelectrodes.begin(), gelectrodes.end(), [](const genericEletrode &e) {
-//	  return e.baseNode == nodes.size()-1;  
+//	  return e.baseNode == nodes.size()-1;
 //	}));
 //    return m;
 //}
@@ -86,9 +81,9 @@ int gradientNormRegularisation::coefficientMap(int node)
 
 void gradientNormRegularisation::buildMatrix()
 {
-    
+
 	matrix *out = new matrix(input->numcoefficients - electrodecoefficients, input->numcoefficients - electrodecoefficients);
-    std::vector<Eigen::Triplet<Scalar>> tripletList; 
+    std::vector<Eigen::Triplet<Scalar>> tripletList;
 	for (int i = 0; i<input->getNodesCount() - 1; ++i) {
 	int ci = coefficientMap(i);
 

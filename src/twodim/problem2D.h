@@ -61,6 +61,7 @@ private:
 	std::vector<node> nodes;
 	std::vector<triangularElement> elements;
 	std::vector<genericEletrode> gelectrodes;
+	std::set<int> gelectrodesNonBaseNodes;
 	std::vector<std::pair<int, int> > perimeter;
 
 public:
@@ -69,6 +70,7 @@ public:
 	void buildNodeCoefficients();
 	int getGenericElectrodesCount() { return (int)gelectrodes.size(); }
 	int getInnerAdjacencyCount() { return (int)innerAdjacency.size(); }
+	int getGenericElectrodesCoeffCount() { return (int)gelectrodes.size() + (int)gelectrodesNonBaseNodes.size(); };
 	problem2D(const char *meshfilename) : problem(meshfilename) {};
 	~problem2D(){};
         // FIXME: add a better interface to this

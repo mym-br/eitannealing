@@ -6,8 +6,10 @@ void problem2D::initProblem(const char *meshfilename) {
 	fillNodes();
 	fillElementsGenericElectrode();
 	preparePerimeter();
-	this->electrodeh = 0.023f;
-	this->totalheight = 0.016f;
+	//this->electrodeh = 0.023f;
+	//this->totalheight = 0.016f;
+	this->electrodeh = 0.0004f;
+	this->totalheight = 0.080f;
 
 	file.close();
 }
@@ -70,8 +72,8 @@ void problem2D::fillElementsGenericElectrode() {
 		nc--;
 		switch (id) {
 		case 1001:	// external ring
-			//case 2001:
-			//case 3001:
+			case 2001:
+			case 3001:
 			innerNodes.erase(na);
 			innerNodes.erase(nb);
 			innerNodes.erase(nc);
@@ -84,8 +86,8 @@ void problem2D::fillElementsGenericElectrode() {
 			elements.push_back(temp);
 			break;
 
-		case 2001:
-		case 3001:	// internal elements
+		//case 2001:
+		//case 3001:	// internal elements
 		case 4001:
 			if (!outerRingNodes.count(na))
 				innerNodes.insert(na);
@@ -99,6 +101,19 @@ void problem2D::fillElementsGenericElectrode() {
 			elements.push_back(temp);
 			break;
 
+		case 10001: // multilayered electrode middle layer
+			if (!outerRingNodes.count(na))
+				gelectrodesNonBaseNodes.insert(na);
+			if (!outerRingNodes.count(nb))
+				gelectrodesNonBaseNodes.insert(nb);
+			if (!outerRingNodes.count(nc))
+				gelectrodesNonBaseNodes.insert(nc);
+			temp.a = na;
+			temp.b = nb;
+			temp.c = nc;
+			elements.push_back(temp);
+			break;
+
 		case 10000:	// electrode
 			// For this to work, electrodes bust be the last
 			//	entity declared
@@ -106,17 +121,17 @@ void problem2D::fillElementsGenericElectrode() {
 			//	should be present in outterRingNodes)
 			int baseNode = -1;
 			int e1, e2;
-			if (outerRingNodes.count(na) == 0) {
+			if (outerRingNodes.count(na) == 0 && gelectrodesNonBaseNodes.count(na) == 0) {
 				baseNode = na;
 				e1 = nb;
 				e2 = nc;
 			}
-			else if (outerRingNodes.count(nb) == 0) {
+			else if (outerRingNodes.count(nb) == 0 && gelectrodesNonBaseNodes.count(nb) == 0) {
 				baseNode = nb;
 				e1 = na;
 				e2 = nc;
 			}
-			else if (outerRingNodes.count(nc) == 0) {
+			else if (outerRingNodes.count(nc) == 0 && gelectrodesNonBaseNodes.count(nc) == 0) {
 				baseNode = nc;
 				e1 = na;
 				e2 = nb;
@@ -131,6 +146,9 @@ void problem2D::fillElementsGenericElectrode() {
 	// Electrode coefficients
 	for (auto e : gelectrodes) {
 		node2coefficient[e.baseNode] = condIndex++;
+	}
+	for (auto e : gelectrodesNonBaseNodes) {
+		node2coefficient[e] = condIndex++;
 	}
 
 	// Outter ring coefficient

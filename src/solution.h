@@ -172,7 +172,7 @@ class solution;
 
 
 class solution : public solutionbase<double> {
-private:
+protected:
 	double *sol;
 	matrix *stiffness, *stiffnessorig;
 	SparseIncompleteLLT *precond;
@@ -217,6 +217,9 @@ public:
 
 	Eigen::VectorXd getSimulationX(int i) const { return simulations[i]->getX(); }
 	double *getSolution() { return this->sol; }
+
+	static void savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings);
+	static void savePotentials(std::vector<Eigen::VectorXf> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings);
 
 	~solution();
 };

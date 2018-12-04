@@ -13,6 +13,7 @@
 //#include <boost/numeric/interval.hpp>
 #include "gradientnormregularisation.h"
 #include "intcoef.h"
+#include <numeric>
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -32,14 +33,14 @@ void solution::improve()
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
-	
+
 	aux = simulations[critical]->getX().tail(input->getGenericElectrodesCount());
 	#ifndef BLOCKGND
 	// Rebase tension for zero sum
 	zeroSumVector(aux);
 	#endif
 	aux -= readings->getTensions()[critical];
-					
+
 	distance[critical] = aux.norm();
 	err[critical] = sqrt(simulations[critical]->getErrorl2Estimate());
 	maxdist[critical] = distance[critical] + err[critical];
@@ -245,6 +246,19 @@ void solution::initErrors()
 	// Calc regularisation value
 	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30
 				-intcoef->getInt(this->sol)*240;
+	//for (int i = 0; i < input->getGenericElectrodesCount(); i++) { std::cout << this->sol[i] << " "; std::cout << std::endl; }
+	if (std::abs(input->electrodevar) > 1e-6) {
+		double sum = std::accumulate(this->sol, this->sol + input->getGenericElectrodesCount(), 0.0);
+		double mean = sum / input->getGenericElectrodesCount();
+		std::vector<double> diff(input->getGenericElectrodesCount());
+		std::transform(this->sol, this->sol + input->getGenericElectrodesCount(), diff.begin(), [mean](double x) { return x - mean; });
+		double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+		double var = sq_sum / input->getGenericElectrodesCount();
+		this->elecvariance = var*input->electrodevar;
+		this->regularisation += this->elecvariance;
+	}
+	else
+		this->elecvariance = 0;
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
@@ -266,7 +280,7 @@ void solution::initErrors()
 		maxdist[i] = distance[i] + err[i];
 		mindist[i] = max(distance[i] - err[i],0);
 		err_x_dist[i] = maxdist[i]*err[i];
-		
+
 
 	}
 	totalDist = distance.norm()+regularisation;
@@ -376,7 +390,7 @@ double *solution::getNewRandomSolution(std::shared_ptr<problem> input, std::vect
 //	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
 //	for (int patterno = 0; patterno < sols.size(); patterno++) {
 //		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
-//		for (int j = 0; j < input->getNodesCount(); j++) 
+//		for (int j = 0; j < input->getNodesCount(); j++)
 //			myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
 //		myfile << "$EndNodeData\n";
 //	}
@@ -417,7 +431,7 @@ double *solution::getShuffledSolution(shuffleData *data, const shuffler &sh) con
 
 		node1 = input->node2coefficient[input->innerAdjacency[ncoef].first];
 		node2 = input->node2coefficient[input->innerAdjacency[ncoef].second];
-		
+
 		// Order nodes
 		if(res[node1]>res[node2]) {
 			int aux = node1;
@@ -487,7 +501,7 @@ void solution::saturate()
 }
 
 void solution::ensureMinIt(unsigned int it)
-{     
+{
 	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
 	for (int i = 0; i<readings->getNObs(); i++) {
 	    CG_Solver *sim = this->simulations[i];
@@ -524,7 +538,7 @@ void solution::ensureMinIt(unsigned int it)
 }
 
 void solution::ensureMaxE2(double e2)
-{     
+{
 	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
 	for (int i = 0; i<readings->getNObs(); i++) {
 	    CG_Solver *sim = this->simulations[i];
@@ -571,3 +585,46 @@ solution::~solution()
 	delete[] simulations;
 }
 
+void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings) {
+	std::ofstream myfile;
+	myfile.open(filename);
+
+	std::ifstream inputfile(input->getMeshFilename());
+	for (int i = 0; inputfile.eof() != true; i++) {
+		std::string line;
+		std::getline(inputfile, line);
+		myfile << line << '\n';
+	}
+
+	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
+	for (int patterno = 0; patterno < sols.size(); patterno++) {
+		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
+		for (int j = 0; j < input->getNodesCount(); j++)
+			myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+		myfile << "$EndNodeData\n";
+	}
+	myfile.flush();
+	myfile.close();
+}
+
+void solution::savePotentials(std::vector<Eigen::VectorXf> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings) {
+	std::ofstream myfile;
+	myfile.open(filename);
+
+	std::ifstream inputfile(input->getMeshFilename());
+	for (int i = 0; inputfile.eof() != true; i++) {
+		std::string line;
+		std::getline(inputfile, line);
+		myfile << line << '\n';
+	}
+
+	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
+	for (int patterno = 0; patterno < sols.size(); patterno++) {
+		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
+		for (int j = 0; j < input->getNodesCount(); j++)
+			myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+		myfile << "$EndNodeData\n";
+	}
+	myfile.flush();
+	myfile.close();
+}

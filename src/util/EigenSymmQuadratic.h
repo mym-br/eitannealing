@@ -17,6 +17,18 @@ template <typename _Scalar,typename t_vector > _Scalar EigenSymmQuadraticL(
   const typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::template SelfAdjointViewReturnType<Eigen::Lower>::Type &m,
   const Eigen::MatrixBase<t_vector>& x)
 {
+	//std::ofstream myfile;
+	//myfile.open("RegularisationMatrix.txt", std::ios::binary);
+	//for (int i = 0; i < m.matrix().rows(); i++) {
+	//	for (int j = 0; j < m.matrix().cols(); j++) {
+	//		_Scalar valre = j < i ? m.matrix().coeff(i, j) : m.matrix().coeff(j, i);
+	//		_Scalar valim = 0.0;
+	//		myfile.write((char*)&valre, sizeof(double));
+	//		myfile.write((char*)&valim, sizeof(double));
+	//	}
+	//}
+	//myfile.close();
+
     typedef typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::Index Index;
     Index col, nextcol;
 	_Scalar res = 0;

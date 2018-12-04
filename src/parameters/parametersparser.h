@@ -13,7 +13,7 @@ struct EitAnnealingArgs {
 	float peParam;
 	int ground;
 	int calibrationMode;
-
+	double electrodevar, regularizationFactor, kt;
 	bool isSeedSpecified() { return seedSpecified; }
 	unsigned long getSeed() { return seed; }
 	void setSeed(unsigned long _seed) { seed = _seed; seedSpecified = true; }

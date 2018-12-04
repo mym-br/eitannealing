@@ -1,14 +1,13 @@
-project(eitannealingtest)
-cmake_minimum_required(VERSION 3.1.3)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
+project(eitannealingtests LANGUAGES C CXX CUDA)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 find_package(Qt5Widgets REQUIRED)
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
 find_package(Threads REQUIRED)
+find_package(CUDA QUIET REQUIRED)
 find_package(GMSH REQUIRED)
-set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} src src/complex)
 
 set(eit_core_SRCS
@@ -16,6 +15,7 @@ set(eit_core_SRCS
   src/intcoef.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
+  #src/eigen3test.cpp
   src/problem.cpp
   src/solution.cpp
   src/solutionbase.cpp
@@ -33,6 +33,24 @@ set(eit_core_SRCS
   src/complex/gradientnormregularisationcomplex.cpp
 )
 
+set(eit_cuda_SRCS
+  src/cuda/matrix-cpjds.cpp
+  src/cuda/matrix-cpjds.cu
+  src/cuda/number.cpp
+  src/cuda/number.cu
+  src/cuda/vector.cpp
+  src/cuda/vector.cu
+  src/cuda/utils.cpp
+  src/cuda/color.cpp
+  src/cuda/analysis.cpp
+  src/cuda/solver-pcg.cu
+  src/cuda/solvercuda.cu
+  src/cuda/solvercuda.cpp
+  src/cuda/solvercublas.cu
+  src/cuda/solvercublas.cpp
+  src/cuda/solutioncuda.cpp
+)
+
 set(eit_gui_SRCS
   src/graphics.cpp
   src/gmsh/gmshgraphics.cpp
@@ -40,9 +58,15 @@ set(eit_gui_SRCS
 
 add_definitions(${Qt5Widgets_DEFINITIONS})
 set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
-set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
 add_library(eit_core OBJECT ${eit_core_SRCS})
+set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
-add_executable(eitannealingtest tests/test_incomplete_lq.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS})
-target_link_libraries(eitannealingtest $<TARGET_OBJECTS:eit_core> ${libs} ${ADDITIONAL_LIBRARIES})
+add_executable(eitmain src/main.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS})
+target_link_libraries(eitmain $<TARGET_OBJECTS:eit_core> ${libs} ${ADDITIONAL_LIBRARIES})
+set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
+set_property(TARGET eitmain PROPERTY CXX_STANDARD_REQUIRED ON)
+
+cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} ${eit_gui_SRCS})
+target_link_libraries(eitcuda $<TARGET_OBJECTS:eit_core> ${libs} ${ADDITIONAL_LIBRARIES})
+set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)

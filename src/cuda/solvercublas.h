@@ -1,6 +1,9 @@
 #ifndef SOLVERCUBLAS_H_
 #define SOLVERCUBLAS_H_
 
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
+
 // CUDA Runtime
 #include <cuda_runtime.h>
 

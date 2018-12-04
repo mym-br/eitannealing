@@ -55,6 +55,7 @@ observations<std::complex<double>> *readingsComplex;
 observations<double> *readingsScalar;
 bool isComplexProblem;
 unsigned long seed;
+float kt;
 
 void workProc()
 {
@@ -119,7 +120,6 @@ void workProc()
 	double *solim = new double[input->getNumCoefficients()];
 	std::unique_ptr<solutionbase<std::complex<double>>> currentComplex, nextComplex;
 	std::unique_ptr<solutionbase<double>> currentScalar, nextScalar;
-	float kt = 0.05f;
 
 	int totalit;
 	int acceptit;
@@ -129,44 +129,44 @@ void workProc()
 	if (isComplexProblem) {
 		sh.reset(new shuffler(input, readingsComplex));
 		std::vector<std::complex<double>> electrodesCoeffs;
-		//electrodesCoeffs.push_back(std::complex<double>(4830.51, 7.31354e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4411.41, 3.33121e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4994.32, 9.79054e-009));
-		//electrodesCoeffs.push_back(std::complex<double>(4988.02, 4.94858e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4801.23, 3.92602e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(3741.52, 3.11163e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(3191.99, 3.78316e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4365.43, 8.93063e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4297.29, 1.74702e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4568.34, 9.16038e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4584.3, 5.63207e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4834.79, 4.4647e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4460.65, 4.44359e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4828.89, 6.42261e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4990.56, 1.01538e-009));
-		//electrodesCoeffs.push_back(std::complex<double>(4762.96, 9.68677e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4480.58, 8.74027e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4395.26, 2.62236e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4457.48, 8.37109e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4585.4, 1.44418e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(3735.87, 8.91897e-009));
-		//electrodesCoeffs.push_back(std::complex<double>(4825.51, 2.38513e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(2713.09, 8.62766e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(3699.35, 2.20263e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4893.71, 3.69342e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(3741.76, 6.82346e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(3727.73, 2.30241e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(3692.6, 6.9147e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4027.23, 5.88543e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4609.49, 1.97371e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(4083.94, 2.25233e-008));
-		//electrodesCoeffs.push_back(std::complex<double>(2420.76, 1.37597e-009));
+		electrodesCoeffs.push_back(std::complex<double>(8063.9, 5.82505e-008));
+		electrodesCoeffs.push_back(std::complex<double>(7684.01, 2.64247e-008));
+		electrodesCoeffs.push_back(std::complex<double>(6543.7, 7.99271e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9286.28, 2.3217e-008));
+		electrodesCoeffs.push_back(std::complex<double>(4122.22, 6.75443e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9368.93, 4.48715e-008));
+		electrodesCoeffs.push_back(std::complex<double>(8894.94, 5.52865e-008));
+		electrodesCoeffs.push_back(std::complex<double>(1448.95, 7.93369e-008));
+		electrodesCoeffs.push_back(std::complex<double>(7445.41, 2.7454e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9393.67, 4.66246e-009));
+		electrodesCoeffs.push_back(std::complex<double>(9007.99, 4.6255e-008));
+		electrodesCoeffs.push_back(std::complex<double>(7695.65, 5.22615e-008));
+		electrodesCoeffs.push_back(std::complex<double>(8644.59, 3.46799e-008));
+		electrodesCoeffs.push_back(std::complex<double>(8428.48, 8.74252e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9367.94, 1.45588e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9303.94, 3.81534e-008));
+		electrodesCoeffs.push_back(std::complex<double>(7815.82, 9.14307e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9832.13, 7.96253e-008));
+		electrodesCoeffs.push_back(std::complex<double>(5466.56, 9.52926e-008));
+		electrodesCoeffs.push_back(std::complex<double>(8004.29, 9.38392e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9994.72, 5.12151e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9164.13, 7.21611e-009));
+		electrodesCoeffs.push_back(std::complex<double>(8979.89, 5.32692e-009));
+		electrodesCoeffs.push_back(std::complex<double>(7348.07, 9.7583e-008));
+		electrodesCoeffs.push_back(std::complex<double>(8796.92, 4.86889e-008));
+		electrodesCoeffs.push_back(std::complex<double>(8767.28, 7.96476e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9015.4, 4.61737e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9242.83, 8.51366e-008));
+		electrodesCoeffs.push_back(std::complex<double>(7116.48, 7.5862e-008));
+		electrodesCoeffs.push_back(std::complex<double>(1114.67, 7.72724e-008));
+		electrodesCoeffs.push_back(std::complex<double>(7003.08, 4.15017e-008));
+		electrodesCoeffs.push_back(std::complex<double>(9617.3, 5.9162e-008));
 		if (input->getCalibrationMode()) currentComplex.reset(new solutioncomplexcalibration(input, readingsComplex, electrodesCoeffs));
 		else currentComplex.reset(new solutioncomplex(input, readingsComplex, electrodesCoeffs));
 	}
 	else {
 		std::vector<double> electrodesCoeffs;
-		for (int j = 0; j < 32; j++) electrodesCoeffs.push_back(10.0);
+		//for (int j = 0; j < 32; j++) electrodesCoeffs.push_back(0.002);
 		sh.reset(new shuffler(input, readingsScalar));
 		currentScalar.reset(new solution(input, readingsScalar, electrodesCoeffs));
 	}
@@ -177,12 +177,13 @@ void workProc()
 	int solutions;
 	double e;
 	double r;
+	double v;
 	double sqe;
 	iterations = 0;
 	int no_avance_count = 0;
 	double prevE = 10000000000.0;
 	while (kt > 0.00000000005 && no_avance_count < 3) {
-		e = sqe = r = 0;
+		e = sqe = r = 0; v = 0;
 		totalit = acceptit = 0;
 		solutions = 0;
 		iterations = 0;
@@ -192,6 +193,7 @@ void workProc()
 			//next.reset(current->shuffle(&sdata, sh));
 			bool decision;
 			decision = isComplexProblem ? currentComplex->compareWith(*nextComplex, kt, 1 - param) : currentScalar->compareWith(*nextScalar, kt, 1 - param);
+			int curits = isComplexProblem ? currentComplex->getTotalIt() : currentScalar->getTotalIt();
 			if (decision) {
 				iterations += isComplexProblem ? currentComplex->getTotalIt() : currentScalar->getTotalIt();
 				solutions++;
@@ -211,7 +213,8 @@ void workProc()
 			}
 			else {
 				e += currentScalar->getDEstimate();
-				r += currentScalar->getRegularisationValue();
+				r += currentScalar->getRegularisationValue() - currentScalar->getElectrodeVariance();
+				v += currentScalar->getElectrodeVariance();
 				sqe += currentScalar->getDEstimate()*currentScalar->getDEstimate();
 			}
 
@@ -233,11 +236,12 @@ void workProc()
 		}
 		double eav = e / solutions;
 		double rav = r / solutions;
+		double vav = v / solutions;
 		double sige = sqrt(sqe / solutions - eav*eav);
 		//solution probe(current->getSolution());
 		//probe.saturate();
 		int nObs = isComplexProblem ? readingsComplex->getNObs() : readingsScalar->getNObs();
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations) / (nObs*solutions) << ":" << seed << std::endl;
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << vav << ":" << ((float)iterations) / (nObs*solutions) << ":" << seed << std::endl;
 		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
 		/*for(int it=0;it<numcoefficients;it++) {
 		std::cout << it << ":" << current->getSolution()[it] << std::endl;
@@ -442,6 +446,9 @@ int main(int argc, char *argv[])
 	std::string tensionsfname = params.inputTensions.toStdString();
 	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
 	input->setGroundNode(params.ground);
+	kt = params.kt;
+	input->electrodevar = params.electrodevar;
+	input->regularizationFactor = params.regularizationFactor;
 	isComplexProblem = !currentsoutfname.empty();
 	if (isComplexProblem) {
 		// TODO: read parameters from commanline

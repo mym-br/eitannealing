@@ -11,6 +11,11 @@
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
 #include "observations.h"
+#include "cuda/HighResClock.h"
+#include "cuda/solvercuda.h"
+#include "cuda/solvercublas.h"
+
+#define CGITS 100
 
 void saveVals(const char* fname, matrix &mat, bool symm = false) {
 	std::ofstream myfile;
@@ -100,53 +105,110 @@ int main(int argc, char *argv[])
 	QTableView vectorView;
 	vectorView.setWindowTitle("Tensions");
 
-	saveVals("A.txt", *m, true);
+	//saveVals("A.txt", *m, true);
 
-	std::vector<Eigen::VectorXd> solutions;
+	// Create symmetric matrix with filled upper left and float values
+	std::vector<Eigen::Triplet<Scalar>> tripletList;
+	m->makeCompressed();
+	int col = -1;
+	for (int i = 0; i < m->nonZeros(); ++i) {
+		if (m->outerIndexPtr()[col + 1] <= i) col++;
+		int row = m->innerIndexPtr()[i];
+		tripletList.push_back(Eigen::Triplet<Scalar>(row, col, m->valuePtr()[i]));
+		if (row != col) tripletList.push_back(Eigen::Triplet<Scalar>(col, row, m->valuePtr()[i]));
+	}
+	Eigen::SparseMatrix<float, Eigen::ColMajor> msymm(m->rows(), m->cols());
+	msymm.setFromTriplets(tripletList.begin(), tripletList.end());
+	msymm.makeCompressed();
+	Cublas::Matrix *Acublas = Cublas::Matrix::createCublasMatrix(&msymm);
+
+	// Create preconditioner
+	SparseIncompleteLLT precond(*m);
+	//matrix L = precond.matrixL();
+	//saveVals("L.txt", L);
+
+	// Create CUDA preconditioner
+	matrix mCpjds = *m;
+	std::unique_ptr<MatrixCPJDS> stiffness = std::unique_ptr<MatrixCPJDS>(new MatrixCPJDS);
+	std::unique_ptr<MatrixCPJDSManager> mgr = std::unique_ptr<MatrixCPJDSManager>(CGCUDA_Solver::createManager(&mCpjds, stiffness.get(), input->getNodeCoefficients(), input->getNodesCount(), input->getNumCoefficients()));
+	numType lINFinityNorm  = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
+	//matrix mPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.data); saveVals("Acpjds.txt", mPrint, true);
+	//matrix precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.txt", precondPrint);
+
+	// Create Cublas preconditioner
+	Cublas::Precond *precondcublas = Cublas::Precond::createPrecond(Acublas);
+
+	std::vector<Eigen::VectorXd> solutions, solutionscublas;
+	std::vector<Eigen::VectorXf> solutionscuda, solutionscuda2;
 	for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
-		//currents = (*m).selfadjointView<Eigen::Lower>() * input->getCurrents()[patterno];
+		// Get current vector
 		currents = input->getCurrentVector(patterno, readings);
 		#ifndef BLOCKGND
 		currents[input->getGroundNode()] = 0;
 		#endif
+		//saveVals(("b" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
 
-		//std::ofstream myfile;
-		//myfile.open("currents" + std::to_string(patterno+1) + ".txt");
-		//for (int i = 0; i < currents.size(); i++) myfile << currents.coeff(i) << std::endl;
-		//myfile.close();
-		saveVals(("b" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
+		// Create CUDA current vector
+		numType *currentsData = new numType[m->cols()];
+		for (int i = 0; i < m->cols(); i++) currentsData[i] = currents[i];
+		Vector *bVec = CGCUDA_Solver::createCurrentVector(currentsData, *mgr, stiffness->matrixData.n, m->cols());
+		//saveVals(("b" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), currentsData, n, 1);
 		
+		// Current GUI view
 		vectorbView.setModel(makeMatrixTableModel(currents));
 		vectorbView.show();
 
-		SparseIncompleteLLT precond(*m);
-		matrix L = precond.matrixL();
-		saveVals("L.txt", L);
+		// Solve the direct problem
+		HighResClock::time_point ts1 = HighResClock::now();
 		CG_Solver solver(*m, currents, precond);
-		for (int i = 0; i < 100; i++) solver.do_iteration();
-		
+		for (int i = 0; i < CGITS; i++) solver.do_iteration();
+		HighResClock::time_point ts2 = HighResClock::now();
 		x = solver.getX();
-		#ifndef BLOCKGND
-		// Correct potentials
-		double avg = 0;
-		for (int i = input->getNodesCount() - input->getGenericElectrodesCount(); i < input->getNodesCount(); i++) avg += x[i];
-		avg /= input->getGenericElectrodesCount();
-		for (int i = 0; i < input->getNodesCount(); i++) x[i] -= avg;
-		#endif
+		//saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
+		
+		// CUDA solver for the direct problem
+		HighResClock::time_point tc1 = HighResClock::now();
+		CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), bVec, lINFinityNorm, false);
+		for (int i = 0; i < CGITS; i++) solvercuda.do_iteration();
+		//std::vector<numType> xcuda = solvercuda.getX();
+		Eigen::VectorXf xcudavec = solvercuda.getX();
+		HighResClock::time_point tc2 = HighResClock::now();
+		//Eigen::VectorXd xcudavec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcudavec[i] = xcuda[i];
+		//saveVals(("x" + std::to_string(patterno + 1) + "_cuda.txt").c_str(), xcudavec);
+		HighResClock::time_point tcc1 = HighResClock::now();
+		CGCUDA_Solver solvercuda2(stiffness.get(), mgr.get(), bVec, lINFinityNorm, true);
+		for (int i = 0; i < CGITS; i++) solvercuda2.do_iteration();
+		//std::vector<numType> xcuda = solvercuda.getX();
+		Eigen::VectorXf xcudavec2 = solvercuda2.getX();
+		HighResClock::time_point tcc2 = HighResClock::now();
 
+		// Cublas solver for the direct problem
+		HighResClock::time_point tb1 = HighResClock::now();
+		Cublas::CG_Solver solvercublas(Acublas, currentsData, precondcublas);
+		for (int i = 0; i < 3+CGITS; i++) solvercublas.doIteration();
+		float *xcublas = solvercublas.getX();
+		HighResClock::time_point tb2 = HighResClock::now();
+		Eigen::VectorXd xcublasvec(m->cols()); for (int i = 0; i <  m->cols(); i++) xcublasvec[i] = xcublas[i];
+		//saveVals(("x" + std::to_string(patterno + 1) + "_cublas.txt").c_str(), xcublasvec);
+
+		// Potential GUI view
 		vectorView.setModel(makeMatrixTableModel(x.selfadjointView<Eigen::Lower>()));
 		vectorView.show();
-
-		//myfile.open("tensions" + std::to_string(patterno+1) + ".txt");
-		//for (int i = 0; i < x.size(); i++) myfile << x.coeff(i) << std::endl;
-		//myfile.close();
-		saveVals(("x" + std::to_string(patterno + 1) + ".txt").c_str(), currents);
-
+		
+		// Store solutions
 		solutions.push_back(x);
-		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << std::endl;
+		solutionscuda.push_back(xcudavec);
+		solutionscuda2.push_back(xcudavec2);
+		solutionscublas.push_back(xcublasvec);
+		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << ". Times: " << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()  <<
+			"us (serial), " << std::chrono::duration_cast<std::chrono::microseconds>(tc2 - tc1).count()  << "us (cjpds-cuda), " << std::chrono::duration_cast<std::chrono::microseconds>(tcc2 - tcc1).count() << "us (cjpds-consolidatedcuda), " << std::chrono::duration_cast<std::chrono::microseconds>(tb2 - tb1).count()  << "us (cublas)." << std::endl;
 	}
 
+	// Save solutions to gmsh files
 	solution::savePotentials(solutions, params.outputMesh.toStdString().c_str(), input, readings);
+	std::string refname(params.outputMesh.toStdString()); std::size_t dotfound = refname.find_last_of("."); refname.replace(dotfound, 1, "_cuda."); solution::savePotentials(solutionscuda, refname.c_str(), input, readings);
+	std::string refnameCuda2(params.outputMesh.toStdString()); refnameCuda2.replace(dotfound, 1, "_cuda2."); solution::savePotentials(solutionscuda2, refnameCuda2.c_str(), input, readings);
+	std::string refname2(params.outputMesh.toStdString()); refname2.replace(dotfound, 1, "_cublas."); solution::savePotentials(solutionscublas, refname2.c_str(), input, readings);
 
-	return app.exec();
+	return 0;
 }

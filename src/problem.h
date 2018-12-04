@@ -18,22 +18,10 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "observations.h"
+#include "nodecoefficients.h"
 class solution;
 
-#define TETRAHEDRON_TYPE 4
-
-struct nodeCoefficients {
-	int node;
-	int condIndex;
-	double coefficient;
-	nodeCoefficients *next;
-
-	nodeCoefficients(int node, int index, double coefficient) :
-		node(node), condIndex(index), coefficient(coefficient), next(NULL) {}
-
-	nodeCoefficients(int node, int index, double coefficient, nodeCoefficients *next) :
-		node(node), condIndex(index), coefficient(coefficient), next(next) {}
-};
+//#define TETRAHEDRON_TYPE 4
 
 class problem {
         // FIXME: Rework this interface?
@@ -43,6 +31,7 @@ class problem {
 	friend class solution;
 	friend class solutioncomplex;
 	friend class solutioncomplexcomplete;
+	friend class solutionCuda;
 
 	private:
 	int groundNode;
@@ -72,6 +61,7 @@ public:
 	virtual void setCalibrationMode(bool individualcoeffs = false) = 0;
 	virtual void buildNodeCoefficients() = 0;
 	virtual int getGenericElectrodesCount() = 0;
+	virtual int getGenericElectrodesCoeffCount() = 0;
 	virtual int getNodesCount() { return nodeCount; }
 	virtual int getInnerAdjacencyCount() = 0;
 
@@ -183,10 +173,13 @@ public:
 		#endif
 		return current;
 	}
+
+	double electrodevar, regularizationFactor;
 };
 
-const double mincond = 0.005;
-const double maxcond = 0.3815;
+const double mincond = 0.001;
+//const double maxcond = 0.3815;
+const double maxcond = 0.3;
 const double minperm = 0.000000000070922044418976;//0.00000005;
 const double maxperm = 0.0000000070922044418976;// 0.05;
 

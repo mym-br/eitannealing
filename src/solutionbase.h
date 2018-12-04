@@ -41,6 +41,7 @@ template <class T>
 class solutionbase {
 	friend class solution;
 	friend class solutioncomplex;
+	friend class solutionCuda;
 protected:
 	//T* sol;
 	//Eigen::SparseMatrix<T, Eigen::ColMajor> *stiffness, *stiffnessorig;
@@ -130,6 +131,7 @@ protected:
 
 	// shuffle constructor
 	double regularisation;
+	double elecvariance;
 	std::shared_ptr<problem> input;
 	observations<T> *readings;
 	//void zeroSumVector(Eigen::VectorXd &vec);
@@ -198,6 +200,7 @@ public:
 	//static void savePotentials(std::vector<Eigen::VectorXd> &sols, const char *filename, std::shared_ptr<problem> input, observations<double> *readings);
 
 	virtual double getRegularisationValue() const { return this->regularisation; }
+	virtual double getElectrodeVariance() const { return this->elecvariance; }
 	double getDEstimate() const { return totalDist; }
 	double getDMax() const { return maxTotalDist; }
 	double getDMin() const { return minTotalDist; }

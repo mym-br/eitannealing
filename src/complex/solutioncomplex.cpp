@@ -97,21 +97,26 @@ solutioncomplex(_input, _readings, electrodesCoeffs) {}
 void solutioncomplex::initSimulations(const solutionbase<std::complex<double>> &base)
 {
 	// Prepare solvers
+	this->totalit = 0;
 	for (int i = 0; i<readings->getNObs(); i++)
 	{
 		// Reuse previous solutions as initial values
 		//simulations[i] = new CG_SolverComplex(*stiffness, input->getConjugatedCurrentVector(i, stiffnessorig, readings), base.simulations[i]->getX(), *precond);
 		simulations[i] = new CG_SolverComplex(*stiffness, input->getConjugatedCurrentVector(i, stiffnessorig, readings), base.getSimulationX(i), *precond);
+		for (int k = 0; k < 1500 && simulations[i]->getResidueSquaredNorm() > 1e-19; k++) simulations[i]->do_iteration();
+		this->totalit += simulations[i]->getIteration();
 	}
 }
 
 void solutioncomplex::initSimulations()
 {
 	// Prepare solvers
+	this->totalit = 0;
 	for (int i = 0; i<readings->getNObs(); i++)
 	{
 		simulations[i] = new CG_SolverComplex(*stiffness, input->getConjugatedCurrentVector(i, stiffnessorig, readings), *precond);
-		for (int k = 0; k < 5; k++) simulations[i]->do_iteration();
+		for (int k = 0; k < 1500 && simulations[i]->getResidueSquaredNorm() > 1e-19; k++) simulations[i]->do_iteration();
+		this->totalit += simulations[i]->getIteration();
 	}
 }
 

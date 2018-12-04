@@ -8,9 +8,8 @@
 #include "solution_lb.h"
 #include "random.h"
 #include "observations.h"
-#include "problemdescription.h"
 #include <iostream>
-#include <boost/numeric/interval.hpp>
+//#include <boost/numeric/interval.hpp>
 #include "gradientnormregularisation.h"
 
 #ifndef max
@@ -20,6 +19,8 @@
 #ifndef min
 #define min(x,y) ((x)<(y)?(x):(y))
 #endif
+
+#ifdef USE_PREVIOUS_DATA
 
 const float base[] = {
   // densermesh tri01a.ampl_calibrado
@@ -73,6 +74,8 @@ const float base[] = {
     0.365//0.375*/
 };
 
+#endif /* USE_PREVIOUS_DATA */
+
 void solution_lb::improve()
 {
 	// Do another iteration on the critical solver
@@ -91,7 +94,7 @@ void solution_lb::improve()
 	// reevaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(int i = 1; i<nobs;i++) {
+	for(int i = 1; i<o.getNObs();i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -150,16 +153,17 @@ bool solution_lb::compareWith(solution_lb &target, float kt, float prob)
 }
 
 
-solution_lb::solution_lb(const float *sigma):
-				sol(solution_lb::copySolution(sigma)),
-				simulations(new LB_Solver *[nobs]),
-				distance(nobs),
-				maxdist(nobs),
-				mindist(nobs),
-				err(nobs),
-				err_x_dist(nobs)
+solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, const double *sigma):
+                                p(p), o(o), 
+				sol(solution_lb::copySolution(sigma,p->getNumCoefficients())),
+				simulations(new LB_Solver *[o.getNObs()]),
+				distance(o.getNObs()),
+				maxdist(o.getNObs()),
+				mindist(o.getNObs()),
+				err(o.getNObs()),
+				err_x_dist(o.getNObs())
 {
-        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
+        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, *p);
         precond.reset(LB_Solver::makePreconditioner(*Aii));
                                         
 	this->initSimulations();
@@ -167,16 +171,17 @@ solution_lb::solution_lb(const float *sigma):
 }
 
 // New randomly modified solution
-solution_lb::solution_lb(float *sigma, const solution_lb &base):
+solution_lb::solution_lb(double *sigma, const solution_lb &base):
+                p(base.p), o(base.o),
                 sol(sigma),
-                simulations(new LB_Solver *[nobs]),
-                distance(nobs),
-                maxdist(nobs),
-                mindist(nobs),
-                err(nobs),
-                err_x_dist(nobs)
+                simulations(new LB_Solver *[o.getNObs()]),
+                distance(o.getNObs()),
+                maxdist(o.getNObs()),
+                mindist(o.getNObs()),
+                err(o.getNObs()),
+                err_x_dist(o.getNObs())
 {
-        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
+        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, *p);
         precond.reset(LB_Solver::makePreconditioner(*Aii));
         
         this->initSimulations(base);
@@ -185,16 +190,17 @@ solution_lb::solution_lb(float *sigma, const solution_lb &base):
 
 
 // New random solution
-solution_lb::solution_lb():
-		sol(solution_lb::getNewRandomSolution()),
-		simulations(new LB_Solver *[nobs]),
-		distance(nobs),
-		maxdist(nobs),
-		mindist(nobs),
-		err(nobs),
-		err_x_dist(nobs)
+solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o):
+                p(p), o(o),
+		sol(solution_lb::getNewRandomSolution(p->getNumCoefficients())),
+		simulations(new LB_Solver *[o.getNObs()]),
+		distance(o.getNObs()),
+		maxdist(o.getNObs()),
+		mindist(o.getNObs()),
+		err(o.getNObs()),
+		err_x_dist(o.getNObs())
 {
-        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
+        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, *p);
         precond.reset(LB_Solver::makePreconditioner(*Aii));
 	this->initSimulations();
 	this->initErrors();
@@ -208,16 +214,16 @@ void solution_lb::initSimulations()
 	this->totalit = 0;
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), 
-                        Eigen::VectorXd(tensions[0].end(31)), *precond,  80, 0.0001);
+                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[0].tail(32)), 
+                        Eigen::VectorXd(o.getTensions()[0].tail(31)), *precond,  100, 0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
-	for(i=1;i<nobs;i++)
+	for(i=1;i<o.getNObs();i++)
 	{
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].end(31)), 
-			Eigen::VectorXd(tensions[i].end(31)), *precond, a);
+                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[i].tail(31)), 
+			Eigen::VectorXd(o.getTensions()[i].tail(31)), *precond, a);
 		simulations[i]->do_iteration();
 		this->totalit += simulations[i]->getIteration();
 	}
@@ -231,17 +237,20 @@ void solution_lb::initSimulations(const solution_lb &base)
         const LB_Solver_EG_Estimate *baseEVSolver = dynamic_cast<const LB_Solver_EG_Estimate *>(base.simulations[0]);
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(31)), 
-                        Eigen::VectorXd(tensions[0].end(31)), *precond, 
-                        baseEVSolver->getX(), baseEVSolver->getEvector(), 80, 0.0001);
+                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[0].tail(31)), 
+                        Eigen::VectorXd(o.getTensions()[0].tail(31)), *precond, 
+                        baseEVSolver->getX(),
+			baseEVSolver->getEvector(), 100, 0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
-        for(i=1;i<nobs;i++)
+        for(i=1;i<o.getNObs();i++)
         {
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].end(31)), 
-                        Eigen::VectorXd(tensions[i].end(31)), *precond, a, base.simulations[i]->getX());
+                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[i].tail(31)), 
+                        Eigen::VectorXd(o.getTensions()[i].tail(31)), *precond, a,
+					       base.simulations[i]->getX());
+
                 simulations[i]->do_iteration();
                 this->totalit += simulations[i]->getIteration();
         }
@@ -254,7 +263,7 @@ void solution_lb::initErrors()
 	// Calc regularisation value
 	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*0.010;
 	// Retrieve distance estimates, errors and boundaries
-	for(i=0;i<nobs;i++) {
+	for(i=0;i<o.getNObs();i++) {
 		// Compare with observation
 		
 		distance[i] = simulations[i]->getErrorl2Estimate();
@@ -269,7 +278,7 @@ void solution_lb::initErrors()
 	// evaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(i = 1; i<nobs;i++) {
+	for(i = 1; i<o.getNObs();i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -279,43 +288,44 @@ void solution_lb::initErrors()
 }
 
 
-float *solution_lb::copySolution(const float *sol)
+double *solution_lb::copySolution(const double *sol, unsigned int n)
 {
-	float *res = new float[numcoefficients];
+	double *res = new double[n];
 
-	for(int i=0;i<numcoefficients;i++)
+	for(int i=0;i<n;i++)
 		res[i] = sol[i];
 
 	return res;
 }
 
-float *solution_lb::getNewRandomSolution()
+double *solution_lb::getNewRandomSolution(int size)
 {
-	float *res = new float[numcoefficients];
+	double *res = new double[size];
 	int i = 0;
+#ifdef USE_PREVIOUS_DATA
         for(;i<sizeof(base)/sizeof(*base);i++)
             res[i] = base[i];
-
-	for(;i<numcoefficients;i++)
+#endif /* USE_PREVIOUS_DATA */
+	for(;i<size;i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
 	return res;
 }
 
-float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) const
+double *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) const
 {
-	float *res = solution_lb::copySolution(sol);
+	double *res = solution_lb::copySolution(sol, p->getNumCoefficients());
 	// head or tails
 	if(genint(2)) { // Normal
-		int ncoef = genint(numcoefficients);
-                float minc, maxc;
-                if(ncoef<sizeof(base)/sizeof(*base)) {
-                  maxc = min(maxcond,base[ncoef]*1.1);
-                  minc = max(base[ncoef]*0.9, mincond);
-                } else {
+#ifndef USE_PREVIOUS_DATA
+		int ncoef = genint(p->getNumCoefficients());
+                
+#else // USE_PREVIOUS_DATA
+		int ncoef = genint(p->getNumCoefficients()-(sizeof(base)/sizeof(float)))+(sizeof(base)/sizeof(float));
+#endif	// float minc, maxc;	  
+		float minc, maxc;
                   maxc = maxcond;
-                  minc = mincond;
-                }
+                  minc = mincond;              
                 
 		if(sh.shuffleConsts[ncoef]==0) {
 			res[ncoef] = minc+genreal()*(maxc-minc);
@@ -338,11 +348,12 @@ float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) c
 			data->ncoef = ncoef;
 		}
 	} else { // swap
-		int ncoef = genint(innerAdjacency.size());
+		int ncoef = genint(p->getInnerAdjacencyCount());
 		int node1, node2;
 
-		node1 = node2coefficient[innerAdjacency[ncoef].first];
-		node2 = node2coefficient[innerAdjacency[ncoef].second];
+		std::pair<int, int> adj = p->getAdjacency(ncoef);
+                node1 = p->getNode2Coefficient(adj.first);
+		node2 = p->getNode2Coefficient(adj.second);
 		
 		// Order nodes
 		if(res[node1]>res[node2]) {
@@ -380,7 +391,7 @@ float *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) c
 
 solution_lb *solution_lb::shuffle(shuffleData *data, const shuffler &sh) const
 {
-	float* sigma = getShuffledSolution(data, sh);
+	double* sigma = getShuffledSolution(data, sh);
 	solution_lb *res;
 	try {
 		res = new solution_lb(sigma, *this);
@@ -395,13 +406,13 @@ solution_lb *solution_lb::shuffle(shuffleData *data, const shuffler &sh) const
 
 void solution_lb::saturate()
 {
-      ensureMinIt(nodes.size()+30);
+      ensureMinIt(p->getNodesCount()+30);
 }
 
 void solution_lb::ensureMinIt(unsigned int it)
 {     
-      static Eigen::VectorXd aux(electrodes.size()-1);
-      for(int i = 0; i<nobs;i++) {
+      static Eigen::VectorXd aux(p->getGenericElectrodesCount()-1);
+      for(int i = 0; i<o.getNObs();i++) {
             LB_Solver *sim = this->simulations[i];
             while(sim->getIteration()<it) {
                 simulations[i]->do_iteration();
@@ -419,7 +430,7 @@ void solution_lb::ensureMinIt(unsigned int it)
                // reevaluate critical
                 double max = err_x_dist[0];
                 critical = 0;
-                for(int j = 1; j<nobs;j++) {
+                for(int j = 1; j<o.getNObs();j++) {
                   if(max < err_x_dist[j]) {
                         max = err_x_dist[j];
                         critical = j;
@@ -437,9 +448,63 @@ solution_lb::~solution_lb()
 	delete Aii;
 	delete Aic;
 	delete Acc;
-	for(int i=0;i<nobs;i++) {
+	for(int i=0;i<o.getNObs();i++) {
 		delete simulations[i];
 	}
 	delete[] simulations;
 }
+#ifdef __GENERATE_LB_BENCHMARKS
+solution_lb::solution_lb(const float *sigma, char benchmarktag):
+				sol(solution_lb::copySolution(sigma)),
+				simulations(new LB_Solver *[o.getNObs()]),
+				distance(o.getNObs()),
+				maxdist(o.getNObs()),
+				mindist(o.getNObs()),
+				err(o.getNObs()),
+				err_x_dist(o.getNObs())
+{
+}
 
+solution_lb_benchmarked::solution_lb_benchmarked(const float *sigma, benchmark_entry *bench, int n):solution_lb(sigma), vector(bench), n(n)
+{
+	vector[0].timestamp = getTimestamp();
+	vector[0].e_low = -1;
+	vector[0].e_high = -1;
+	assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
+	vector[1].timestamp = getTimestamp();
+	vector[1].e_low = -2;
+	vector[1].e_high = -2;
+        precond.reset(LB_Solver::makePreconditioner(*Aii));
+	vector[2].timestamp = getTimestamp();
+	vector[2].e_low = -3;
+	vector[2].e_high = -3;                                                
+	this->initSimulations();
+	this->initErrors();
+	vector[3].timestamp = getTimestamp();
+	vector[3].e_low = getDMin();
+	vector[3].e_high = getDMax();
+	i = 4;        
+}
+
+void solution_lb_benchmarked::performBenchmark()
+{
+    while(i<n) {
+      this->improve();
+      vector[i].timestamp = getTimestamp();
+      vector[i].e_low = getDMin();
+      vector[i].e_high = getDMax();
+      i++;
+    }
+}
+
+
+// Linux-only
+#include <sys/time.h>
+
+int solution_lb_benchmarked::getTimestamp()
+{
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    return time.tv_sec*1000000 + time.tv_usec;
+}
+#endif // __GENERATE_LB_BENCHMARKS

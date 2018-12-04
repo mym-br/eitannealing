@@ -1,0 +1,6 @@
+.vs
+.vscode
+.directory
+.kdev4
+build
+compile_commands.json

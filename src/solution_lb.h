@@ -12,7 +12,7 @@ class solution_lb;
 
 #include "solution.h"
 #include "solver_lb.h"
-#include "problemdescription.h"
+#include "problem.h"
 #include <memory>
 
 
@@ -35,13 +35,16 @@ class solution_lb;
 
 
 class solution_lb {
-	private:
+	protected:
 
 
-			float *sol;
+			double *sol;
 			matrix *Aii, *Acc;
 			matrix2 *Aic; 
 			std::auto_ptr<LB_Solver::Preconditioner> precond;
+                        std::shared_ptr<problem> p;
+                        // FIXME: o should be const!
+                        observations<double> &o;
 
 			LB_Solver **simulations;
 			Eigen::VectorXd distance;
@@ -66,21 +69,21 @@ class solution_lb {
 			void initSimulations(const solution_lb &base);
 			void initErrors();
 
-			float *getShufledSolution();
-			static float *getNewRandomSolution();
-			static float *copySolution(const float *sol);
+			double *getShufledSolution();
+			static double *getNewRandomSolution(int size);
+			static double *copySolution(const double *sol, unsigned int size);
 
-			float *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
+			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
 			
 			// shuffle constructor
-			solution_lb(float *sol, const solution_lb &base);
+			solution_lb(double *sol, const solution_lb &base);
 
 
 	public:
 
-		solution_lb(const float *sol);
-		solution_lb();	// New random solution
+		solution_lb(std::shared_ptr<problem> p, observations<double> &o, const double *sol);
+		solution_lb(std::shared_ptr<problem> p, observations<double> &o);	// New random solution
 		bool compareWith(solution_lb &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
 		//bool compareWithMaxE2(solution &target, float kt, double e2);
@@ -98,7 +101,7 @@ class solution_lb {
 			return minTotalDist;
 		}
 
-		float *getSolution() {
+		double *getSolution() {
 			return this->sol;
 		}
 
@@ -129,7 +132,31 @@ class solution_lb {
 		//void ensureMaxE2(double e2);
 
 		~solution_lb();
+		
+		
+#ifdef __GENERATE_LB_BENCHMARKS
+		solution_lb(const float *sol, char benchmarktag);
+#endif	// __GENERATE_LB_BENCHMARKS
 };
 
+
+class solution_lb_benchmarked : public solution_lb
+{
+public: 
+  struct benchmark_entry {
+      unsigned int timestamp;
+      double e_low;
+      double e_high;
+    } *vector;
+    int i;
+    int n;
+    
+    solution_lb_benchmarked(const float *sigma, benchmark_entry *bench, int n);
+    
+    void performBenchmark();
+    
+protected:
+  static int getTimestamp();
+};
 
 #endif /* SOLUTION_H_ */

@@ -14,35 +14,14 @@
 #include <QPainter>
 #include <QAbstractTableModel>
 #include <QMutex>
-#include "solver.h"
-#include "solver_lb.h"
-
-class matrixViewModel : public QAbstractTableModel {
-	private:
-		const matrix &innermatrix;
-	public:
-		matrixViewModel(const matrix &);
-		int rowCount( const QModelIndex & parent = QModelIndex() ) const;
-		int columnCount( const QModelIndex & parent = QModelIndex() ) const;
-		QVariant  data( const QModelIndex & index, int role = Qt::DisplayRole ) const;
-		QVariant  headerData ( int section, Qt::Orientation  orientation, int role = Qt::DisplayRole ) const;
-};
-
-class matrix2ViewModel : public QAbstractTableModel {
-        private:
-                const matrix2 &innermatrix;
-        public:
-                matrix2ViewModel(const matrix2 &);
-                int rowCount( const QModelIndex & parent = QModelIndex() ) const;
-                int columnCount( const QModelIndex & parent = QModelIndex() ) const;
-                QVariant  data( const QModelIndex & index, int role = Qt::DisplayRole ) const;
-                QVariant  headerData ( int section, Qt::Orientation  orientation, int role = Qt::DisplayRole ) const;
-};
+#include <memory>
+#include "twodim/problem2D.h"
+//class problem2D;
 
 class solutionView : public QAbstractListModel {
 Q_OBJECT
 	private:
-		float *sol;
+		double *sol;
 		int rows;
 		QMutex solutionMutex;
 	public:
@@ -51,26 +30,28 @@ Q_OBJECT
 		int rowCount( const QModelIndex & parent = QModelIndex() ) const;
 		QVariant  data( const QModelIndex & index, int role = Qt::DisplayRole ) const;
 		QVariant  headerData ( int section, Qt::Orientation  orientation, int role = Qt::DisplayRole ) const;
-		void setCurrentSolution(const float *newsol);	
+		void setCurrentSolution(const double *newsol);
 };
 
 class viewport : public QWidget {
 Q_OBJECT
-	QImage paintbuff;
-	QImage scale;
 	public:
-	    viewport(int width, int height, const char *title);
+		viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input, double mincond, double maxcond);
 	    QImage &getBuffer() {
 		    return this->paintbuff;
 	    }
-	      
+
       public slots:
-	      void solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight );
+		void solution_updated(const QModelIndex & topLeft, const QModelIndex & bottomRight);
 	protected:
-	      QBrush getBrushForElement(float *solution, int n1, int n2, int n3);
-	      QColor getColorForLevel(float level);
+		  QImage paintbuff;
+		  QImage scale;
+	      QBrush getBrushForElement(double *solution, int n1, int n2, int n3);
+	      QColor getColorForLevel(double level);
 	      // override default paint event
 	      void paintEvent ( QPaintEvent * event );
+		  std::shared_ptr<problem2D> input;
+		  double minval, maxval;
 };
 
 class TableViewCopyDataPopupMenu : public QObject{
@@ -82,7 +63,7 @@ Q_OBJECT
       public:
 	    static TableViewCopyDataPopupMenu *getInstance();
       public slots:
-	    void actionFired();  
+	    void actionFired();
 };
 
 #endif /* GRAPHICS_H_ */

@@ -7,26 +7,26 @@
 
 
 #include "solver.h"
-#include "nodecoefficients.h"
-#include "problemdescription.h"
+//#include "nodecoefficients.h"
+#include <fstream>
 
-
-
-CG_Solver::CG_Solver(matrix &A, Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
-	A(A), b(b), x(Eigen::VectorXd::Zero(A.rows())),
-	// Precond!
-	precond(pre)	{
+CG_Solver::CG_Solver(matrix &_A, const Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
+	A(_A),
+	b(b),
+	x(Eigen::VectorXd::Zero(_A.rows())),
+	precond(pre)
+{
 	this->init();
 }
 
-CG_Solver::CG_Solver(matrix &A, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &pre):
-	A(A), b(b), x(x0),
+CG_Solver::CG_Solver(matrix &A_, const Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &pre):
+	A(A_), b(b), x(x0),
 	// Precond!
 	precond(pre)  {
 	this->init();
 }
 
-// Setup and calculate the 1st iteraction	
+// Setup and calculate the 1st iteraction
 void CG_Solver::init()
 {
 	r.resize(A.rows());
@@ -76,7 +76,7 @@ void CG_Solver::init()
 
 	//p = r + beta*p;
 	p = z + beta*p;
-	q = A*p.lazy();
+	q.noalias() = A*p;
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
@@ -114,7 +114,7 @@ void CG_Solver::init()
 
 	//p = r + beta*p;
 	p = z + beta*p;
-	q = A*p.lazy();
+	q.noalias() = A*p;
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
@@ -152,7 +152,7 @@ void CG_Solver::init()
 
 	//p = r + beta*p;
 	p = z + beta*p;
-	q = A*p.lazy();
+	q.noalias() = A*p;
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
@@ -171,7 +171,7 @@ void CG_Solver::init()
 	err[1] = w[0]*w[0]+wt[1]*wt[1];
 	err[2] = w[0]*w[0]+w[1]*w[1]+wt[2]*wt[2];
 }
-		
+
 void CG_Solver::do_iteration() {
 
 	it++;
@@ -204,7 +204,7 @@ void CG_Solver::do_iteration() {
 
 	//p = r + beta*p;
 	p = z + beta*p;
-	q = A*p.lazy();
+	q.noalias() = A*p;
 	gamma_1 = gamma;
 	gamma = rmod/q.dot(p);
 	alpha = 1/gamma + beta/gamma_1;			// alpha_k+1 = 1/gamma_k + beta_k/gamma_k-1
@@ -237,164 +237,14 @@ void CG_Solver::do_iteration() {
 	eta_[it] = leta;*/
 
 	err[it-1] = w[it-2]*w[it-2]+wt[it-1]*wt[it-1] - wt[it-2]*wt[it-2];
-	
+
 	//std::cout << it << ":"  << x.squaredNorm() << std::endl;
 }
 
-
-/*matrix CG_Solver::buildJacobiMatrx()
-{
-	matrix result(it, it);
-	result.startFill(2*it-1);
-	int i;
-	// Fill column-wise
-	result.fill(0,0) = alpha_[0];
-	result.fill(1,0) = eta_[1];
-	for(i=1;i<it-1;i++) {
-		result.fill(i-1,i) = eta_[i];
-		result.fill(i,i) = alpha_[i];
-		result.fill(i+1,i) = eta_[i+1];
-	}
-	result.fill(it-2,it-1) = eta_[it-1];
-	result.fill(it-1,it-1) = alpha_[it-1];
-	result.endFill();
-	return result;
-}*/
-
-// FIXME: It should be slightly faster to have an "skeleton"
-//		matrix (with ones for instance), copy it and iterate over its
-//		coefficients.
-
-void assembleProblemMatrix(float *cond, matrix **stiffnes)
-{
-
-	/*
-	// Jacobi preconditioning
-	*sqDiagonal = new Eigen::VectorXd(numNodes-1);
-	Eigen::VectorXd &sqrtdiagonal = **sqDiagonal;
-	int i;
-	// Prepare diagonal square roots
-	for(i=0;i<numNodes-1;i++) {
-		nodeCoefficients *aux = nodeCoef[i];
-		while(aux && aux->node < i) aux = aux->next;
-		double val = 0;
-		while(aux && aux->node==i) {
-			val += aux->coefficient*cond[aux->condIndex];
-			aux = aux->next;
-		}
-		sqrtdiagonal[i] = sqrt(val);
-	}
-
-
-	matrix *out = new matrix(numNodes-1, numNodes-1);
-	out->startFill(3*(numNodes-1)); // estimate of the number of nonzeros (optional)
-	for (i=0; i<numNodes-1; ++i) {
-		nodeCoefficients *aux = nodeCoef[i];
-		while(aux && aux->node <= i) aux = aux->next; // skip upper triangular
-		// Diagonal is 1
-		out->fill(i,i) = 1;
-		while(aux) { // Col-major storage
-			int row = aux->node;
-			double val = 0.0;
-			while(aux && aux->node==row) {
-				val += aux->coefficient*cond[aux->condIndex];
-				aux = aux->next;
-			}
-			out->fill(row,i) = val/(sqrtdiagonal[row]*sqrtdiagonal[i]);
-		}
-	}
-	out->endFill();
-
-	*stiffnes = out;*/
-
-
-	matrix *out = new matrix(nodes.size()-1, nodes.size()-1);
-	double val;
-	out->startFill(3*(nodes.size()-1)); // estimate of the number of nonzeros (optional)
-	for (int i=0; i<nodes.size()-1; ++i) {
-		nodeCoefficients *aux = nodeCoef[i];
-		while(aux) { // Col-major storage
-			while(aux->node < i) aux = aux->next; // skip upper triangular
-			int row = aux->node;
-                        if(row==groundNode) {
-                          aux = aux->next;
-                          continue;   // Skip ground node
-                        }
-                        val = 0.0;
-			while(aux && aux->node==row) {
-				val += aux->coefficient*cond[aux->condIndex];
-				aux = aux->next;
-			}
-			out->fill(row,i) = val;
-		}
-	}
-	out->endFill();
-
-	*stiffnes = out;
-}
-
-
-
-void assembleProblemMatrix(float *cond, matrix **stiffnes, int numNodes, nodeCoefficients **nodeCoef)
-{
-
-	/*
-	// Jacobi preconditioning
-	*sqDiagonal = new Eigen::VectorXd(numNodes-1);
-	Eigen::VectorXd &sqrtdiagonal = **sqDiagonal;
-	int i;
-	// Prepare diagonal square roots
-	for(i=0;i<numNodes-1;i++) {
-		nodeCoefficients *aux = nodeCoef[i];
-		while(aux && aux->node < i) aux = aux->next;
-		double val = 0;
-		while(aux && aux->node==i) {
-			val += aux->coefficient*cond[aux->condIndex];
-			aux = aux->next;
-		}
-		sqrtdiagonal[i] = sqrt(val);
-	}
-
-
-	matrix *out = new matrix(numNodes-1, numNodes-1);
-	out->startFill(3*(numNodes-1)); // estimate of the number of nonzeros (optional)
-	for (i=0; i<numNodes-1; ++i) {
-		nodeCoefficients *aux = nodeCoef[i];
-		while(aux && aux->node <= i) aux = aux->next; // skip upper triangular
-		// Diagonal is 1
-		out->fill(i,i) = 1;
-		while(aux) { // Col-major storage
-			int row = aux->node;
-			double val = 0.0;
-			while(aux && aux->node==row) {
-				val += aux->coefficient*cond[aux->condIndex];
-				aux = aux->next;
-			}
-			out->fill(row,i) = val/(sqrtdiagonal[row]*sqrtdiagonal[i]);
-		}
-	}
-	out->endFill();
-
-	*stiffnes = out;*/
-
-
-	matrix *out = new matrix(numNodes-1, numNodes-1);
-	double val;
-	out->startFill(3*(numNodes-1)); // estimate of the number of nonzeros (optional)
-	for (int i=0; i<numNodes-1; ++i) {
-		nodeCoefficients *aux = nodeCoef[i];
-		while(aux) { // Col-major storage
-			while(aux->node < i) aux = aux->next; // skip upper triangular
-			int row = aux->node;
-			val = 0.0;
-			while(aux && aux->node==row) {
-				val += aux->coefficient*cond[aux->condIndex];
-				aux = aux->next;
-			}
-			out->fill(row,i) = val;
-		}
-	}
-	out->endFill();
-
-	*stiffnes = out;
+void CG_Solver::saveVals(const char* fname, double val, bool app) {
+	std::ofstream myfile;
+	if (app) myfile.open(fname, std::ios::binary | std::ofstream::app);
+	else myfile.open(fname, std::ios::binary);
+	myfile.write((char*)&val, sizeof(double));
+	myfile.close();
 }

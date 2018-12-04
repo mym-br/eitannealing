@@ -11,12 +11,16 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
+#include "basematrix.h"
+
+// FIXME: Switch to LDmLT!
+
+
 class SparseIncompleteLLT
 {
   protected:
-    typedef double Scalar;
 
-    typedef Eigen::SparseMatrix<Scalar, Eigen::LowerTriangular> CholMatrixType;
+    typedef matrix CholMatrixType;
     CholMatrixType m_matrix;
 
     mutable bool lInfNormCalc;
@@ -24,7 +28,7 @@ class SparseIncompleteLLT
 
   public:
 
-    SparseIncompleteLLT(const Eigen::SparseMatrix<double, Eigen::SelfAdjoint | Eigen::LowerTriangular | Eigen::ColMajor >& matrix);
+    SparseIncompleteLLT(const CholMatrixType& matrix);
 
     /** \returns the lower triangular matrix L */
     inline const CholMatrixType& matrixL(void) const { return m_matrix; }

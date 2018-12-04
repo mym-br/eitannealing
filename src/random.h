@@ -7,7 +7,7 @@
 
 #ifndef RANDOM_H_
 #define RANDOM_H_
-
+// FIXME: CXX11 has built-in mersenne twister
 //#ifdef _cpluscplus
 extern "C" {
 //#endif

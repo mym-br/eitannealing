@@ -44,5 +44,5 @@ set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
 add_library(eit_core OBJECT ${eit_core_SRCS})
 
-add_executable(eitannealingtest tests/test_incomplete_lq.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS})
-target_link_libraries(eitannealingtest $<TARGET_OBJECTS:eit_core> ${libs} ${ADDITIONAL_LIBRARIES})
+add_executable(eitannealingtest src/main.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS}  $<TARGET_OBJECTS:eit_core>)
+target_link_libraries(eitannealingtest ${libs} ${ADDITIONAL_LIBRARIES})

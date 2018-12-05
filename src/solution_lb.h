@@ -40,8 +40,8 @@ class solution_lb {
 
 			double *sol;
 			matrix *Aii, *Acc;
-			matrix2 *Aic; 
-			std::auto_ptr<LB_Solver::Preconditioner> precond;
+			matrix2 *Aic;
+			std::unique_ptr<LB_Solver::Preconditioner> precond;
                         std::shared_ptr<problem> p;
                         // FIXME: o should be const!
                         observations<double> &o;

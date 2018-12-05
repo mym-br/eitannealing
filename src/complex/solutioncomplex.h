@@ -10,6 +10,7 @@
 
 class solution;
 
+#include <vector>
 #include "solvercomplex.h"
 #include "problem.h"
 #include "solutionbase.h"
@@ -34,7 +35,7 @@ public:
 	Eigen::VectorXcd getSimulationX(int i) const { return simulations[i]->getX(); }
 
 	double *getShufledSolution();
-	static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input, std::vector<std::complex<double>> &electrodesCoeffs);
+	static std::complex<double> *getNewRandomSolution(std::shared_ptr<problem> input, const std::vector<std::complex<double>> &electrodesCoeffs);
 
 	virtual std::complex<double> *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
@@ -56,7 +57,7 @@ public:
 	//observations<std::complex<double>> *readings;
 
 	solutioncomplex(const std::complex<double> *sol, std::shared_ptr<problem> input, observations<std::complex<double>> *_readings, int _fixedCoeffs);
-	solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, std::vector<std::complex<double>> &electrodesCoeffs);	// New random solution
+	solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, const std::vector<std::complex<double>> &electrodesCoeffs);	// New random solution
 	bool compareWith(solutionbase &target, double kt, double prob);
 	virtual solutioncomplex *shuffle(shuffleData *data, const shuffler &sh) const;
 
@@ -76,7 +77,7 @@ public:
 	// shuffle constructor
 	solutioncomplexcalibration(std::complex<double> *sol, const solutioncomplexcalibration &base, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) : solutioncomplex(sol, base, _input, _readings, 0) {};
 	solutioncomplexcalibration(const std::complex<double> *sol, std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings) : solutioncomplex(sol, _input, _readings, 0) {};
-	solutioncomplexcalibration(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, std::vector<std::complex<double>> &electrodesCoeffs);	// New random solution
+	solutioncomplexcalibration(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, const std::vector<std::complex<double>> &electrodesCoeffs);	// New random solution
 	solutioncomplexcalibration *shuffle(shuffleData *data, const shuffler &sh) const;
 
 	static void saveMesh(double *sol, const char *filename, std::shared_ptr<problem> input, int step = 0);

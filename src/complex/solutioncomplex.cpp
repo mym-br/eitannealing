@@ -33,7 +33,7 @@
 bool solutioncomplex::compareWith(solutionbase &target, double kt, double prob)
 {
 	double delta, expdelta;
-	
+
 	delta = target.totalDist - this->totalDist;
 	expdelta = exp(-delta / kt);
 	if (delta <= 0) {
@@ -63,7 +63,7 @@ simulations(new CG_SolverComplex *[_readings->getNObs()])
 
 
 // New random solution
-solutioncomplex::solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, std::vector<std::complex<double>> &electrodesCoeffs) :
+solutioncomplex::solutioncomplex(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, const std::vector<std::complex<double>> &electrodesCoeffs) :
 solutionbase(_input, _readings),
 sol(solutioncomplex::getNewRandomSolution(_input, electrodesCoeffs)),
 stiffness(solutioncomplex::getNewStiffness(sol, &stiffnessorig, _input)),
@@ -91,7 +91,7 @@ simulations(new CG_SolverComplex *[_readings->getNObs()])
 }
 
 // New random solution
-solutioncomplexcalibration::solutioncomplexcalibration(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, std::vector<std::complex<double>> &electrodesCoeffs) :
+solutioncomplexcalibration::solutioncomplexcalibration(std::shared_ptr<problem> _input, observations<std::complex<double>> *_readings, const std::vector<std::complex<double>> &electrodesCoeffs) :
 solutioncomplex(_input, _readings, electrodesCoeffs) {}
 
 void solutioncomplex::initSimulations(const solutionbase<std::complex<double>> &base)
@@ -151,7 +151,7 @@ void solutioncomplex::initErrors()
 //	return res;
 //}
 
-std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<problem> input, std::vector<std::complex<double>> &electrodesCoeffs)
+std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<problem> input, const std::vector<std::complex<double>> &electrodesCoeffs)
 {
 	if (input->getCalibrationMode() != 0) return solutioncomplexcalibration::getNewRandomSolution(input);
 	std::complex<double> *res = new std::complex<double>[input->getNumCoefficients()];
@@ -160,7 +160,7 @@ std::complex<double> *solutioncomplex::getNewRandomSolution(std::shared_ptr<prob
 	double wminperm = w*minperm, wmaxperm = w*maxperm;
 	for (i = 0; i < electrodesCoeffs.size(); i++)
 		res[i] = std::complex<double>(electrodesCoeffs[i].real(), w*electrodesCoeffs[i].imag());
-	std::complex<double> val  = std::complex<double>(mincond + genreal()*(maxcond - mincond), wminperm + genreal()*(wmaxperm - wminperm)); 
+	std::complex<double> val  = std::complex<double>(mincond + genreal()*(maxcond - mincond), wminperm + genreal()*(wmaxperm - wminperm));
 	for (; i < input->getNumCoefficients(); i++)
 		res[i] = std::complex<double>(mincond + genreal()*(maxcond - mincond), wminperm + genreal()*(wmaxperm - wminperm));
 
@@ -226,7 +226,7 @@ std::complex<double> *solutioncomplex::getShuffledSolution(shuffleData *data, co
 		res[node1] = std::complex<double>(res[node1].real(), vals.first);
 		res[node2] = std::complex<double>(res[node1].real(), vals.second);
 	}
-	
+
 	return res;
 }
 

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project(eitannealingtests LANGUAGES C CXX CUDA)
+project(eitannealingtests)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
 find_package(Threads REQUIRED)
-find_package(CUDA QUIET REQUIRED)
+find_package(CUDA 10 REQUIRED)
 find_package(GMSH REQUIRED)
 
 set(CMAKE_AUTOMOC ON)

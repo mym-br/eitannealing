@@ -68,6 +68,6 @@ set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitmain PROPERTY CXX_STANDARD_REQUIRED ON)
 
 cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} ${eit_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
-target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${ADDITIONAL_LIBRARIES})
+target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)

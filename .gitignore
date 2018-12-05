@@ -4,3 +4,4 @@
 .kdev4
 build
 compile_commands.json
+CMakeSettings.json

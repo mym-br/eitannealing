@@ -70,7 +70,7 @@
 //}
 
 
-std::auto_ptr<gradientNormRegularisation> gradientNormRegularisation::instance;
+std::unique_ptr<gradientNormRegularisation> gradientNormRegularisation::instance;
 
 int gradientNormRegularisation::coefficientMap(int node)
 {

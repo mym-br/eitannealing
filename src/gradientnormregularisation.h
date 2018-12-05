@@ -13,6 +13,7 @@ private:
     static std::auto_ptr<gradientNormRegularisation> instance;
     int electrodecoefficients;
     std::auto_ptr<matrix> regularizationMatrix;
+    std::unique_ptr<matrix> regularizationMatrix;
     void buildMatrix();
     int coefficientMap(int node);
     std::set<int> lastElectrodeNodes;    

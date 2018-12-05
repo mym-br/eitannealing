@@ -62,7 +62,7 @@ set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
 add_library(eit_core OBJECT ${eit_core_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
-add_executable(eitmain src/main.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS})
+add_executable(eitmain src/main.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
 target_link_libraries(eitmain  ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitmain PROPERTY CXX_STANDARD_REQUIRED ON)

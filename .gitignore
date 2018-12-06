@@ -1,7 +1,7 @@
 .vs
 .vscode
 .directory
-.kdev4
+*.kdev4
 .project
 .cproject
 build

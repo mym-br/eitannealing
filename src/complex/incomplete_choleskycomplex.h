@@ -6,7 +6,7 @@
  */
 
 #ifndef INCOMPLETE_CHOLESKYCOMPLEX_HPP_
-#define INCOMPLETE_CHOLESKYXOMPLEX_HPP_
+#define INCOMPLETE_CHOLESKYCOMPLEX_HPP_
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -58,4 +58,4 @@ public:
 };
 
 
-#endif /* INCOMPLETE_CHOLESKYXOMPLEX_HPP_ */
+#endif /* INCOMPLETE_CHOLESKYCOMPLEX_HPP_ */

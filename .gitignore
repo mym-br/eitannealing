@@ -2,5 +2,7 @@
 .vscode
 .directory
 .kdev4
+.project
+.cproject
 build
 compile_commands.json

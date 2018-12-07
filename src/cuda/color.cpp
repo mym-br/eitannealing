@@ -2,7 +2,10 @@
 
 #include <iostream>
 
+#ifndef NULL
 #define NULL 0
+#endif
+
 #define RED 1
 #define BLUE 2
 #define GREEN 3

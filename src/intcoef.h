@@ -9,8 +9,8 @@
 
 class intCoef {
   protected:
-    vectorx x;
     int numcoefficients;
+    vectorx x;
     
     intCoef(
       const std::vector<node> &nodes, 	       

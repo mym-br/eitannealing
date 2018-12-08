@@ -7,8 +7,8 @@
 #include "problem.h"
 class intCoef {
   protected:
-    vectorx x;
     int numcoefficients;
+    vectorx x;
     
   public:
     intCoef(problem &problem);    

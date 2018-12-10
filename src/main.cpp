@@ -444,7 +444,7 @@ int main(int argc, char *argv[])
 	std::string currentsinfname = params.inputCurrents.toStdString();
 	std::string currentsoutfname = params.inputCurrentsOut.toStdString();
 	std::string tensionsfname = params.inputTensions.toStdString();
-	input = problem::createNewProblem(meshfname.c_str(), is2dProblem);
+	input = problem::createNewProblem(meshfname.c_str(), &is2dProblem);
 	input->setGroundNode(params.ground);
 	kt = params.kt;
 	input->electrodevar = params.electrodevar;

@@ -244,8 +244,7 @@ void solution::initSimulations()
 void solution::initErrors()
 {
 	// Calc regularisation value
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30
-				-intcoef->getInt(this->sol)*240;
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30;
 	//for (int i = 0; i < input->getGenericElectrodesCount(); i++) { std::cout << this->sol[i] << " "; std::cout << std::endl; }
 	if (std::abs(input->electrodevar) > 1e-6) {
 		double sum = std::accumulate(this->sol, this->sol + input->getGenericElectrodesCount(), 0.0);

@@ -23,7 +23,7 @@
 #include "solvercomplex.h"
 //#include "nodecoefficients.h"
 #include "solutioncomplex.h"
-#include "solution.h"
+#include "solution_lb.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
@@ -119,7 +119,7 @@ void workProc()
 	double *solre = new double[input->getNumCoefficients()];
 	double *solim = new double[input->getNumCoefficients()];
 	std::unique_ptr<solutionbase<std::complex<double>>> currentComplex, nextComplex;
-	std::unique_ptr<solutionbase<double>> currentScalar, nextScalar;
+	std::unique_ptr<solution_lb> currentScalar, nextScalar;
 
 	int totalit;
 	int acceptit;
@@ -168,7 +168,7 @@ void workProc()
 		std::vector<double> electrodesCoeffs;
 		//for (int j = 0; j < 32; j++) electrodesCoeffs.push_back(0.002);
 		sh.reset(new shuffler(input, readingsScalar));
-		currentScalar.reset(new solution_lb(input, readingsScalar, electrodesCoeffs));
+		currentScalar.reset(new solution_lb(input, *readingsScalar));
 	}
 
 	std::cout.flush();
@@ -213,8 +213,7 @@ void workProc()
 			}
 			else {
 				e += currentScalar->getDEstimate();
-				r += currentScalar->getRegularisationValue() - currentScalar->getElectrodeVariance();
-				v += currentScalar->getElectrodeVariance();
+				r += currentScalar->getRegularisationValue();				
 				sqe += currentScalar->getDEstimate()*currentScalar->getDEstimate();
 			}
 

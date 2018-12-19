@@ -168,7 +168,7 @@ void workProc()
 		std::vector<double> electrodesCoeffs;
 		//for (int j = 0; j < 32; j++) electrodesCoeffs.push_back(0.002);
 		sh.reset(new shuffler(input, readingsScalar));
-		currentScalar.reset(new solution_lb(input, readingsScalar, electrodesCoeffs));
+		currentScalar.reset(new solution(input, readingsScalar, electrodesCoeffs));
 	}
 
 	std::cout.flush();

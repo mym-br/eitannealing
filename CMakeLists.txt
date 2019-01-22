@@ -45,3 +45,5 @@ set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 add_executable(eitannealingtest src/main.cpp ${eitannealing_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
 target_link_libraries(eitannealingtest ${libs} ${ADDITIONAL_LIBRARIES})
+
+add_subdirectory(tests)

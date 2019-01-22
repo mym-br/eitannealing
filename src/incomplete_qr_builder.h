@@ -89,7 +89,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                         // should just optimize to v*v on non-complex scalars
                         qnorm2 += std::real(std::conj(v)*v);
                     }
-                    double qnorm = std::sqrt(qnorm);
+                    double qnorm = std::sqrt(qnorm2);
                     double inorm = 1/qnorm;
                     // Final element of R is the norm
                     RMatrix.insert(j,j) = qnorm;

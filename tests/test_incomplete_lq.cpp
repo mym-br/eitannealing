@@ -10,11 +10,11 @@ class upperTriangularElementsMap {
 public:
     template<class scalar> upperTriangularElementsMap(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m) {
         UTCols.resize(m.cols());
-        for(Eigen::Index j = 0; j < m.outerSize(); j++) 
+        for(Eigen::Index j = 0; j < m.outerSize(); j++)
             for(Eigen::Index idx = m.outerIndexPtr()[j]+1; idx < m.outerIndexPtr()[j+1]; idx++)
                 UTCols[m.innerIndexPtr()[idx]].push_back(std::make_pair(j, idx));
     }
-    
+
     void iterateOverUpperElements(unsigned int j, std::function<void(Eigen::Index,Eigen::Index)> &&f) const {
         for(auto [i, offset] : UTCols[j]) f(i, offset);
     }
@@ -28,7 +28,7 @@ public:
 
     void iterateOverColumn(unsigned long j, std::function<void(unsigned long, scalar)> &&f) const {
         // 1st iterate over upper elements
-        utmap.iterateOverUpperElements(j, [f, this](Eigen::Index i, Eigen::Index offset) {        
+        utmap.iterateOverUpperElements(j, [f, this](Eigen::Index i, Eigen::Index offset) {
             f(i, m.valuePtr()[offset]);
         });
         (typename SparseIncompleteQRBuilder<scalar>::columnMajorStorageAdaptor(m)).iterateOverColumn(j,std::move(f));
@@ -43,7 +43,8 @@ int main(int argc, char **argv) {
     std::cerr << "Parameters must be mesh file name\n";
     return 1;
   }
-  std::shared_ptr<problem> prob = problem::createNewProblem(argv[1], true);
+  bool is2D;
+  std::shared_ptr<problem> prob = problem::createNewProblem(argv[1], &is2D);
   prob->initProblem(argv[1]);
   prob->buildNodeCoefficients();
   prob->prepareSkeletonMatrix();

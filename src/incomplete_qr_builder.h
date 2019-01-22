@@ -71,8 +71,9 @@ template<class scalar> class SparseIncompleteQRBuilder
                             this->buildingR[qj] += v * qv;
                     });
                     auto cmp_larger_abs_coef = [](const i_c &a, i_c const &b) {return std::abs(a.second) > std::abs(b.second);};
-                    // Get nr *largest* elements, notice the reversed comparator above
-                    fillWithNSmallest(selectedR, buildingR, nr, cmp_larger_abs_coef);
+                    // Get nr-1 *largest* elements, notice the reversed comparator above
+                    //  -1 accounts for the diagonal
+                    fillWithNSmallest(selectedR, buildingR, nr - 1, cmp_larger_abs_coef);
                     // Sort it according to index
                     std::sort(selectedR.begin(), selectedR.end(), [](const i_c &a, const i_c &b){return a.first<b.first;});
                     // Now fill R matrix column and finalize Q calculation

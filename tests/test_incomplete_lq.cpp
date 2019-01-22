@@ -1,59 +1,35 @@
 #include <iostream>
 #include "../src/incomplete_qr_builder.h"
-#include "../src/problem.h"
 #include "../src/util/fill_with_smallest.hpp"
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
 #include <vector>
 
-class upperTriangularElementsMap {
-    std::vector<std::vector<std::pair<Eigen::Index, Eigen::Index>>> UTCols;
-    // FIXME: assume compressed!!!!!
-public:
-    template<class scalar> upperTriangularElementsMap(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m) {
-        UTCols.resize(m.cols());
-        for(Eigen::Index j = 0; j < m.outerSize(); j++)
-            for(Eigen::Index idx = m.outerIndexPtr()[j]+1; idx < m.outerIndexPtr()[j+1]; idx++)
-                UTCols[m.innerIndexPtr()[idx]].push_back(std::make_pair(j, idx));
-    }
-
-    void iterateOverUpperElements(unsigned int j, std::function<void(Eigen::Index,Eigen::Index)> &&f) const {
-        for(auto [i, offset] : UTCols[j]) f(i, offset);
-    }
-};
-
-template<class scalar> class symmetric2ColStorage {
-    const upperTriangularElementsMap &utmap;
-    const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m;
-public:
-    symmetric2ColStorage(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m, const upperTriangularElementsMap &map): utmap(map), m(m) {}
-
-    void iterateOverColumn(unsigned long j, std::function<void(unsigned long, scalar)> &&f) const {
-        // 1st iterate over upper elements
-        utmap.iterateOverUpperElements(j, [f, this](Eigen::Index i, Eigen::Index offset) {
-            f(i, m.valuePtr()[offset]);
-        });
-        (typename SparseIncompleteQRBuilder<scalar>::columnMajorStorageAdaptor(m)).iterateOverColumn(j,std::move(f));
-    }
-    unsigned long rows() const { return m.rows(); }
-    unsigned long cols() const { return m.cols(); }
-};
-
-
 int main(int argc, char **argv) {
-  if(argc!=2) {
-    std::cerr << "Parameters must be mesh file name\n";
-    return 1;
-  }
-  bool is2D;
-  std::shared_ptr<problem> prob = problem::createNewProblem(argv[1], &is2D);
-  prob->initProblem(argv[1]);
-  prob->buildNodeCoefficients();
-  prob->prepareSkeletonMatrix();
-  prob->createCoef2KMatrix();
-  std::vector<double> cond(prob->getNumCoefficients(), 1.0);
-  Eigen::SparseMatrix<double, Eigen::ColMajor> *a;
-  prob->assembleProblemMatrix(&cond[0], &a);
+  double simpleKh[] = {
+    -3.0, -3.0, 0.0, 0.0,
+    0.0, 0.0, -3.0, -3.0,
+    6.0, -1.0, -2.0, 0.0,
+    -1.0, 6.0, 0.0, -2.0,
+    -2.0, 0.0, 6.0, -1.0,
+    0.0, -2.0, -1.0, 6.0
+  };
+
+  double testR[] = {
+    7.0, 0.42857142857142855,-3.4285714285714284,0.0,
+    0.0,6.923271995742359,0.2888807490489974,-3.466568988587969,
+    0.,0.,6.002671099874577,0.6629701628693009,
+    0.,0.,0.,5.875706681229786
+  };
+
+  Eigen::SparseMatrix<double, Eigen::ColMajor> a =
+    Eigen::Map<Eigen::MatrixXd>(simpleKh,4,6).sparseView(0.0, 0.001).transpose();
   SparseIncompleteQRBuilder<double> builder;
 
-  Eigen::SparseMatrix<double> R = builder.buildRMatrixFromColStorage(symmetric2ColStorage<double>(*a, upperTriangularElementsMap(*a)), 6, 12);
-  return 0;
+  Eigen::SparseMatrix<double, Eigen::ColMajor> R = builder.buildRMatrix(a, 3, 3);
+  if(
+    (R - Eigen::SparseMatrix<double, Eigen::ColMajor>(Eigen::Map<Eigen::MatrixXd>(testR,4,4).sparseView(0.0, 0.001).transpose())).squaredNorm()
+      < 1e-7)
+      return 0;
+  else return 1;
 }

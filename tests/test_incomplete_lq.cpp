@@ -6,7 +6,7 @@
 
 class upperTriangularElementsMap {
     std::vector<std::vector<std::pair<Eigen::Index, Eigen::Index>>> UTCols;
-    // FIXME: asume compressed!!!!!
+    // FIXME: assume compressed!!!!!
 public:
     template<class scalar> upperTriangularElementsMap(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m) {
         UTCols.resize(m.cols());

@@ -10,7 +10,7 @@
 #include "observations.h"
 #include <iostream>
 #include "gradientnormregularisation.h"
-#include "util/standard_devation.hpp"
+#include "util/standard_deviation.hpp"
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))

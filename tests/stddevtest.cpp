@@ -1,12 +1,12 @@
 #include <iostream>
-#include "../src/util/standard_devation.hpp"
+#include "../src/util/standard_deviation.hpp"
 
 int main(int argc, char* argv[])
 {
     double a[] = {
         0.277581, 0.24364, 0.236519, 0.229084, 0.324995, 0.274411, 0.281469, 0.290241, 0.316553, 0.340117, 0.381493, 0.332735, 0.211533, 0.243014, 0.223994, 0.224349, 0.24471, 0.324983, 0.282342, 0.253281, 0.307704, 0.289102, 0.283188, 0.256502, 0.274983, 0.281164, 0.28214, 0.350598, 0.244814, 0.222791, 0.21463, 0.262809, 0.381499
     };
-    
+
     std::cout << population_variance(a, a+(sizeof(a)/sizeof(double))) << std::endl;
     return 0;
 }

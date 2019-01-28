@@ -79,8 +79,8 @@ public:
 	std::pair<int, int> getAdjacency(int index) { return this->innerAdjacency[index]; }
 
 	// Contructor and destructors
-	problem(const char *meshfilename) : filename(meshfilename), groundNode(-1),
-		skeleton(nullptr), coef2KMatrix(nullptr), nodeCoef(nullptr),
+	problem(const char *meshfilename) : groundNode(-1), skeleton(nullptr), 
+		coef2KMatrix(nullptr), nodeCoef(nullptr), filename(meshfilename),
 		capacitance(0.0), isCapacitive(false), calibrationMode(0) {};
 	virtual ~problem();
 

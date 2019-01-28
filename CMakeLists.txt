@@ -84,5 +84,3 @@ set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 add_subdirectory(tests)
-set_property(TARGET stddevtest PROPERTY CXX_STANDARD 17)
-set_property(TARGET stddevtest PROPERTY CXX_STANDARD_REQUIRED ON)

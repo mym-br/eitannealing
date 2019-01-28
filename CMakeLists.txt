@@ -83,7 +83,6 @@ target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIB
 set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
-add_executable(stddevtest tests/stddevtest.cpp )
 add_subdirectory(tests)
 set_property(TARGET stddevtest PROPERTY CXX_STANDARD 17)
 set_property(TARGET stddevtest PROPERTY CXX_STANDARD_REQUIRED ON)

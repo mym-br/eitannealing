@@ -10,7 +10,6 @@ include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 
 set(eit_core_SRCS
   src/gradientnormregularisation.cpp
-#  src/sparseincompletelq.cpp
   src/initproblem.cpp
   src/nodecoeficients.cpp
   src/solver.cpp
@@ -21,8 +20,8 @@ set(eit_core_SRCS
   src/observations.cpp
   src/solver_lb.cpp
   src/solution_lb.cpp
-#  src/eigen3test.cpp
   src/intcoef.cpp
+  src/assembleMatrix.cpp
 )
 
 set(eit_gui_SRCS
@@ -40,9 +39,9 @@ set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 
 add_subdirectory(tests)
 
-add_library(eit_core OBJECT ${eitannealing_core_SRCS})
+add_library(eit_core OBJECT ${eit_core_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
-add_executable(eitannealingtest src/main.cpp  ${eitannealing_gui_SRCS})
+add_executable(eitannealingtest src/main.cpp ${eitannealing_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
-target_link_libraries(eitannealingtest $<TARGET_OBJECTS:eit_core> ${libs} ${ADDITIONAL_LIBRARIES})
+target_link_libraries(eitannealingtest ${libs} ${ADDITIONAL_LIBRARIES})

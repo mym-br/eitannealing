@@ -418,17 +418,16 @@ int main(int argc, char *argv[])
        //std::cout << solver2.getIteration() << ":" << sqrt(val) << std::endl;
        //std::cout << i << ":" << solver2.getMinErrorl2Estimate() << "-" << solver2.getMaxErrorl2Estimate() << std::endl;
      }
-     
+
      LB_Solver solver3(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, solver.getLeastEvEst(), solver2.getX());
      for(int i=0;i<45;i++) {
        solver3.do_iteration();
        std::cout << i << ":" << solver3.getMinErrorl2Estimate() << "-" << solver3.getMaxErrorl2Estimate() << std::endl;
      }*/
-     
-     
-     
+
+
+
      qRegisterMetaType<QModelIndex>("QModelIndex");
-     qRegisterMetaType<QModelIndex>("QVector<int>");
      
      view = new solutionView(numcoefficients);
      QTableView list;

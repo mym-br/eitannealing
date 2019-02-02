@@ -41,7 +41,7 @@ template<class scalar> class SparseIncompleteQRBuilder
         //    applies f to each nonzero element of a's i-th column, passing its row number and value.
         // Unsigned long rows() and unsigned long cols()
         template <class columnMajorStorage> Eigen::SparseMatrix<scalar, Eigen::ColMajor>
-        buildRMatrixFromColStorage(const columnMajorStorage &a, unsigned long nr, unsigned long nq)
+        buildRMatrixFromColStorage(columnMajorStorage &&a, unsigned long nr, unsigned long nq)
         {
                 unsigned long m = a.rows();
                 unsigned long n = a.cols();
@@ -71,8 +71,9 @@ template<class scalar> class SparseIncompleteQRBuilder
                             this->buildingR[qj] += v * qv;
                     });
                     auto cmp_larger_abs_coef = [](const i_c &a, i_c const &b) {return std::abs(a.second) > std::abs(b.second);};
-                    // Get nr *largest* elements, notice the reversed comparator above
-                    fillWithNSmallest(selectedR, buildingR, nr, cmp_larger_abs_coef);
+                    // Get nr-1 *largest* elements, notice the reversed comparator above
+                    //  -1 accounts for the diagonal
+                    fillWithNSmallest(selectedR, buildingR, nr - 1, cmp_larger_abs_coef);
                     // Sort it according to index
                     std::sort(selectedR.begin(), selectedR.end(), [](const i_c &a, const i_c &b){return a.first<b.first;});
                     // Now fill R matrix column and finalize Q calculation
@@ -89,7 +90,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                         // should just optimize to v*v on non-complex scalars
                         qnorm2 += std::real(std::conj(v)*v);
                     }
-                    double qnorm = std::sqrt(qnorm);
+                    double qnorm = std::sqrt(qnorm2);
                     double inorm = 1/qnorm;
                     // Final element of R is the norm
                     RMatrix.insert(j,j) = qnorm;

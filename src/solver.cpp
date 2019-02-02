@@ -9,23 +9,23 @@
 #include "solver.h"
 #include "nodecoefficients.h"
 
-CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
+CG_Solver::CG_Solver(matrix &_A, const Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
 	A(_A),
-	b(b), 
-	x(Eigen::VectorXd::Zero(_A.rows())), 
-	precond(pre)	
+	b(b),
+	x(Eigen::VectorXd::Zero(_A.rows())),
+	precond(pre)
 {
 	this->init();
 }
 
-CG_Solver::CG_Solver(matrix &A_, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &pre):
+CG_Solver::CG_Solver(matrix &A_, const Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &pre):
 	A(A_), b(b), x(x0),
 	// Precond!
 	precond(pre)  {
 	this->init();
 }
 
-// Setup and calculate the 1st iteraction	
+// Setup and calculate the 1st iteraction
 void CG_Solver::init()
 {
 	r.resize(A.rows());
@@ -170,7 +170,7 @@ void CG_Solver::init()
 	err[1] = w[0]*w[0]+wt[1]*wt[1];
 	err[2] = w[0]*w[0]+w[1]*w[1]+wt[2]*wt[2];
 }
-		
+
 void CG_Solver::do_iteration() {
 
 	it++;
@@ -236,9 +236,10 @@ void CG_Solver::do_iteration() {
 	eta_[it] = leta;*/
 
 	err[it-1] = w[it-2]*w[it-2]+wt[it-1]*wt[it-1] - wt[it-2]*wt[it-2];
-	
+
 	//std::cout << it << ":"  << x.squaredNorm() << std::endl;
 }
+
 
 
 

@@ -40,11 +40,11 @@ class CG_Solver {
 		int lastRefresh;
 		bool refresh_at_next;
 		double rmod, rmod_1;
-		
+
 		matrix::ConstSelfAdjointViewReturnType<Eigen::Lower>::Type A;
 		const Eigen::VectorXd &b;
-		Eigen::VectorXd x;		
-		Eigen::VectorXd p;		
+		Eigen::VectorXd x;
+		Eigen::VectorXd p;
 		Eigen::VectorXd r;
 		Eigen::VectorXd q;
 
@@ -52,8 +52,8 @@ class CG_Solver {
 		const SparseIncompleteLLT	&precond;
 		Eigen::VectorXd z;
 
-		
-		
+
+
 
 		/* Lanczos
 		Eigen::VectorXd v;
@@ -77,43 +77,43 @@ class CG_Solver {
 		//double merr;
 		double r0norm;
 		double r0norm2;
-		
+
 
 		circularbuff<double,8> eta_;
 		circularbuff<double,8> alpha_;
-		
+
 
 
 		void init();
-						
+
 	public:
-	
+
 		void setrefresh() {
-			this->refresh_at_next = true;			
+			this->refresh_at_next = true;
 		}
-		
+
 		int getIteration() const {
 			return this->it;
 		}
-		
+
 		double getResidueSquaredNorm() const {
 			return this->rmod;
 		}
-		
+
 		double getErrorl2Estimate() const {
 			if(it>2) {
 				return r0norm*r0norm*(this->err[it-1])*precond.getLINFinityNorm();
 			} else return 0;
 		}
 
-		CG_Solver(matrix &A, Eigen::VectorXd &b, const SparseIncompleteLLT &precond);
-		CG_Solver(matrix &A, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &precond);
+		CG_Solver(matrix &A, const Eigen::VectorXd &b, const SparseIncompleteLLT &precond);
+		CG_Solver(matrix &A, const Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &precond);
 		void do_iteration();
-		
+
 		const Eigen::VectorXd &getX() const {
 			return this->x;
 		}
-		
+
 		Eigen::VectorXd getY() const {
 			Eigen::VectorXd y(x);
 			this->precond.halfMultInPlace(y);
@@ -123,11 +123,11 @@ class CG_Solver {
 		const Eigen::VectorXd &getR() const {
 			return this->r;
 		}
-		
+
 		const SparseIncompleteLLT	&getPrecond() {
 			return this->precond;
 		}
-		
+
 		double getLastE2() const {
 		  return rmod/r0norm2;
 		}

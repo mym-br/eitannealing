@@ -1,6 +1,6 @@
- project(eitannealingtests)
+project(eitannealingtests)
 cmake_minimum_required(VERSION 3.1.3)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules) 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Threads REQUIRED)
@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 
 set(eit_core_SRCS
-  src/gradientnormregularisation.cpp 
+  src/gradientnormregularisation.cpp
 #  src/sparseincompletelq.cpp
   src/initproblem.cpp
   src/nodecoeficients.cpp
@@ -38,6 +38,6 @@ add_library(eit_core OBJECT ${eit_core_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 set_property(TARGET eit_core PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-add_executable(eitannealingtest tests/test_incomplete_lq.cpp ${eit_gui_SRCS})
+add_executable(eitannealingtest tests/test_incomplete_lq.cpp)
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
 target_link_libraries(eitannealingtest $<TARGET_OBJECTS:eit_core> ${libs} ${ADDITIONAL_LIBRARIES})

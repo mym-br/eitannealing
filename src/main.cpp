@@ -549,8 +549,6 @@ int main(int argc, char *argv[])
 
 	double *sol = new double[input->getNumCoefficients()];
 	for (int i = 0; i<input->getNumCoefficients(); i++) sol[i] = 1.0;
-	viewre->setCurrentSolution(sol);
-	if (isComplexProblem) viewim->setCurrentSolution(sol);
 	delete[] sol;
 	std::thread worker(workProc);
 

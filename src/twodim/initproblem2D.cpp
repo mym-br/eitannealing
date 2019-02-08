@@ -9,7 +9,7 @@ void problem2D::initProblem(const char *meshfilename) {
 	//this->electrodeh = 0.023f;
 	//this->totalheight = 0.016f;
 	this->electrodeh = 0.0004f;
-	this->totalheight = 0.080f;
+	this->totalheight = 0.020f;
 
 	file.close();
 }

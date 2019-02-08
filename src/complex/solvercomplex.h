@@ -8,7 +8,7 @@
 #ifndef SOLVERCOMPLEX_H_
 #define SOLVERCOMPLEX_H_
 
-#include "basematrix.h"
+#include "../basematrix.h"
 #include "incomplete_choleskycomplex.h"
 #include "solver.h"
 //#include "nodecoefficients.h"

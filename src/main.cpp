@@ -47,61 +47,6 @@ bool e2test = false;
 void workProc()
 {
 
-	/*float *sol = new float[65];
-	int i;
-	sol[0] = 1.0;
-	for(i=1;i<65;i++) {
-		sol[i] = 2.0;
-	}
-
-	sol[28] = 1.0;
-	sol[29] = 1.0;
-	sol[36] = 1.0;
-	sol[37] = 1.1;
-
-	solution newsol(sol);
-
-	for(i=0;i<numNodes*31;i++) {
-		newsol.improve();
-		std::cout << i << " - " << newsol.getDEstimate() << std::endl;
-	}*/
-
-/*
-	float *sol = new float[65];
-	int i;
-	sol[0] = 1.0;
-	for(i=1;i<65;i++) {
-		sol[i] = 1.0;
-	}
-
-	obs::initObsProblem();
-	matrix *big = obs::buildObsProblemMatrix(sol);
-
-	SparseIncompleteLLT pbig(*big);
-	matrix *small;
-	assembleProblemMatrix(sol, &small);
-	SparseIncompleteLLT psmall(*small);
-
-	Eigen::VectorXd currentBig(obs::numNodes-1);
-	Eigen::VectorXd currentSmall(numNodes-1);
-
-	currentBig.fill(0);
-	currentSmall.fill(0);
-
-	/*
-	for(i=0;i<7;i++) {
-		currentBig[i] = -1;
-		currentSmall[i] = -1;
-	}
-
-	for(i=0;i<8;i++) {
-		currentBig[i+15] = 1;
-		currentSmall[i+15] = 1;
-	}*/
-
-
-
-
 	// Simulated annealing
 	std::unique_ptr<solution_lb> current, next;
 	float kt = 0.001;

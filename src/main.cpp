@@ -204,108 +204,6 @@ int main(int argc, char *argv[])
 	 gradientNormRegularisation::initInstance();
 	 intCoef::initInstance();
 
-	 /*float *solution = new float[numcoefficients];
-	 for(int i=0;i<numcoefficients;i++) solution[i] = 1;
-
-	 solution[100] = 2;
-
-	 std::cout << "Regularization:" << gradientNormRegularisation::getInstance()->getRegularisation(solution);
-	 std::cout << std::endl;
-
-/*
-	 //solution[32] = 1.5;
-	 //solution[node2coefficient[288]] = 1.5;
-	 //solution[node2coefficient[358]] = 1.0;
-	 //solution[node2coefficient[346]] = 1.0;
-
-
-
-     assembleProblemMatrix(solution, &stiffness0);
-
-
-	 double start = get_time();
-	 for(int i=0;i<1000;i++)
-	   new SparseIncompleteLQ(*stiffness0,15,6);
-	  //new SparseIncompleteLLT(*stiffness0);
-	 std::cout << "Time:" << (get_time()-start)/1000 << std::endl;
-	 exit(0);
-
-
-	 /*
-
-
-	// CG_Solver solver(*stiffness0, currents[29], precond);
-
-	 for(int i=0;i<900;i++)
-		 solver.do_iteration();
-
-	 std::cout << "currents:\n";
-	 std::cout << currents[29].end(31) << std::endl;
-
-	 std::cout << "tensions:\n";
-	 std::cout << solver.getX().end(31) << std::endl;*/
-
-
-     //int i;
-     //float *coefficients = new float[65];
-     //// Chessboard
-     //for(i=0;i<65;i++) coefficients[i] = 1.0;
-     //coefficients[28] = 1;
-     //coefficients[29] = 1;
-     //coefficients[36] = 1;
-     //coefficients[37] = 1;
-     //     assembleProblemMatrix(coefficients, &stiffness);
-    // coefficients[1] = 2;
-     //stiffness0 = assembleProblemMatrix(coefficients);
-
-     //QTableView matrixView;
-
-     //float sol[65];
-     //for(int i=0;i<65;i++) sol[i] = 1.0;
-     //matrix *stiffness = obs::buildObsProblemMatrix(sol);
-     //matrixView.setModel(new matrixViewModel(*stiffness));
-     //matrixView.setWindowTitle("Stiffness");
-     //matrixView.show();
-
-     //QTableView matrixView;
-     //matrixView.setModel(new matrixViewModel(*stiffness0));
-     //matrixView.setWindowTitle("Stiffness");
-     //matrixView.show();
-
-     /*
-     float *sol = new float[numcoefficients];
-     for(int i=0;i<numcoefficients;i++) sol[i]=1.0;
-     matrix *Aii, *Acc;
-     matrix2 *Aic;
-     assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
-     SparseIncompleteLLT precond(*Aii);
-     LB_Solver_EG_Estimate solver(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, 75, 0.00001);
-     std::cout << solver.getLeastEvEst() << std::endl;
-     std::cout << "\nGauss: " << solver.getMaxErrorl2Estimate() << " Radau: " << solver.getMinErrorl2Estimate() << std::endl;
-
-
-     LB_Solver solver2(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, solver.getLeastEvEst());
-     //Eigen::VectorXd jtop = -Aic->transpose()*tensions[0].end(32);
-     //Eigen::VectorXd jbot = currents[0].end(32) - *Acc*tensions[0].end(32);
-     for(int i=0;i<45;i++) {
-       solver2.do_iteration();
-       //Eigen::VectorXd x(solver2.getX());
-       //double val = 0;
-       //val += (jtop-(*Aii)*x).squaredNorm();
-       //val += (jbot-(*Aic)*x).squaredNorm();
-       //std::cout << solver2.getIteration() << ":" << solver2.getX().norm() << std::endl;
-       //std::cout << solver2.getIteration() << ":" << sqrt(val) << std::endl;
-       //std::cout << i << ":" << solver2.getMinErrorl2Estimate() << "-" << solver2.getMaxErrorl2Estimate() << std::endl;
-     }
-
-     LB_Solver solver3(Aii, Aic, Acc, Eigen::VectorXd(currents[0].end(32)), Eigen::VectorXd(tensions[0].end(32)), precond, solver.getLeastEvEst(), solver2.getX());
-     for(int i=0;i<45;i++) {
-       solver3.do_iteration();
-       std::cout << i << ":" << solver3.getMinErrorl2Estimate() << "-" << solver3.getMaxErrorl2Estimate() << std::endl;
-     }*/
-
-
-
      qRegisterMetaType<QModelIndex>("QModelIndex");
 
      view = new solutionView(numcoefficients);
@@ -330,5 +228,5 @@ int main(int argc, char *argv[])
 
      int retval =  app.exec();
      worker.join();
-     return 0;
+     return retval;
  }

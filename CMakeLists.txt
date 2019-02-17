@@ -38,8 +38,11 @@ add_subdirectory(tests)
 add_library(eit_core OBJECT ${eit_core_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
-add_executable(eitannealingtest src/main.cpp ${eitannealing_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
+add_library(eit_gui OBJECT ${eitannealing_gui_SRCS})
+target_compile_options(eit_gui PRIVATE ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
+set_property(TARGET eit_gui PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_executable(eitannealingtest src/main.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
-target_compile_options(eitannealingtest PRIVATE ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 target_compile_definitions(eitannealingtest PRIVATE ${Qt5Widgets_DEFINITIONS})
 target_link_libraries(eitannealingtest ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})

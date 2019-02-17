@@ -33,10 +33,6 @@ set(eitannealing_gui_SRCS
   src/graphics.cpp
 )
 
-add_definitions(${Qt5Widgets_DEFINITIONS})
-set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-set(CMAKE_CXX_FLAGS ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
-
 add_subdirectory(tests)
 
 add_library(eit_core OBJECT ${eit_core_SRCS})
@@ -44,4 +40,6 @@ set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
 add_executable(eitannealingtest src/main.cpp ${eitannealing_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
-target_link_libraries(eitannealingtest ${libs} ${ADDITIONAL_LIBRARIES})
+target_compile_options(eitannealingtest PRIVATE ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
+target_compile_definitions(eitannealingtest PRIVATE ${Qt5Widgets_DEFINITIONS})
+target_link_libraries(eitannealingtest ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})

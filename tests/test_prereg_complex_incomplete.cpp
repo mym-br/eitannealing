@@ -37,8 +37,17 @@ int test1(void) {
     AicI.insert(ij.first, ij.second) = x.imag();
   }
 
-
   SparseIncompleteQRComplex<double> qr(AiiR, AiiI, AicR, AicI);
+
+  Eigen::VectorXd x_R(4), x_I(4);
+
+  x_R << 1, 1, 1, 1;
+  x_I << 1, 1, 1, 1;
+
+  qr.solveInPlaceC(x_R, x_I);
+
+  std::cout << x_R;
+
   return 0;
 }
 

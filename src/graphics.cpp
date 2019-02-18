@@ -92,7 +92,6 @@ QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 	    }
 	}
 	if((s3-s1)<0.001) {
-		int level = 255*(((s1+s3)/2));
 		return QBrush(getColorForLevel((s1+s3)/2));
 	}
 
@@ -149,7 +148,6 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
 		    n = elements[i].a;
 		    polygon.push_back(translateCoordinate(nodes[n].x, nodes[n].y));
-		    int level = 255;//*(solution[elements[i].condIndex]-1);
 		    painter.setBrush(getBrushForElement(solution, elements[i].a, elements[i].b, elements[i].c));
 		    painter.drawConvexPolygon(polygon);
 	    }

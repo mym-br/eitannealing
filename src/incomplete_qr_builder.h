@@ -45,8 +45,8 @@ template<class scalar> class SparseIncompleteQRBuilder
         //  iterateOverColumn(unsigned long i, std::function<void(unsigned long, scalar)> &f) const
         //    applies f to each nonzero element of a's i-th column, passing its row number and value.
         // Unsigned long rows() and unsigned long cols()
-        template <class columnMajorStorage, class outputInsertFunction> void
-        buildRMatrixFromColStorage(columnMajorStorage &&a, unsigned long nr, unsigned long nq, outputInsertFunction &&insert)
+        template <class columnMajorStorage, class diagonalInsertFunction, class upperElementsInsertFunction> void
+        buildRMatrixFromColStorage(columnMajorStorage &&a, unsigned long nr, unsigned long nq, diagonalInsertFunction &&insert_diagonal, upperElementsInsertFunction &&insert_upper)
         {
                 unsigned long m = a.rows();
                 unsigned long n = a.cols();
@@ -80,7 +80,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                     std::sort(selectedR.begin(), selectedR.end(), [](const i_c &a, const i_c &b){return a.first<b.first;});
                     // Now fill R matrix column and finalize Q calculation
                     for(auto [ri, rv] : selectedR) {
-                        insert(ri, j, rv);
+                        insert_upper(ri, j, rv);
                         for(auto [qj, qv] : qcols[ri])
                             buildingQ[qj] -= rv*qv;
                     }
@@ -92,7 +92,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                     double qnorm = std::sqrt(qnorm2);
                     double inorm = 1/qnorm;
                     // Final element of R is the norm
-                    insert(j, j, qnorm);
+                    insert_diagonal(j, qnorm);
                     // Now update q storage
                     for(auto [i, v] : selectedQ) {
                         double nv = v*inorm;
@@ -111,9 +111,9 @@ template<class scalar> class SparseIncompleteQRBuilder
             unsigned long rows() const { return m.rows(); }
             unsigned long cols() const { return m.cols(); }
         };
-        template<class outputInsertFunction> void
-        buildRMatrix(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &a, unsigned long nr, unsigned long nq, outputInsertFunction &&f) {
-            buildRMatrixFromColStorage(columnMajorStorageAdaptor(a), nr, nq, f);
+        template <class diagonalInsertFunction, class upperElementsInsertFunction> void
+        buildRMatrix(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &a, unsigned long nr, unsigned long nq, diagonalInsertFunction &&insert_diagonal, upperElementsInsertFunction &&insert_upper) {
+            buildRMatrixFromColStorage(columnMajorStorageAdaptor(a), nr, nq, insert_diagonal, insert_upper);
         }
 };
 

@@ -24,7 +24,7 @@ int test1(void) {
   };
 
   Eigen::SparseMatrix<double, Eigen::ColMajor> a =
-    Eigen::Map<Eigen::MatrixXd>(simpleKh,4,6).sparseView(0.0, 0.001).transpose();
+    Eigen::Map<Eigen::MatrixXd>(simpleKh,4,6).sparseView(0.0, 0.00001).transpose();
   SparseIncompleteQRBuilder<double> builder;
 
   Eigen::SparseMatrix<double, Eigen::ColMajor> RMatrix(4, 4);
@@ -55,14 +55,14 @@ int test2(void) {
   };
 
   std::complex<double> testR[] = {
-    {7.211102550927978, 0.0}, {-0.41602514716892186,-0.27735009811261467},{-0.41602514716892186,-0.2773500981126146},{-3.328201177351375,0.2773500981126146},{0.5547001962252291, 0.0},
+    {7.211102550927978, 0.0}, {-0.41602514716892186,-0.27735009811261467},{-3.328201177351375,0.2773500981126146},{0.5547001962252291, 0.0},
     {0.0, 0.0}, {7.053367989832942, 0.0}, {0.3817052642352578, 0.14722917334788516}, {-3.369912189962704, -0.021811729384871872},
     {0.0, 0.0}, {0.0, 0.0}, {6.169058052718128, 0.0}, {-0.23215226567515956,-0.027068766200180533},
     {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {6.160058221029499, 0.0}
   };
 
   Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> a =
-    Eigen::Map<Eigen::MatrixXcd>(simpleKh,4,6).sparseView(0.0, 0.001).transpose();
+    Eigen::Map<Eigen::MatrixXcd>(simpleKh,4,6).sparseView(0.0, 0.00001).transpose();
 
   SparseIncompleteQRBuilder<std::complex<double> > builder;
 
@@ -77,7 +77,6 @@ int test2(void) {
 
   RMatrix.makeCompressed();
 
-  std::cout << RMatrix;
   if(
     (RMatrix - Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor>(Eigen::Map<Eigen::MatrixXcd>(testR,4,4).sparseView(0.0, 0.001).transpose())).squaredNorm()
       > 1e-7)

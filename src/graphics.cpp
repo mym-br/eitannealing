@@ -26,7 +26,7 @@ QPoint translateCoordinate(float x, float y)
 	return QPoint((int)(1800*x+0.5)+300, 300 - (int)(1800*y+.5));
 }
 
-viewport::viewport(int width, int height, const char *title) : scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32)
+viewport::viewport(int width, int height, const char *title) : paintbuff(width, height, QImage::Format_RGB32), scale(width, 70, QImage::Format_RGB32)
 {
 	this->setWindowTitle(title);
 	this->setFixedSize(width, height+scale.height());
@@ -35,8 +35,8 @@ viewport::viewport(int width, int height, const char *title) : scale(width, 70, 
 	this->scale.fill(qRgb(255, 255, 255));
 
 	QLinearGradient color(20,0,this->width()-20,0);
-	
-	color.setColorAt(0, getColorForLevel(mincond));	
+
+	color.setColorAt(0, getColorForLevel(mincond));
 	for(double t=0.125f; t < 1.0f; t+= 0.125f) {
 	    double level = maxcond*t + (1-t)*mincond;
 	    color.setColorAt(t, getColorForLevel(level));
@@ -272,6 +272,3 @@ void solutionView::setCurrentSolution(const double *newsol)
 	}
 	emit dataChanged(this->createIndex(0,0, this->sol), this->createIndex(0,this->rows));
 }
-
-
-

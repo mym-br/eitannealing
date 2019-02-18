@@ -25,7 +25,7 @@ class LB_Solver_Complex {
         int it;
 
 				matrix::ConstSelfAdjointViewReturnType<Eigen::Lower>::Type Aii_R, Aii_I;
-        const matrix2 &Aic_R, &Aiic_I;
+        const matrix2 &Aic_R, &Aic_I;
         const Preconditioner       &precond;
 
         double JhatNorm2;

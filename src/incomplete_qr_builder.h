@@ -95,7 +95,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                     insert_diagonal(j, qnorm);
                     // Now update q storage
                     for(auto [i, v] : selectedQ) {
-                        double nv = v*inorm;
+                        scalar nv = v*inorm;
                         qrows[i].push_back(std::pair(j, nv));
                         qcols[j].push_back(std::pair(i, nv));
                     }

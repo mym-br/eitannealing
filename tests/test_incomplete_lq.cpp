@@ -26,9 +26,16 @@ int main(int argc, char **argv) {
     Eigen::Map<Eigen::MatrixXd>(simpleKh,4,6).sparseView(0.0, 0.001).transpose();
   SparseIncompleteQRBuilder<double> builder;
 
-  Eigen::SparseMatrix<double, Eigen::ColMajor> R = builder.buildRMatrix(a, 3, 3);
+  Eigen::SparseMatrix<double, Eigen::ColMajor> RMatrix(4, 4);
+  RMatrix.reserve(make_sizestype_adaptor([](unsigned long i){return (i+1)>4?4:(i+1);}));
+
+  builder.buildRMatrix(a, 3, 3, [&RMatrix](unsigned long i, unsigned long j, double x) {
+    RMatrix.insert(i,j) = x;
+  });
+
+  RMatrix.makeCompressed();
   if(
-    (R - Eigen::SparseMatrix<double, Eigen::ColMajor>(Eigen::Map<Eigen::MatrixXd>(testR,4,4).sparseView(0.0, 0.001).transpose())).squaredNorm()
+    (RMatrix - Eigen::SparseMatrix<double, Eigen::ColMajor>(Eigen::Map<Eigen::MatrixXd>(testR,4,4).sparseView(0.0, 0.001).transpose())).squaredNorm()
       < 1e-7)
       return 0;
   else return 1;

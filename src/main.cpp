@@ -409,12 +409,12 @@ int main(int argc, char *argv[])
 	if (isComplexProblem) {
 		readingsComplex = new observations<std::complex<double>>;
 		currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
-		readingsComplex->initObs(currentspair, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
+		readingsComplex->initObs(currentspair, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode());
 	}
 	else {
 		readingsScalar = new observations<double>;
 		const char *currentsfnamecstr = currentsinfname.c_str();
-		readingsScalar->initObs(&currentsfnamecstr, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
+		readingsScalar->initObs(&currentsfnamecstr, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode());
 	}
 
 	input->buildNodeCoefficients();
@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
 	gradientNormRegularisationComplex::initCalibrationInstance(input);
 
 	qRegisterMetaType<QModelIndex>("QModelIndex");
-	//qRegisterMetaType<QModelIndex>("QVector<int>");
+	qRegisterMetaType<QModelIndex>("QVector<int>");
 
 	double minvalre, maxvalre, minvalim, maxvalim;
 	minvalre = input->getCalibrationMode() != 0 ? mincondint : mincond; maxvalre = input->getCalibrationMode() != 0 ? maxcondint : maxcond;

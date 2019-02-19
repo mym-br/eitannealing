@@ -85,28 +85,47 @@ public:
 	virtual ~problem();
 
 	void prepareSkeletonMatrix() {
+#if defined(ZEROELECSUM) || defined(BLOCKGND)
+		int n = getNodesCount();
+#else
+		int n = getNodesCount() - 1;
+#endif
 		std::vector<Eigen::Triplet<Scalar>> tripletList;
-		for (int i = 0; i<getNodesCount(); ++i) {
+		for (int i = 0; i<n; ++i) {
 			nodeCoefficients *aux = nodeCoef[i];
 			while (aux) { // Col-major storage
 				while (aux->node < i) aux = aux->next; // skip upper triangular
 				int row = aux->node;
+#if !defined(ZEROELECSUM) && !defined(BLOCKGND)
+				if (row == groundNode) {
+					aux = aux->next;
+					continue;   // Skip ground node
+				}
+#endif
 				while (aux && aux->node == row) aux = aux->next;
 				// 1.0 value as placeholder
 				tripletList.push_back(Eigen::Triplet<Scalar>(row, i, 1.0));
 			}
 		}
-		skeleton = new matrix(getNodesCount(), getNodesCount());
+		skeleton = new matrix(n, n);
 		skeleton->setFromTriplets(tripletList.begin(), tripletList.end());
 		skeleton->makeCompressed();
 	}
 
 	void createCoef2KMatrix() {
+#if defined(ZEROELECSUM) || defined(BLOCKGND)
+		int n = getNodesCount();
+#else
+		int n = getNodesCount() - 1;
+#endif
 		Scalar *base = skeleton->valuePtr();// coeffRef(0, 0);
 		std::vector<Eigen::Triplet<Scalar> > tripletList;
-		for (int i = 0; i<getNodesCount(); ++i) {
+		for (int i = 0; i<n; ++i) {
 			for (nodeCoefficients *aux = nodeCoef[i]; aux != NULL; aux = aux->next) {
 				if (aux->node < i) continue; // skip upper triangular
+#if !defined(ZEROELECSUM) && !defined(BLOCKGND)
+				if (aux->node == groundNode) continue;   // Skip ground node
+#endif
 				// Find index
 				matrix::StorageIndex row = (matrix::StorageIndex)(&skeleton->coeffRef(aux->node, i) - base);
 				tripletList.push_back(Eigen::Triplet<Scalar>(row, aux->condIndex, aux->coefficient));
@@ -135,12 +154,12 @@ public:
 	template <typename  _Scalar> void postAssembleProblemMatrix(Eigen::SparseMatrix<_Scalar, Eigen::ColMajor> **stiffnes) {
 		if (!isCapacitive) {
 			#ifdef BLOCKGND
-			for (int i = getNodesCount() - nobs; i < getNodesCount(); i++)
+			for (int i = getNodesCount() - getGenericElectrodesCount(); i < getNodesCount(); i++)
 			for (int j = i; j < getNodesCount(); j++) {
-				std::complex<double> *val = &m->coeffRef(j, i);
+				_Scalar *val = &(*stiffnes)->coeffRef(j, i);
 				*val = *val + 1 / 32.0;
 			}
-			#else
+			#elif defined(ZEROELECSUM)
 			for (int i = 0; i < getGroundNode(); i++) *(&(*stiffnes)->coeffRef(getGroundNode(), i)) = 0.0;
 			for (int i = getGroundNode() + 1; i < getNodesCount(); i++) *(&(*stiffnes)->coeffRef(i, getGroundNode())) = 0.0;
 			*(&(*stiffnes)->coeffRef(getGroundNode(), getGroundNode())) = 1.0;
@@ -158,7 +177,7 @@ public:
 
 	vectorx getCurrentVector(int i, observations<double> *obs) {
 		vectorx current = obs->getCurrents()[i];
-		#ifndef BLOCKGND
+		#ifdef ZEROELECSUM
 		current[groundNode] = 0;
 		#endif
 		return current;

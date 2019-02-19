@@ -77,6 +77,10 @@ target_link_libraries(eitlb  ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitlb PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitlb PROPERTY CXX_STANDARD_REQUIRED ON)
 
+add_executable(eitdirect src/maindirect.cpp $<TARGET_OBJECTS:eit_core>)
+target_link_libraries(eitdirect  ${libs} ${ADDITIONAL_LIBRARIES})
+set_property(TARGET eitdirect PROPERTY CXX_STANDARD 17)
+set_property(TARGET eitdirect PROPERTY CXX_STANDARD_REQUIRED ON)
 
 cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} ${eit_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
 target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} ${ADDITIONAL_LIBRARIES})

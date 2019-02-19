@@ -16,7 +16,7 @@
 #include "basematrix.h"
 #include "incomplete_qr_builder.h"
 
-template<class scalar> class SparseIncompleteQRComplex
+class SparseIncompleteQRComplex
 {
   protected:
     std::vector<double> idiagonal;
@@ -43,7 +43,7 @@ template<class scalar> class SparseIncompleteQRComplex
             // First iterate over upper elements
             for(auto [j, x] : upperMap[j]) f(j, x);
             // Now, lower elements and fill map for next columns
-            for(typename Eigen::SparseMatrix<scalar>::InnerIterator itR(iiR, j), itI(iiI, j); itR; ++itR, ++itI) {
+            for(typename Eigen::SparseMatrix<double>::InnerIterator itR(iiR, j), itI(iiI, j); itR; ++itR, ++itI) {
                 std::complex<double> val(itR.value(), itI.value());
                 if(itR.index()>j) {
                   upperMap[itR.index()].push_back(std::pair<unsigned long, std::complex<double> >(j, val));
@@ -51,7 +51,7 @@ template<class scalar> class SparseIncompleteQRComplex
                 f(itR.index(), val);
             }
             // Finally, ic elements
-            for(typename Eigen::SparseMatrix<scalar>::InnerIterator itR(icR, j), itI(icI, j); itR; ++itR, ++itI) {
+            for(typename Eigen::SparseMatrix<double>::InnerIterator itR(icR, j), itI(icI, j); itR; ++itR, ++itI) {
                 std::complex<double> val(itR.value(), itI.value());
                 f(itR.index() + square_size, val);
             }

@@ -38,7 +38,7 @@ int test1(void) {
     AicI.insert(ij.first, ij.second) = x.imag();
   }
 
-  SparseIncompleteQRComplex<double> qr(4, 5, AiiR, AiiI, AicR, AicI);
+  SparseIncompleteQRComplex qr(4, 5, AiiR, AiiI, AicR, AicI);
 
   Eigen::VectorXd x_R(4), x_I(4);
   Eigen::VectorXd xi_R(4), xi_I(4);

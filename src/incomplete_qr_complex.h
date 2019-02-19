@@ -77,7 +77,7 @@ template<class scalar> class SparseIncompleteQRComplex
     }
 
     void solveInPlaceC(Eigen::VectorXd &bR, Eigen::VectorXd &bI) const {
-      unsigned long i = idiagonal.size();
+      long i = idiagonal.size() - 1;
       for(; i>=0; i--) {
         for(auto [j, x] : rows[i]) {
           bR[i] -= bR[j]*x.real() - bI[j]*x.imag();

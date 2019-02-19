@@ -11,7 +11,7 @@ int test1(void) {
   std::vector<std::pair< std::pair<int, int>, std::complex<double> > > AiiV = {
     {{0,0}, {6.0, 1.0}},
     {{1,0}, {-1.0, 0.0}},
-    {{2, 0}, {-2.0, 0.0}},
+    {{2,0}, {-2.0, 0.0}},
     {{1,1}, {6.0, 0.0}},
     {{2,1}, {-2.0, 0.0}},
     {{2,2}, {6.0, 0.0}},
@@ -25,7 +25,7 @@ int test1(void) {
     {{1,3}, {-3.0, 0.0}}
   };
 
-  Eigen::SparseMatrix<double, Eigen::ColMajor> AiiR, AiiI, AicR, AicI;
+  Eigen::SparseMatrix<double, Eigen::ColMajor> AiiR(4, 4), AiiI(4, 4), AicR(2, 4), AicI(2, 4);
 
   for(auto [ij, x] : AiiV) {
     AiiR.insert(ij.first, ij.second) = x.real();

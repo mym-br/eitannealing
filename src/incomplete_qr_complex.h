@@ -28,13 +28,14 @@ template<class scalar> class SparseIncompleteQRComplex
         const Eigen::SparseMatrix<double, Eigen::ColMajor> &iiI;
         const Eigen::SparseMatrix<double, Eigen::ColMajor> &icR;
         const Eigen::SparseMatrix<double, Eigen::ColMajor> &icI;
+        unsigned long square_size;
         // FIXME: This map can be reused!
         std::vector<std::vector<std::pair<unsigned long, std::complex<double> > > > upperMap;
 
         MatricesStorageAdaptor(
           const matrix &iiUpper_R, const matrix &iiUpper_I,
           const matrix &Aic_R, const matrix &Aic_I):
-          iiR(iiUpper_R), iiI(iiUpper_I), icR(Aic_R), icI(Aic_I), upperMap(iiUpper_R.rows())
+          iiR(iiUpper_R), iiI(iiUpper_I), icR(Aic_R), icI(Aic_I), upperMap(iiUpper_R.rows()), square_size(iiUpper_R.cols())
            {}
         void iterateOverColumn(unsigned long j, std::function<void(unsigned long, std::complex<double>)> &&f) {
             // FIXME: This assumes that the columns will be iterated in order, so the current column has already
@@ -52,23 +53,23 @@ template<class scalar> class SparseIncompleteQRComplex
             // Finally, ic elements
             for(typename Eigen::SparseMatrix<scalar>::InnerIterator itR(icR, j), itI(icI, j); itR; ++itR, ++itI) {
                 std::complex<double> val(itR.value(), itI.value());
-                f(itR.index(), val);
+                f(itR.index() + square_size, val);
             }
         }
-        unsigned long rows() const { return iiR.rows(); }
-        unsigned long cols() const { return iiR.cols(); }
+        unsigned long rows() const { return square_size+icR.rows(); }
+        unsigned long cols() const { return square_size; }
     };
 
   public:
 
-    SparseIncompleteQRComplex(
+    SparseIncompleteQRComplex(unsigned long nr, unsigned long nq,
       const matrix &iiUpper_R, const matrix &iiUpper_I,
       const matrix &Aic_R, const matrix &Aic_I
     ): idiagonal(iiUpper_R.rows()), rows(iiUpper_R.rows()), cols(iiUpper_R.rows()) {
 
       SparseIncompleteQRBuilder<std::complex<double> > builder;
 
-      builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(iiUpper_R, iiUpper_I, Aic_R, Aic_I), 8, 16, [this](unsigned long j, double x) {
+      builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(iiUpper_R, iiUpper_I, Aic_R, Aic_I), nr, nq, [this](unsigned long j, double x) {
         this->idiagonal[j] = 1/x;
       }, [this](unsigned long i, unsigned long j, std::complex<double> x) {
         this->rows[i][j] = x;

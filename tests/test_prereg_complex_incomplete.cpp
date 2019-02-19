@@ -13,8 +13,9 @@ int test1(void) {
     {{1,0}, {-1.0, 0.0}},
     {{2,0}, {-2.0, 0.0}},
     {{1,1}, {6.0, 0.0}},
-    {{2,1}, {-2.0, 0.0}},
+    {{3,1}, {-2.0, 0.0}},
     {{2,2}, {6.0, 0.0}},
+    {{3,2}, {-1.0, 0.0}},
     {{3,3}, {6.0, 0.0}}
   };
 
@@ -37,16 +38,21 @@ int test1(void) {
     AicI.insert(ij.first, ij.second) = x.imag();
   }
 
-  SparseIncompleteQRComplex<double> qr(AiiR, AiiI, AicR, AicI);
+  SparseIncompleteQRComplex<double> qr(4, 5, AiiR, AiiI, AicR, AicI);
 
   Eigen::VectorXd x_R(4), x_I(4);
+  Eigen::VectorXd xi_R(4), xi_I(4);
 
   x_R << 1, 1, 1, 1;
   x_I << 1, 1, 1, 1;
 
   qr.solveInPlaceC(x_R, x_I);
 
-  std::cout << x_R;
+  xi_R << 0.21432671692081437, 0.2132957768126756, 0.16749598599918508, 0.16233612802329572;
+  xi_I << 0.21786640837878715, 0.2072004687291166, 0.1689205920436586, 0.16233612802329572;
+
+  if(((xi_R-x_R).squaredNorm()+(xi_I-x_I).squaredNorm())>1e-7)
+    return 1;
 
   return 0;
 }

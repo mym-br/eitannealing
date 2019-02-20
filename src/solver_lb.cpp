@@ -262,7 +262,7 @@ void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix 
         // Row major! Built as the transpose
         matrix2 *outLeft = new matrix2(numElect, iiLimit);
         out2->reserve((numElect)*4);
-        for (; i<nodes.size()-1; ++i) {
+        for (; i<nodes.size(); ++i) {
                 nodeCoefficients *aux = nodeCoef[i];
                 while(aux) { // Col-major storage in Kcc, row major in Kic
                         while(aux->node > iiLimit && aux->node < i) aux = aux->next; // skip small upper triangular section at the bottom left
@@ -278,7 +278,7 @@ void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix 
                           out2->insert(row-iiLimit,i-iiLimit) = val;
                 }
         }
-        out->makeCompressed();
+        out2->makeCompressed();
         outLeft->makeCompressed();
         *Kcc = out2;
         *Kic = outLeft;

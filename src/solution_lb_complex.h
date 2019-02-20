@@ -5,11 +5,12 @@
  *      Author: thiago
  */
 
-#ifndef SOLUTION_LB_H_
-#define SOLUTION_LB_H_
+#ifndef SOLUTION_LB_COMPLEX_H_
+#define SOLUTION_LB_COMPLEX_H_
 
 #include "solution.h"
 #include "solver_lb.h"
+#include "solver_lb_complex.h"
 #include "problemdescription.h"
 #include <memory>
 
@@ -20,11 +21,10 @@ class solution_lb_complex {
 
 			double *solRe;
 			double *solIm;
-			matrix *Aii, *Acc;
-			matrix2 *Aic;
-			std::unique_ptr<LB_Solver::Preconditioner> precond;
+			matrix *Aii_R, *Aii_I, *Aic_R, *Aic_I, *Acc_R, *Acc_I;
+			std::unique_ptr<LB_Solver_Complex::Preconditioner> precond;
 
-			LB_Solver **simulations;
+			LB_Solver_Complex **simulations;
 			Eigen::VectorXd distance;
 			Eigen::VectorXd maxdist;
 			Eigen::VectorXd mindist;
@@ -44,28 +44,30 @@ class solution_lb_complex {
 
 
 			void initSimulations();
-			void initSimulations(const solution_lb &base);
+			void initSimulations(const solution_lb_complex &base);
 			void initErrors();
 
-			double *getShufledSolution();
-			static double *getNewRandomSolution();
-			static double *copySolution(const double *sol);
+			void getShufledSolution(double **s_R, double **s_I);
+			double *getNewRandomSolution_R();
+			double *getNewRandomSolution_I();
+			double *copySolution(const double *sol) const;
 
-			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
+			double *getShuffledSolution_R(shuffleData *data, const shuffler &sh) const;
+			double *getShuffledSolution_I(shuffleData *data, const shuffler &sh) const;
 
 
 			// shuffle constructor
-			solution_lb(double *sol, const solution_lb &base);
+			solution_lb_complex(double *sol_R, double *sol_I, const solution_lb_complex &base);
 
 
 	public:
 
-		solution_lb(const double *sol);
-		solution_lb();	// New random solution
-		bool compareWith(solution_lb &target, float kt, float prob);
+		solution_lb_complex(const double *sol_R, const double *sol_I);
+		solution_lb_complex();	// New random solution
+		bool compareWith(solution_lb_complex &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
 		//bool compareWithMaxE2(solution &target, float kt, double e2);
-		solution_lb *shuffle(shuffleData *data, const shuffler &sh) const;
+		solution_lb_complex *shuffle(shuffleData *data_R, const shuffler &sh_R, shuffleData *data_I, const shuffler &sh_I) const;
 
 		void improve();
 
@@ -79,8 +81,12 @@ class solution_lb_complex {
 			return minTotalDist;
 		}
 
-		double *getSolution() {
-			return this->sol;
+		double *getSolution_R() {
+			return this->solRe;
+		}
+
+		double *getSolution_I() {
+			return this->solIm;
 		}
 
 		int getCritical() const {
@@ -109,32 +115,7 @@ class solution_lb_complex {
 
 		//void ensureMaxE2(double e2);
 
-		~solution_lb();
-
-
-#ifdef __GENERATE_LB_BENCHMARKS
-		solution_lb(const float *sol, char benchmarktag);
-#endif	// __GENERATE_LB_BENCHMARKS
+		~solution_lb_complex();
 };
 
-
-class solution_lb_benchmarked : public solution_lb
-{
-public:
-  struct benchmark_entry {
-      unsigned int timestamp;
-      double e_low;
-      double e_high;
-    } *vector;
-    int i;
-    int n;
-
-    solution_lb_benchmarked(const float *sigma, benchmark_entry *bench, int n);
-
-    void performBenchmark();
-
-protected:
-  static int getTimestamp();
-};
-
-#endif /* SOLUTION_H_ */
+#endif /* SOLUTION_LB_COMPLEX_H_ */

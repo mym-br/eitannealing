@@ -18,13 +18,14 @@ Eigen::VectorXd *currents_I;
 
 //viewport *exact;
 
-void initObsComplex(char *filecurrents, char* filetensions)
+void initObsComplex(char *filecurrents, char* filetensions, char* filetensions_I)
 {
 	std::ifstream filec;
-	std::ifstream filet;
+	std::ifstream file_r, file_i;
 
 	filec.open(filecurrents);
-	filet.open(filetensions);
+	file_r.open(filetensions);
+	file_i.open(filetensions_I);
 
 	// FIXME: Read from file!
 	nobs = 32;
@@ -56,14 +57,14 @@ void initObsComplex(char *filecurrents, char* filetensions)
 		tensions[i].resize(gelectrodes.size()-1);
 		double val_R, val_I;
 		for(unsigned int j=0;j<gelectrodes.size()-1;j++) {
-			filet >> val_R;
-			filet >> val_I;
+			file_r >> val_R;
+			file_i >> val_I;
 			tensions[i][j] = val_R/c;  // Values are normalized by current
 			tensions_I[i][j] = val_I/c;  // Values are normalized by current
 		}
 		// rebase tensions, as our last electrode is always the ground
-		filet >> val_R;
-		filet >> val_I;
+		file_r >> val_R;
+		file_i >> val_I;
 		for(unsigned int j=0;j<gelectrodes.size()-1;j++) {
 			tensions[i][j] -= val_R/c;
 			tensions_I[i][j] -= val_I/c;
@@ -71,5 +72,6 @@ void initObsComplex(char *filecurrents, char* filetensions)
 	}
 
 	filec.close();
-	filet.close();
+	file_r.close();
+	file_i.close();
 }

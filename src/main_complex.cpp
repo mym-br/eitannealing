@@ -128,14 +128,14 @@ int main(int argc, char *argv[])
   //  struct timespec time;
   //  clock_gettime(CLOCK_REALTIME, &time);
   // init_genrand64(time.tv_nsec);
-   if(argc > 4)
-     param = atof(argv[4]);
+   if(argc > 5)
+     param = atof(argv[5]);
    else
      param = 0.875f;
    QApplication app(argc, argv);
      initProblem(argv[1]);
 
-	 initObsComplex(argv[2], argv[3]);
+	 initObsComplex(argv[2], argv[3], argv[4]);
 	 buildNodeCoefficients();
 	 prepareSkeletonMatrix();
          createCoef2KMatrix();

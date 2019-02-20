@@ -14,6 +14,6 @@
 extern Eigen::VectorXd *tensions_I;
 extern Eigen::VectorXd *currents_I;
 
-void initObsComplex(char *filecurrents, char* filetensions);
+void initObsComplex(char *filecurrents, char* filetensions_R, char* filetensions_I);
 
 #endif /* OBSERVATIONS_COMPLEX_H_ */

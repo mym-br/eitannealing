@@ -8,8 +8,6 @@
 #ifndef SOLUTION_LB_H_
 #define SOLUTION_LB_H_
 
-class solution_lb;
-
 #include "solution.h"
 #include "solver_lb.h"
 #include "problemdescription.h"
@@ -21,7 +19,7 @@ class solution_lb_complex {
 
 
 			double *solRe;
-			double *solIm;	
+			double *solIm;
 			matrix *Aii, *Acc;
 			matrix2 *Aic;
 			std::unique_ptr<LB_Solver::Preconditioner> precond;

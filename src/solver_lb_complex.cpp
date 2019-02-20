@@ -3,7 +3,7 @@
 #include "problemdescription.h"
 
 LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii_R, matrix *_Aii_I, matrix *_Aic_R, matrix *_Aic_I, matrix *_Acc_R, matrix *_Acc_I, const Eigen::VectorXd &J_R, const Eigen::VectorXd &J_I, const Eigen::VectorXd &Phi_R, const Eigen::VectorXd &Phi_I, const Preconditioner &precond, double a):
-    Aii_R(*_Aii_R), Aii_I(*_Aii_I), Aic_R(*_Aic_R), Aic_I(*_Aic_I), precond(precond), a(a), lowerSafe(true), x0_R(Eigen::VectorXd::Zero(_Aii_R->rows())), x0_I(Eigen::VectorXd::Zero(_Aii_R->rows()))
+    Aii_R(*_Aii_R), Aii_I(*_Aii_I), Aic_R(*_Aic_R), Aic_I(*_Aic_I), precond(precond), lowerSafe(true), a(a), x0_R(Eigen::VectorXd::Zero(_Aii_R->rows())), x0_I(Eigen::VectorXd::Zero(_Aii_R->rows()))
 {
     it = 0;
     // 0
@@ -15,7 +15,7 @@ LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii_R, matrix *_Aii_I, matrix *_Ai
 }
 
 LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii_R, matrix *_Aii_I, matrix *_Aic_R, matrix *_Aic_I, matrix *_Acc_R, matrix *_Acc_I, const Eigen::VectorXd &J_R, const Eigen::VectorXd &J_I, const Eigen::VectorXd &Phi_R, const Eigen::VectorXd &Phi_I, const Preconditioner &precond, double a, const Eigen::VectorXd &_x0_R, const Eigen::VectorXd &_x0_I):
-    Aii_R(*_Aii_R), Aii_I(*_Aii_I), Aic_R(*_Aic_R), Aic_I(*_Aic_I), precond(precond), a(a), lowerSafe(true), x0_R(_x0_R), x0_I(_x0_I)
+    Aii_R(*_Aii_R), Aii_I(*_Aii_I), Aic_R(*_Aic_R), Aic_I(*_Aic_I), precond(precond), lowerSafe(true), a(a), x0_R(_x0_R), x0_I(_x0_I)
 {
     it = 0;
     // 0

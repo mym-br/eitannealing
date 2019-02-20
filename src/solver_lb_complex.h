@@ -5,8 +5,8 @@
  *      Author: thiago
  */
 
-#ifndef SOLVER_LB_H_
-#define SOLVER_LB_H_
+#ifndef SOLVER_LB_COMPLEX_H_
+#define SOLVER_LB_COMPLEX_H_
 
 #include <complex>
 #include "incomplete_qr_complex.h"
@@ -95,4 +95,4 @@ class LB_Solver_EG_Complex_Estimate : public LB_Solver_Complex
 
 void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix **Kic, matrix **Kcc,int numElect);
 
-#endif  // SOLVER_LB_H_
+#endif  // SOLVER_LB_COMPLEX_H_

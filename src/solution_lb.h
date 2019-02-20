@@ -40,7 +40,7 @@ class solution_lb {
 
 			double *sol;
 			matrix *Aii, *Acc;
-			matrix2 *Aic; 
+			matrix *Aic;
 			std::unique_ptr<LB_Solver::Preconditioner> precond;
 
 			LB_Solver **simulations;
@@ -72,7 +72,7 @@ class solution_lb {
 
 			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
-			
+
 			// shuffle constructor
 			solution_lb(double *sol, const solution_lb &base);
 
@@ -117,20 +117,20 @@ class solution_lb {
 		int getTotalIt() const {
 			return this->totalit;
 		}
-		
+
 		double getRegularisationValue() const {
 			    return this->regularisation;
 			}
-		
+
 		void saturate();
-		
+
 		void ensureMinIt(unsigned int it);
-		
+
 		//void ensureMaxE2(double e2);
 
 		~solution_lb();
-		
-		
+
+
 #ifdef __GENERATE_LB_BENCHMARKS
 		solution_lb(const float *sol, char benchmarktag);
 #endif	// __GENERATE_LB_BENCHMARKS
@@ -139,7 +139,7 @@ class solution_lb {
 
 class solution_lb_benchmarked : public solution_lb
 {
-public: 
+public:
   struct benchmark_entry {
       unsigned int timestamp;
       double e_low;
@@ -147,11 +147,11 @@ public:
     } *vector;
     int i;
     int n;
-    
+
     solution_lb_benchmarked(const float *sigma, benchmark_entry *bench, int n);
-    
+
     void performBenchmark();
-    
+
 protected:
   static int getTimestamp();
 };

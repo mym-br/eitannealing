@@ -1,8 +1,9 @@
 #include "solver_lb.h"
 #include "nodecoefficients.h"
 #include "problemdescription.h"
+#include <iostream>
 
-LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a):
+LB_Solver::LB_Solver(matrix *_Aii, matrix *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a):
     Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(true), x0(Eigen::VectorXd::Zero(_Aii->rows()))
 {
     it = 0;
@@ -12,7 +13,7 @@ LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::Vec
     init();
 }
 
-LB_Solver::LB_Solver(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a, const Eigen::VectorXd &x0):
+LB_Solver::LB_Solver(matrix *_Aii, matrix *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a, const Eigen::VectorXd &x0):
     Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(true), x0(x0)
 {
     it = 0;
@@ -144,7 +145,7 @@ double LB_Solver::getMinErrorl2Estimate() const
 	return sqrt(v);//+this->getX().norm()*0.0005;
 }
 
-LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix2* Aic, matrix* Acc, const Eigen::VectorXd& J, const Eigen::VectorXd& Phi, const Preconditioner& precond, int n, float e):
+LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix* Aic, matrix* Acc, const Eigen::VectorXd& J, const Eigen::VectorXd& Phi, const Preconditioner& precond, int n, float e):
         LB_Solver(Aii, Aic, Acc, J, Phi, precond, 0)
 {
       Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
@@ -188,7 +189,7 @@ LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix2* Aic, matrix* 
 }
 
 
-LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, const Eigen::VectorXd &x0, const Eigen::VectorXd &egHint, int n, float e):
+LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, const Eigen::VectorXd &x0, const Eigen::VectorXd &egHint, int n, float e):
  LB_Solver(Aii, Aic, Acc, J, Phi, precond, 0, x0)
 {
       Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
@@ -233,11 +234,12 @@ LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *
 }
 
 // FIXME: Use new implementation
-void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc, int numElect)
+void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix **Kic, matrix **Kcc, int numElect)
 {
       int iiLimit = nodes.size()-numElect;
 
         matrix *out = new matrix(iiLimit, iiLimit);
+        matrix *outBottom = new matrix(numElect, iiLimit);
         double val;
         out->reserve(7*iiLimit); // estimate of the number of nonzeros (optional)
         int i;
@@ -246,40 +248,38 @@ void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix 
                 while(aux) { // Col-major storage
                         while(aux->node < i) aux = aux->next; // skip upper triangular
                         int row = aux->node;
-                        if(row>=iiLimit) break; // Cut lower segment
                         val = 0.0;
                         while(aux && aux->node==row) {
                                 val += aux->coefficient*cond[aux->condIndex];
                                 aux = aux->next;
                         }
-                        out->insert(row,i) = val;
+                        if(row>=iiLimit) {
+                          outBottom->insert(row - iiLimit, i) = val;
+                        }
+                        else
+                          out->insert(row,i) = val;
                 }
         }
         out->makeCompressed();
+        outBottom->makeCompressed();
         *Kii = out;
-        // Now Kcc and Kic
+        *Kic = outBottom;
+        // Now Kcc
         matrix *out2 = new matrix(numElect, numElect);
-        // Row major! Built as the transpose
-        matrix2 *outLeft = new matrix2(numElect, iiLimit);
         out2->reserve((numElect)*4);
         for (; i<nodes.size(); ++i) {
                 nodeCoefficients *aux = nodeCoef[i];
-                while(aux) { // Col-major storage in Kcc, row major in Kic
-                        while(aux->node > iiLimit && aux->node < i) aux = aux->next; // skip small upper triangular section at the bottom left
+                while(aux) { // Col-major storage in Kcc
+                        while(aux->node < i) aux = aux->next; // skip upper triangular
                         int row = aux->node;
                         val = 0.0;
                         while(aux && aux->node==row) {
                                 val += aux->coefficient*cond[aux->condIndex];
                                 aux = aux->next;
                         }
-                        if(row<iiLimit)
-                          outLeft->insert(i-iiLimit,row) = val; // As noted previously, outLeft is filled sideways row-wise
-                        else
-                          out2->insert(row-iiLimit,i-iiLimit) = val;
+                        out2->insert(row-iiLimit,i-iiLimit) = val;
                 }
         }
         out2->makeCompressed();
-        outLeft->makeCompressed();
         *Kcc = out2;
-        *Kic = outLeft;
 }

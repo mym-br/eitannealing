@@ -67,7 +67,7 @@ class solution_lb_complex {
 		bool compareWith(solution_lb_complex &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
 		//bool compareWithMaxE2(solution &target, float kt, double e2);
-		solution_lb_complex *shuffle(shuffleData *data_R, const shuffler &sh_R, shuffleData *data_I, const shuffler &sh_I) const;
+		solution_lb_complex *shuffle(shuffleData *data_R, const shuffler &sh_R, shuffleData *data_I, const shuffler &sh_I, bool *shufle_r) const;
 
 		void improve();
 

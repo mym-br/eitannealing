@@ -19,6 +19,7 @@ set(eit_core_SRCS
   src/solution.cpp
   src/mt19937-64/mt19937-64.c
   src/observations.cpp
+  src/observations_complex.cpp
   src/solver_lb.cpp
   src/solution_lb.cpp
   src/intcoef.cpp
@@ -49,3 +50,8 @@ add_executable(eitannealingtest src/main.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_
 set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD 17)
 target_compile_definitions(eitannealingtest PRIVATE ${Qt5Widgets_DEFINITIONS})
 target_link_libraries(eitannealingtest ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})
+
+add_executable(eitannealingcomplex src/main_complex.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
+set_property(TARGET eitannealingcomplex PROPERTY CXX_STANDARD 17)
+target_compile_definitions(eitannealingcomplex PRIVATE ${Qt5Widgets_DEFINITIONS})
+target_link_libraries(eitannealingcomplex ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${ADDITIONAL_LIBRARIES})

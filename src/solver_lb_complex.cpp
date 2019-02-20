@@ -2,86 +2,110 @@
 #include "nodecoefficients.h"
 #include "problemdescription.h"
 
-LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a):
-    Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(true), x0(Eigen::VectorXd::Zero(_Aii->rows()))
+LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii_R, matrix *_Aii_I, matrix *_Aic_R, matrix *_Aic_I, matrix *_Acc_R, matrix *_Acc_I, const Eigen::VectorXd &J_R, const Eigen::VectorXd &J_I, const Eigen::VectorXd &Phi_R, const Eigen::VectorXd &Phi_I, const Preconditioner &precond, double a):
+    Aii_R(*_Aii_R), Aii_I(*_Aii_I), Aic_R(*_Aic_R), Aic_I(*_Aic_I), precond(precond), a(a), lowerSafe(true), x0_R(Eigen::VectorXd::Zero(_Aii_R->rows())), x0_I(Eigen::VectorXd::Zero(_Aii_R->rows()))
 {
     it = 0;
     // 0
-    r = -_Aic->transpose()*Phi;
-    rc = J.tail(_Acc->rows()) - _Acc->selfadjointView<Eigen::Lower>()*Phi;
+    r_R = -Aic_R.transpose()*Phi_R + Aic_I.transpose()*Phi_I;
+    r_I = -Aic_R.transpose()*Phi_I - Aic_I.transpose()*Phi_R;
+    rc_R = J_R - _Acc_R->selfadjointView<Eigen::Lower>()*Phi_R + _Acc_I->selfadjointView<Eigen::Lower>()*Phi_I;
+    rc_I = J_I - _Acc_R->selfadjointView<Eigen::Lower>()*Phi_I - _Acc_I->selfadjointView<Eigen::Lower>()*Phi_R;
     init();
 }
 
-LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii, matrix2 *_Aic, matrix *_Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, double a, const Eigen::VectorXd &x0):
-    Aii(*_Aii), Aic(*_Aic), precond(precond), a(a), lowerSafe(true), x0(x0)
+LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii_R, matrix *_Aii_I, matrix *_Aic_R, matrix *_Aic_I, matrix *_Acc_R, matrix *_Acc_I, const Eigen::VectorXd &J_R, const Eigen::VectorXd &J_I, const Eigen::VectorXd &Phi_R, const Eigen::VectorXd &Phi_I, const Preconditioner &precond, double a, const Eigen::VectorXd &_x0_R, const Eigen::VectorXd &_x0_I):
+    Aii_R(*_Aii_R), Aii_I(*_Aii_I), Aic_R(*_Aic_R), Aic_I(*_Aic_I), precond(precond), a(a), lowerSafe(true), x0_R(_x0_R), x0_I(_x0_I)
 {
     it = 0;
     // 0
-    r = -_Aic->transpose()*Phi;
-    rc = J.tail(_Acc->rows()) - _Acc->selfadjointView<Eigen::Lower>()*Phi;
-    //std::cout << "Before:" << sqrt(r.squaredNorm()+rc.squaredNorm());
-    Eigen::VectorXd xaux(x0);
-    //precond.solveInPlace(xaux);
-    r -=  Aii*xaux;
-    rc -= Aic*xaux;
-    //std::cout << "After:" << sqrt(r.squaredNorm()+rc.squaredNorm()) << std::endl;
+    r_R = -Aic_R.transpose()*Phi_R + Aic_I.transpose()*Phi_I;
+    r_I = -Aic_R.transpose()*Phi_I - Aic_I.transpose()*Phi_R;
+    rc_R = J_R - _Acc_R->selfadjointView<Eigen::Lower>()*Phi_R + _Acc_I->selfadjointView<Eigen::Lower>()*Phi_I;
+    rc_I = J_I - _Acc_R->selfadjointView<Eigen::Lower>()*Phi_I - _Acc_I->selfadjointView<Eigen::Lower>()*Phi_R;
+
+    r_R -=  Aii_R*x0_R - Aii_I*x0_I;
+    r_I -=  Aii_R*x0_I + Aii_I*x0_R;
+    rc_R -= Aic_R*x0_R - Aic_I*x0_I;
+    rc_I -= Aic_R*x0_I + Aic_I*x0_R;
 
     init();
 }
 
-void LB_Solver::init()
+void LB_Solver_Complex::init()
 {
-    JhatNorm2 = r.squaredNorm()+rc.squaredNorm();
+    JhatNorm2 = r_R.squaredNorm()+r_I.squaredNorm()+rc_R.squaredNorm()+rc_I.squaredNorm();
     delta = sqrt(JhatNorm2);
-    p = r/delta; pc = rc/delta;
+    p_R = r_R/delta; p_I = r_I/delta;
+    pc_R = rc_R/delta; pc_I = rc_I/delta;
 
     // S = (ACi)T*p
-    s.noalias() = Aii*p;	// Aii^T = Aii
-    s.noalias() += Aic.transpose()*pc;
-    precond.solveInPlaceT(s);
-	ATJhatNorm2 = s.squaredNorm();
-    gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
-    	ATJhatNorm2*=JhatNorm2;
+    s_R.noalias() = Aii_R*p_R + Aii_I*p_I; 	// Aii^* = Aii
+    s_I.noalias() = Aii_R*p_I - Aii_I*p_R; 	// Aii^* = Aii
+    s_R.noalias() += Aic_R.transpose()*pc_R;
+    s_R.noalias() += Aic_I.transpose()*pc_I;
+    s_I.noalias() += Aic_R.transpose()*pc_I;
+    s_R.noalias() -= Aic_I.transpose()*pc_R;
 
-    q = s/gamma_ip;              // uses gamma of *NEXT* iteration
+    precond.solveInPlaceCT(s_R, s_I);
+
+	  ATJhatNorm2 = s_R.squaredNorm() + s_I.squaredNorm();
+    gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
+    ATJhatNorm2*=JhatNorm2;
+
+    q_R = s_R/gamma_ip; q_I = s_I/gamma_ip;               // uses gamma of *NEXT* iteration
 	// *** Gauss
     g=0;
 
         // 1
-        w = q;
+        w_R = q_R; w_I = q_I;
         fit = delta;
 
-	qaux = q;
-        precond.solveInPlace(qaux); // q  <- q*C^-1
-        r.noalias() = Aii*qaux;
-        rc.noalias() = Aic*qaux;
-	r -= gamma_ip*p; rc -= gamma_ip*pc;
-        delta = sqrt(r.squaredNorm()+rc.squaredNorm());
-	p = r/delta; pc = rc/delta;
-	s.noalias() = Aii*p; 	// Aii^T = Aii
-        s.noalias() += Aic.transpose()*pc;
-	precond.solveInPlaceT(s);
-	s -= delta*q;
-	    // *** Gauss, as next value for gamma will be pertinent to iteration 2!
+	      qaux_R = q_R; qaux_I = q_I;
+        precond.solveInPlaceC(qaux_R, qaux_I); // q  <- q*C^-1
+
+        r_R.noalias() = Aii_R*qaux_R - Aii_I*qaux_I;
+    		r_I.noalias() = Aii_R*qaux_I + Aii_I*qaux_R;
+    		rc_R.noalias() = Aic_R*qaux_R - Aic_I*qaux_I;
+    		rc_I.noalias() = Aic_R*qaux_I + Aic_I*qaux_R;
+
+        r_R -= gamma_ip*p_R; r_I -= gamma_ip*p_I;
+        rc_R -= gamma_ip*pc_R; rc_I -= gamma_ip*pc_I;
+        delta = sqrt(r_R.squaredNorm()+r_I.squaredNorm()+rc_R.squaredNorm()+rc_I.squaredNorm());
+        p_R = r_R/delta; p_I = r_I/delta; pc_R = rc_R/delta; pc_I = rc_I/delta;
+
+        s_R.noalias() = Aii_R*p_R + Aii_I*p_I; 	// Aii^* = Aii
+        s_I.noalias() = Aii_R*p_I - Aii_I*p_R; 	// Aii^* = Aii
+        s_R.noalias() += Aic_R.transpose()*pc_R;
+        s_R.noalias() += Aic_I.transpose()*pc_I;
+        s_I.noalias() += Aic_R.transpose()*pc_I;
+        s_R.noalias() -= Aic_I.transpose()*pc_R;
+
+	      precond.solveInPlaceCT(s_R, s_I);
+        s_R -= delta*q_R;
+        s_I -= delta*q_I;
+	       // *** Gauss, as next value for gamma will be pertinent to iteration 2!
         phi2 = gamma_ip*gamma_ip+delta*delta;
-		phi = sqrt(phi2);
-		c = -gamma_ip/phi;
-		si = delta/phi;
-		pi = 1/phi2;
-		g+=pi;
-		// This is due to gauss-radau
-		alpha = gamma_ip*gamma_ip+delta*delta;
-	gamma_ip = s.norm();
-	q = s/gamma_ip;
+		    phi = sqrt(phi2);
+		    c = -gamma_ip/phi;
+		    si = delta/phi;
+		    pi = 1/phi2;
+		    g+=pi;
+		    // This is due to gauss-radau
+		    alpha = gamma_ip*gamma_ip+delta*delta;
+	      gamma_ip = sqrt(s_R.squaredNorm()+s_I.squaredNorm());
+	      q_R = s_R/gamma_ip;
+        q_I = s_I/gamma_ip;
 
-	// Gauss-radau
-	beta = gamma_ip*delta;
-	at = a;
-	dt = alpha - a;
+	      // Gauss-radau
+	      beta = gamma_ip*delta;
+	      at = a;
+	      dt = alpha - a;
 
-    x = - (c*fit/phi)*w;
+        x_R = - (c*fit/phi)*w_R;
+        x_I = - (c*fit/phi)*w_I;
 
-    it = 1;
+        it = 1;
 }
 
 void LB_Solver_Complex::do_iteration()
@@ -93,7 +117,7 @@ void LB_Solver_Complex::do_iteration()
 		rc_R.noalias() = Aic_R*qaux_R - Aic_I*qaux_I;
 		rc_I.noalias() = Aic_R*qaux_I + Aic_I*qaux_R;
 
-		r_R -= gamma_ip*p_R; r_i -= gamma_ip*p_I;
+		r_R -= gamma_ip*p_R; r_I -= gamma_ip*p_I;
 		rc_R -= gamma_ip*pc_R; rc_I -= gamma_ip*pc_I;
     delta = sqrt(r_R.squaredNorm()+r_I.squaredNorm()+rc_R.squaredNorm()+rc_I.squaredNorm());
 		p_R = r_R/delta; p_I = r_I/delta; pc_R = rc_R/delta; pc_I = rc_I/delta;
@@ -106,7 +130,7 @@ void LB_Solver_Complex::do_iteration()
 
 		precond.solveInPlaceCT(s_R, s_I);
 		s_R -= delta*q_R;
-		s_I -= delta*q_i;
+		s_I -= delta*q_I;
         // *** Gauss, as next value for gamma will be pertinent to next iteration!
 		psi_im = si*gamma_ip;
 
@@ -144,13 +168,13 @@ void LB_Solver_Complex::do_iteration()
      it++;
 }
 
-double LB_Solver::getErrorl2Estimate() const
+double LB_Solver_Complex::getErrorl2Estimate() const
 {
     return sqrt(JhatNorm2 - ATJhatNorm2*g);//+this->getX().norm()*0.0005;
 }
 
 
-double LB_Solver::getMinErrorl2Estimate() const
+double LB_Solver_Complex::getMinErrorl2Estimate() const
 {
     if(!lowerSafe) return 0;
         double v = JhatNorm2 - ATJhatNorm2*(gr);
@@ -158,8 +182,8 @@ double LB_Solver::getMinErrorl2Estimate() const
 	return sqrt(v);//+this->getX().norm()*0.0005;
 }
 
-LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix2* Aic, matrix* Acc, const Eigen::VectorXd& J, const Eigen::VectorXd& Phi, const Preconditioner& precond, int n, float e):
-        LB_Solver(Aii, Aic, Acc, J, Phi, precond, 0)
+LB_Solver_EG_Complex_Estimate::LB_Solver_EG_Complex_Estimate(matrix *Aii_R, matrix *Aii_I, matrix *Aic_R, matrix *Aic_I, matrix *Acc_R, matrix *Acc_I, const Eigen::VectorXd &J_R, const Eigen::VectorXd &J_I, const Eigen::VectorXd &Phi_R, const Eigen::VectorXd &Phi_I, const Preconditioner &precond, int n, float e):
+        LB_Solver_Complex(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, Phi_R, Phi_I, precond, 0)
 {
       Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
       // Alpha and beta must be stored in order to recalculate dt
@@ -202,8 +226,8 @@ LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix* Aii, matrix2* Aic, matrix* 
 }
 
 
-LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *Acc, const Eigen::VectorXd &J, const Eigen::VectorXd &Phi, const Preconditioner &precond, const Eigen::VectorXd &x0, const Eigen::VectorXd &egHint, int n, float e):
- LB_Solver(Aii, Aic, Acc, J, Phi, precond, 0, x0)
+LB_Solver_EG_Complex_Estimate::LB_Solver_EG_Complex_Estimate(matrix *Aii_R, matrix *Aii_I, matrix *Aic_R, matrix *Aic_I, matrix *Acc_R, matrix *Acc_I, const Eigen::VectorXd &J_R, const Eigen::VectorXd &J_I, const Eigen::VectorXd &Phi_R, const Eigen::VectorXd &Phi_I, const Preconditioner &precond, const Eigen::VectorXd &x0_R, const Eigen::VectorXd &x0_I, const Eigen::VectorXd &egHint, int n, float e):
+ LB_Solver_Complex(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, Phi_R, Phi_I, precond, 0, x0_R, x0_I)
 {
       Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
       // Alpha and beta must be stored in order to recalculate dt
@@ -246,8 +270,8 @@ LB_Solver_EG_Estimate::LB_Solver_EG_Estimate(matrix *Aii, matrix2 *Aic, matrix *
 
 }
 
-// FIXME: Use new implementation
-void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc, int numElect)
+/*// FIXME: Use new implementation
+void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix **Kic, matrix **Kcc, int numElect)
 {
       int iiLimit = nodes.size()-numElect;
 
@@ -274,7 +298,7 @@ void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix 
         // Now Kcc and Kic
         matrix *out2 = new matrix(numElect-1, numElect-1);
         // Row major! Built as the transpose
-        matrix2 *outLeft = new matrix2(numElect-1, iiLimit);
+        matrix *outLeft = new matrix(numElect-1, iiLimit);
         out2->reserve((numElect-1)*4);
         for (; i<nodes.size()-1; ++i) {
                 nodeCoefficients *aux = nodeCoef[i];
@@ -296,4 +320,4 @@ void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix 
         outLeft->makeCompressed();
         *Kcc = out2;
         *Kic = outLeft;
-}
+}*/

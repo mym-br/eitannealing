@@ -23,6 +23,7 @@ set(eit_core_SRCS
   src/solution_lb.cpp
   src/intcoef.cpp
   src/assembleMatrix.cpp
+  src/solver_lb_complex.cpp
 )
 
 set(eit_gui_SRCS

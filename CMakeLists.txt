@@ -15,6 +15,7 @@ set(eit_core_SRCS
   src/solver.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
+  src/incomplete_qr_builder.cpp
   src/solution.cpp
   src/mt19937-64/mt19937-64.c
   src/observations.cpp

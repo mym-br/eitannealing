@@ -31,15 +31,15 @@ const float base[] = {
   // Densermesh,  tri02b.ampl_calibrado.txt ,
   //0.277581, 0.24364, 0.236519, 0.229084, 0.324995, 0.274411, 0.281469, 0.290241, 0.316553, 0.340117, 0.381493, 0.332735, 0.211533, 0.243014, 0.223994, 0.224349, 0.24471, 0.324983, 0.282342, 0.253281, 0.307704, 0.289102, 0.283188, 0.256502, 0.274983, 0.281164, 0.28214, 0.350598, 0.244814, 0.222791, 0.21463, 0.262809, 0.381499
   //0.204031 ,0.253713 ,0.258056 ,0.22902 ,0.334923 ,0.287182 ,0.309377 ,0.354451 ,0.370216 ,0.366888 ,0.378747 ,0.347058 ,0.222916 ,0.228123 ,0.218939 ,0.238365 ,0.278456 ,0.324395 ,0.288809 ,0.286103 ,0.324509 ,0.321599 ,0.284023 ,0.303139 ,0.312969 ,0.328236 ,0.320193 ,0.375504 ,0.256666 ,0.229927 ,0.213987 ,0.230564 ,0.381306
-  
+
   // ueta_circuito_0XXX_AMPLITUDES_10mA.txt
  // 0.0962959, 0.202657, 0.136188, 0.205733, 0.171565, 0.165175, 0.163677, 0.151598, 0.151849, 0.136051, 0.137322, 0.123318, 0.114067, 0.123119, 0.118788, 0.112003, 0.121462, 0.126865, 0.121439, 0.130946, 0.158523, 0.153706, 0.167477, 0.151688, 0.176961, 0.165414, 0.170706, 0.183611, 0.176578, 0.147866, 0.14479, 0.143259, 0.381499
-  
+
   //0.34648, 0.406421, 0.396935, 0.372705, 0.513649, 0.443898, 0.471985, 0.467473, 0.490282, 0.498275, 0.530917, 0.463241, 0.372647, 0.397438, 0.37826, 0.374614, 0.391259, 0.428486, 0.406962, 0.40457, 0.474347, 0.474314, 0.470977, 0.435977, 0.442748, 0.470965, 0.422019, 0.482234, 0.413204, 0.375263, 0.385004, 0.425495, 1.35
   //0.0607283, 0.0665641, 0.0672715, 0.0644222, 0.0831744, 0.0800821, 0.095222, 0.087998, 0.0795147, 0.07844, 0.0820809, 0.0738347, 0.0615422, 0.0666471, 0.0630172, 0.0626265, 0.0654864, 0.0707983, 0.067319, 0.0661263, 0.0802712, 0.0783579, 0.0762317, 0.0713599, 0.0815007, 0.0752741, 0.0709489, 0.0902495, 0.0724872, 0.062839, 0.0674892, 0.0733704
   //0.0607283, 0.0665641, 0.0672715, 0.0644222, 0.0831744, 0.0800821, 0.095222, 0.087998, 0.0795147, 0.07844, 0.0820809, 0.0738347, 0.0615422, 0.0666471, 0.0630172, 0.0626265, 0.0654864, 0.0707983, 0.067319, 0.0661263, 0.0802712, 0.0783579, 0.0762317, 0.0713599, 0.0815007, 0.0752741, 0.0709489, 0.0902495, 0.0724872, 0.062839, 0.0674892, 0.0733704, 0.261434
   //0.13807, 0.125363, 0.106238, 0.0994108, 0.144801, 0.12248, 0.133051, 0.128964, 0.13664, 0.138327, 0.15113, 0.123861, 0.0936534, 0.107083, 0.0969518, 0.0918484, 0.0992923, 0.118951, 0.10938, 0.102443, 0.136631, 0.124224, 0.132069, 0.11404, 0.119842, 0.11939, 0.111648, 0.131918, 0.107573, 0.0992579, 0.105823, 0.133198, 0.22967
-/*    
+/*
     0.09,//0.102741,
     0.24316,
     0.153582,
@@ -83,7 +83,7 @@ void solution_lb::improve()
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
-	
+
 	distance[critical] = simulations[critical]->getErrorl2Estimate();
 	maxdist[critical] = simulations[critical]->getMaxErrorl2Estimate();
 	mindist[critical] = simulations[critical]->getMinErrorl2Estimate();
@@ -165,7 +165,7 @@ solution_lb::solution_lb(const double *sigma):
 {
         assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
         precond.reset(LB_Solver::makePreconditioner(*Aii));
-                                        
+
 	this->initSimulations();
 	this->initErrors();
 }
@@ -182,7 +182,7 @@ solution_lb::solution_lb(double *sigma, const solution_lb &base):
 {
         assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, 32);
         precond.reset(LB_Solver::makePreconditioner(*Aii));
-        
+
         this->initSimulations(base);
         this->initErrors();
 }
@@ -206,22 +206,37 @@ solution_lb::solution_lb():
 
 void solution_lb::initSimulations()
 {
-	
+
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
+  Eigen::VectorXd J, V;
+  J = currents[0].tail(31);
+  double l = -J.sum();
+  J.conservativeResize(32);
+  J(31) = l;
+  V = tensions[0].tail(31);
+  V.conservativeResize(32);
+  V(31) = 0;
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].tail(32)), 
-                        Eigen::VectorXd(tensions[0].tail(31)), *precond,  100, 0.0001);
+                        Aii, Aic, Acc, J,
+                        V, *precond,  100, 0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
 	for(i=1;i<nobs;i++)
 	{
+          J = currents[i].tail(31);
+          double l = -J.sum();
+          J.conservativeResize(32);
+          J(31) = l;
+          V = tensions[i].tail(31);
+          V.conservativeResize(32);
+          V(31) = 0;
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].tail(31)), 
-			Eigen::VectorXd(tensions[i].tail(31)), *precond, a);
+                        Aii, Aic, Acc, J,
+			V, *precond, a);
 		simulations[i]->do_iteration();
 		this->totalit += simulations[i]->getIteration();
 	}
@@ -232,11 +247,19 @@ void solution_lb::initSimulations(const solution_lb &base)
         // Prepare solvers
         int i;
         this->totalit = 0;
+        Eigen::VectorXd J, V;
+        J = currents[0].tail(31);
+        double l = -J.sum();
+        J.conservativeResize(32);
+        J(31) = l;
+        V = tensions[0].tail(31);
+        V.conservativeResize(32);
+        V(31) = 0;
         const LB_Solver_EG_Estimate *baseEVSolver = dynamic_cast<const LB_Solver_EG_Estimate *>(base.simulations[0]);
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[0].tail(31)), 
-                        Eigen::VectorXd(tensions[0].tail(31)), *precond, 
+                        Aii, Aic, Acc, J,
+                        V, *precond,
                         baseEVSolver->getX(),
 			baseEVSolver->getEvector(), 100, 0.0001);
         double a = solver->getLeastEvEst();
@@ -244,9 +267,16 @@ void solution_lb::initSimulations(const solution_lb &base)
 	this->totalit += solver->getIteration();
         for(i=1;i<nobs;i++)
         {
+                J = currents[i].tail(31);
+                double l = -J.sum();
+                J.conservativeResize(32);
+                J(31) = l;
+                V = tensions[i].tail(31);
+                V.conservativeResize(32);
+                V(31) = 0;
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(currents[i].tail(31)), 
-                        Eigen::VectorXd(tensions[i].tail(31)), *precond, a,
+                        Aii, Aic, Acc, J,
+                        V, *precond, a,
 					       base.simulations[i]->getX());
 
                 simulations[i]->do_iteration();
@@ -259,11 +289,11 @@ void solution_lb::initErrors()
 {
 	int i;
 	// Calc regularisation value
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*0.010;
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*0.0005;
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<nobs;i++) {
 		// Compare with observation
-		
+
 		distance[i] = simulations[i]->getErrorl2Estimate();
 		maxdist[i] = simulations[i]->getMaxErrorl2Estimate();
 		mindist[i] = simulations[i]->getMinErrorl2Estimate();
@@ -317,14 +347,14 @@ double *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) 
 	if(genint(2)) { // Normal
 #ifndef USE_PREVIOUS_DATA
 		int ncoef = genint(numcoefficients);
-                
+
 #else // USE_PREVIOUS_DATA
 		int ncoef = genint(numcoefficients-(sizeof(base)/sizeof(float)))+(sizeof(base)/sizeof(float));
-#endif	// float minc, maxc;	  
+#endif	// float minc, maxc;
 		float minc, maxc;
                   maxc = maxcond;
-                  minc = mincond;              
-                
+                  minc = mincond;
+
 		if(sh.shuffleConsts[ncoef]==0) {
 			res[ncoef] = minc+genreal()*(maxc-minc);
 		} else {
@@ -351,7 +381,7 @@ double *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) 
 
 		node1 = node2coefficient[innerAdjacency[ncoef].first];
 		node2 = node2coefficient[innerAdjacency[ncoef].second];
-		
+
 		// Order nodes
 		if(res[node1]>res[node2]) {
 			int aux = node1;
@@ -393,11 +423,11 @@ solution_lb *solution_lb::shuffle(shuffleData *data, const shuffler &sh) const
 	try {
 		res = new solution_lb(sigma, *this);
 	} catch(...) {
-                
+
 		for(int i=0;i<65;i++)
 			std::cout << i << ":" << sigma[i] << std::endl;
 		exit(0);
-	}	
+	}
 	return res;
 }
 
@@ -407,14 +437,14 @@ void solution_lb::saturate()
 }
 
 void solution_lb::ensureMinIt(unsigned int it)
-{     
+{
       static Eigen::VectorXd aux(gelectrodes.size()-1);
       for(int i = 0; i<nobs;i++) {
             LB_Solver *sim = this->simulations[i];
             while(sim->getIteration()<it) {
                 simulations[i]->do_iteration();
                 this->totalit++;
-                
+
                 distance[i] = simulations[i]->getErrorl2Estimate();
                 maxdist[i] = simulations[i]->getMaxErrorl2Estimate();
                 mindist[i] = simulations[i]->getMinErrorl2Estimate();
@@ -422,8 +452,8 @@ void solution_lb::ensureMinIt(unsigned int it)
                 err_x_dist[i] = maxdist[i]*err[i];
                 totalDist = distance.norm()+regularisation;
                 minTotalDist = mindist.norm()+regularisation;
-                maxTotalDist = maxdist.norm()+regularisation;        
-                
+                maxTotalDist = maxdist.norm()+regularisation;
+
                // reevaluate critical
                 double max = err_x_dist[0];
                 critical = 0;
@@ -474,13 +504,13 @@ solution_lb_benchmarked::solution_lb_benchmarked(const float *sigma, benchmark_e
         precond.reset(LB_Solver::makePreconditioner(*Aii));
 	vector[2].timestamp = getTimestamp();
 	vector[2].e_low = -3;
-	vector[2].e_high = -3;                                                
+	vector[2].e_high = -3;
 	this->initSimulations();
 	this->initErrors();
 	vector[3].timestamp = getTimestamp();
 	vector[3].e_low = getDMin();
 	vector[3].e_high = getDMax();
-	i = 4;        
+	i = 4;
 }
 
 void solution_lb_benchmarked::performBenchmark()

@@ -171,6 +171,8 @@ void solution_lb_complex::initSimulations()
   J_I.conservativeResize(32);
   J_I(31) = -J_I.sum();
   V_R = tensions[0].tail(31);
+  V_R.conservativeResize(32);
+  V_R(31) = 0;
   V_I = tensions_I[0].tail(31);
   V_I.conservativeResize(32);
   V_I(31) = 0;
@@ -190,6 +192,8 @@ void solution_lb_complex::initSimulations()
     J_I.conservativeResize(32);
     J_I(31) = -J_I.sum();
     V_R = tensions[i].tail(31);
+    V_R.conservativeResize(32);
+    V_R(31) = 0;
     V_I = tensions_I[i].tail(31);
     V_I.conservativeResize(32);
     V_I(31) = 0;
@@ -298,10 +302,6 @@ double *solution_lb_complex::getNewRandomSolution_R()
 {
 	double *res = new double[numcoefficients];
 	int i = 0;
-#ifdef USE_PREVIOUS_DATA
-        for(;i<sizeof(base)/sizeof(*base);i++)
-            res[i] = base[i];
-#endif /* USE_PREVIOUS_DATA */
 	for(;i<numcoefficients;i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
@@ -313,7 +313,7 @@ double *solution_lb_complex::getNewRandomSolution_I()
 	double *res = new double[numcoefficients];
 	int i = 0;
 	for(;i<numcoefficients;i++)
-		res[i] = 0;
+		res[i] = mincond_I+genreal()*(maxcond_I-mincond_I);
 	return res;
 }
 

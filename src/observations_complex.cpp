@@ -55,6 +55,7 @@ void initObsComplex(char *filecurrents, char* filetensions, char* filetensions_I
 
 		// read tensions from file
 		tensions[i].resize(gelectrodes.size()-1);
+		tensions_I[i].resize(gelectrodes.size()-1);
 		double val_R, val_I;
 		for(unsigned int j=0;j<gelectrodes.size()-1;j++) {
 			file_r >> val_R;

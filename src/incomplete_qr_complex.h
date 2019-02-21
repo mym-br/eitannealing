@@ -12,6 +12,7 @@
 #include <Eigen/Sparse>
 #include <complex>
 #include <unordered_map>
+#include <iostream>
 
 #include "basematrix.h"
 #include "incomplete_qr_builder.h"
@@ -93,6 +94,7 @@ class SparseIncompleteQRComplex
     void solveInPlaceCT(Eigen::VectorXd &bR, Eigen::VectorXd &bI) const {
       unsigned long n = idiagonal.size();
       for(unsigned int i = 0; i<n; i++) {
+
         for(auto [j, x] : cols[i]) {
           bR[i] -= bR[j]*x.real() + bI[j]*x.imag();
           bI[i] -= bI[j]*x.real() - bR[j]*x.imag();

@@ -1,6 +1,7 @@
 #include "solver_lb_complex.h"
 #include "nodecoefficients.h"
 #include "problemdescription.h"
+#include <iostream>
 
 LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii_R, matrix *_Aii_I, matrix *_Aic_R, matrix *_Aic_I, matrix *_Acc_R, matrix *_Acc_I, const Eigen::VectorXd &J_R, const Eigen::VectorXd &J_I, const Eigen::VectorXd &Phi_R, const Eigen::VectorXd &Phi_I, const Preconditioner &precond, double a):
     Aii_R(*_Aii_R), Aii_I(*_Aii_I), Aic_R(*_Aic_R), Aic_I(*_Aic_I), precond(precond), lowerSafe(true), a(a), x0_R(Eigen::VectorXd::Zero(_Aii_R->rows())), x0_I(Eigen::VectorXd::Zero(_Aii_R->rows()))
@@ -11,6 +12,7 @@ LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii_R, matrix *_Aii_I, matrix *_Ai
     r_I = -Aic_R.transpose()*Phi_I - Aic_I.transpose()*Phi_R;
     rc_R = J_R - _Acc_R->selfadjointView<Eigen::Lower>()*Phi_R + _Acc_I->selfadjointView<Eigen::Lower>()*Phi_I;
     rc_I = J_I - _Acc_R->selfadjointView<Eigen::Lower>()*Phi_I - _Acc_I->selfadjointView<Eigen::Lower>()*Phi_R;
+
     init();
 }
 
@@ -38,14 +40,14 @@ void LB_Solver_Complex::init()
     delta = sqrt(JhatNorm2);
     p_R = r_R/delta; p_I = r_I/delta;
     pc_R = rc_R/delta; pc_I = rc_I/delta;
-
     // S = (ACi)T*p
-    s_R.noalias() = Aii_R*p_R + Aii_I*p_I; 	// Aii^* = Aii
-    s_I.noalias() = Aii_R*p_I - Aii_I*p_R; 	// Aii^* = Aii
+    s_R.noalias() = Aii_R*p_R;
+    s_R.noalias() += Aii_I*p_I;
+    s_I.noalias() = Aii_R*p_I - Aii_I*p_R;
     s_R.noalias() += Aic_R.transpose()*pc_R;
     s_R.noalias() += Aic_I.transpose()*pc_I;
     s_I.noalias() += Aic_R.transpose()*pc_I;
-    s_R.noalias() -= Aic_I.transpose()*pc_R;
+    s_I.noalias() -= Aic_I.transpose()*pc_R;
 
     precond.solveInPlaceCT(s_R, s_I);
 
@@ -79,7 +81,7 @@ void LB_Solver_Complex::init()
         s_R.noalias() += Aic_R.transpose()*pc_R;
         s_R.noalias() += Aic_I.transpose()*pc_I;
         s_I.noalias() += Aic_R.transpose()*pc_I;
-        s_R.noalias() -= Aic_I.transpose()*pc_R;
+        s_I.noalias() -= Aic_I.transpose()*pc_R;
 
 	      precond.solveInPlaceCT(s_R, s_I);
         s_R -= delta*q_R;
@@ -126,7 +128,7 @@ void LB_Solver_Complex::do_iteration()
 		s_R.noalias() += Aic_R.transpose()*pc_R;
 		s_R.noalias() += Aic_I.transpose()*pc_I;
 		s_I.noalias() += Aic_R.transpose()*pc_I;
-		s_R.noalias() -= Aic_I.transpose()*pc_R;
+		s_I.noalias() -= Aic_I.transpose()*pc_R;
 
 		precond.solveInPlaceCT(s_R, s_I);
 		s_R -= delta*q_R;

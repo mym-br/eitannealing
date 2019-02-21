@@ -72,7 +72,7 @@ class LB_Solver_Complex {
 
         virtual ~LB_Solver_Complex() {};
 				static Preconditioner *makePreconditioner(const matrix &Aii_R, const matrix &Aii_I, const matrix &Aic_R, const matrix &Aic_I) {
-		    	return new Preconditioner(8, 16, Aii_R, Aii_I, Aic_R, Aic_I);
+		    	return new Preconditioner(8, 10, Aii_R, Aii_I, Aic_R, Aic_I);
 				}
 };
 

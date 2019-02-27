@@ -48,10 +48,13 @@ void LB_Solver_Complex::init()
     s_R.noalias() += Aic_I.transpose()*pc_I;
     s_I.noalias() += Aic_R.transpose()*pc_I;
     s_I.noalias() -= Aic_I.transpose()*pc_R;
-
+    
     precond.solveInPlaceCT(s_R, s_I);
+    
+    std::cout << s_R << "\n\n" << s_I << "\n";
 
-	  ATJhatNorm2 = s_R.squaredNorm() + s_I.squaredNorm();
+    ATJhatNorm2 = s_R.squaredNorm();
+    ATJhatNorm2 += s_I.squaredNorm();
     gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
     ATJhatNorm2*=JhatNorm2;
 

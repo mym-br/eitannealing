@@ -41,7 +41,7 @@ void workProc()
 
 	// Simulated annealing
 	std::unique_ptr<solution_lb_complex> current, next;
-	float kt = 1e-5;
+	float kt = 0.1;
 
 	int totalit;
 	int acceptit;

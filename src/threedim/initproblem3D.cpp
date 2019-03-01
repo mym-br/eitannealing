@@ -6,6 +6,7 @@ void problem3D::initProblem(const char *meshfilename) {
 	fillNodes();
 	fillElementsGenericElectrode();
 	this->electrodeh = 0.0004f;
+	nodeCount = nodes.size();
 
 	file.close();
 }
@@ -32,8 +33,6 @@ void problem3D::fillNodes() {
 		file >> n.z;
 		nodes.push_back(n);
 	}
-
-	nodeCount = nodes.size();
 }
 problem3D::gmeshElement problem3D::getNextElement() {
 	gmeshElement element;
@@ -46,13 +45,13 @@ problem3D::gmeshElement problem3D::getNextElement() {
 		file >> temp;
 		element.tags.push_back(temp);
 	}
-	int nodeCount;
+	int nodeCnt;
 	switch (eltype) {
-	case 15: nodeCount = 1; break; // 1-node point 
-	case  2: nodeCount = 3; break; // 3-node triangle
-	case  4: nodeCount = 4; break; // 4-node tetrahedron
+	case 15: nodeCnt = 1; break; // 1-node point
+	case  2: nodeCnt = 3; break; // 3-node triangle
+	case  4: nodeCnt = 4; break; // 4-node tetrahedron
 	}
-	for (int i = 0; i < nodeCount; i++) {
+	for (int i = 0; i < nodeCnt; i++) {
 		file >> temp;
 		element.node_number_list.push_back(--temp);
 	}
@@ -144,7 +143,7 @@ void problem3D::fillElementsGenericElectrode() {
 		node2coefficient[e] = condIndex;
 	}
 
-	condIndex++;
+	if (!outerRingNodes.empty()) condIndex++;
 
 	// Inner coefficients
 	for (auto i : innerNodes) {

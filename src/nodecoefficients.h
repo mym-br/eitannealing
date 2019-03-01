@@ -8,7 +8,7 @@ struct nodeCoefficients {
 	nodeCoefficients *next;
 
 	nodeCoefficients(int node, int index, double coefficient) :
-		node(node), condIndex(index), coefficient(coefficient), next(NULL) {}
+		node(node), condIndex(index), coefficient(coefficient), next(nullptr) {}
 
 	nodeCoefficients(int node, int index, double coefficient, nodeCoefficients *next) :
 		node(node), condIndex(index), coefficient(coefficient), next(next) {}

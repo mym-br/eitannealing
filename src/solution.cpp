@@ -27,18 +27,22 @@ void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
+#if defined(ZEROELECSUM) || defined(BLOCKGND)
 	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
+#else
+	static Eigen::VectorXd aux(input->getGenericElectrodesCount() - 1);
+#endif
 
 	// Do another iteration on the critical solver
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
 
-	aux = simulations[critical]->getX().tail(input->getGenericElectrodesCount());
-	#ifndef BLOCKGND
+	aux = simulations[critical]->getX().tail(aux.size());
+#ifdef ZEROELECSUM
 	// Rebase tension for zero sum
 	zeroSumVector(aux);
-	#endif
+#endif
 	aux -= readings->getTensions()[critical];
 
 	distance[critical] = aux.norm();
@@ -244,8 +248,7 @@ void solution::initSimulations()
 void solution::initErrors()
 {
 	// Calc regularisation value
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30
-				-intcoef->getInt(this->sol)*240;
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*30;
 	//for (int i = 0; i < input->getGenericElectrodesCount(); i++) { std::cout << this->sol[i] << " "; std::cout << std::endl; }
 	if (std::abs(input->electrodevar) > 1e-6) {
 		double sum = std::accumulate(this->sol, this->sol + input->getGenericElectrodesCount(), 0.0);
@@ -262,15 +265,19 @@ void solution::initErrors()
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
+#if defined(ZEROELECSUM) || defined(BLOCKGND)
 	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
+#else
+	static Eigen::VectorXd aux(input->getGenericElectrodesCount()-1);
+#endif
 	// Retrieve distance estimates, errors and boundaries
 	for (i = 0; i<readings->getNObs(); i++) {
 		// Compare with observation
 		aux = simulations[i]->getX().tail(aux.size());
-		#ifndef BLOCKGND
+#ifdef ZEROELECSUM
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
-		#endif
+#endif
 		aux -= readings->getTensions()[i];
 
 		distance[i] = aux.norm();
@@ -510,10 +517,10 @@ void solution::ensureMinIt(unsigned int it)
 		this->totalit++;
 		// Recalcule expected distance and boundaries
 		aux = simulations[i]->getX().tail(input->getGenericElectrodesCount());
-		#ifndef BLOCKGND
+#ifdef ZEROELECSUM
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
-		#endif
+#endif
 		aux -= readings->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
@@ -547,10 +554,10 @@ void solution::ensureMaxE2(double e2)
 		this->totalit++;
 		// Recalcule expected distance and boundaries
 		aux = simulations[i]->getX().tail(input->getGenericElectrodesCount());
-		#ifndef BLOCKGND
+#ifdef ZEROELECSUM
 		// Rebase tension for zero sum
 		zeroSumVector(aux);
-		#endif
+#endif
 		aux -= readings->getTensions()[i];
 		distance[i] = aux.norm();
 		err[i] = sqrt(simulations[i]->getErrorl2Estimate());
@@ -599,8 +606,12 @@ void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *fi
 	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
 	for (int patterno = 0; patterno < sols.size(); patterno++) {
 		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
-		for (int j = 0; j < input->getNodesCount(); j++)
-			myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+#if defined(ZEROELECSUM) || defined(BLOCKGND)
+		for (int j = 0; j < input->getNodesCount(); j++) myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+#else
+		for (int j = 0; j < input->getNodesCount()-1; j++) myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+		myfile << input->getNodesCount() << "\t" << 0 << "\n";
+#endif
 		myfile << "$EndNodeData\n";
 	}
 	myfile.flush();
@@ -621,8 +632,12 @@ void solution::savePotentials(std::vector<Eigen::VectorXf> &sols, const char *fi
 	//Salvando os tensoes nos no's em formato para ser utilizado no gmsh
 	for (int patterno = 0; patterno < sols.size(); patterno++) {
 		myfile << "$NodeData\n1\n\"Electric Potential\"\n1\n0.0\n3\n" << patterno << "\n1\n" << input->getNodesCount() << "\n";
-		for (int j = 0; j < input->getNodesCount(); j++)
-			myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+#if defined(ZEROELECSUM) || defined(BLOCKGND)
+		for (int j = 0; j < input->getNodesCount(); j++) myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+#else
+		for (int j = 0; j < input->getNodesCount() - 1; j++) myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+		myfile << input->getNodesCount() << "\t" << 0 << "\n";
+#endif
 		myfile << "$EndNodeData\n";
 	}
 	myfile.flush();

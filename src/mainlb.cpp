@@ -23,7 +23,7 @@
 #include "solvercomplex.h"
 //#include "nodecoefficients.h"
 #include "solutioncomplex.h"
-#include "solution.h"
+#include "solution_lb.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
@@ -60,11 +60,66 @@ float kt;
 void workProc()
 {
 
+	/*float *sol = new float[65];
+	int i;
+	sol[0] = 1.0;
+	for(i=1;i<65;i++) {
+	sol[i] = 2.0;
+	}
+
+	sol[28] = 1.0;
+	sol[29] = 1.0;
+	sol[36] = 1.0;
+	sol[37] = 1.1;
+
+	solution newsol(sol);
+
+	for(i=0;i<numNodes*31;i++) {
+	newsol.improve();
+	std::cout << i << " - " << newsol.getDEstimate() << std::endl;
+	}*/
+
+	/*
+	float *sol = new float[65];
+	int i;
+	sol[0] = 1.0;
+	for(i=1;i<65;i++) {
+	sol[i] = 1.0;
+	}
+
+	obs::initObsProblem();
+	matrix *big = obs::buildObsProblemMatrix(sol);
+
+	SparseIncompleteLLT pbig(*big);
+	matrix *small;
+	assembleProblemMatrix(sol, &small);
+	SparseIncompleteLLT psmall(*small);
+
+	Eigen::VectorXd currentBig(obs::numNodes-1);
+	Eigen::VectorXd currentSmall(numNodes-1);
+
+	currentBig.fill(0);
+	currentSmall.fill(0);
+
+	/*
+	for(i=0;i<7;i++) {
+	currentBig[i] = -1;
+	currentSmall[i] = -1;
+	}
+
+	for(i=0;i<8;i++) {
+	currentBig[i+15] = 1;
+	currentSmall[i+15] = 1;
+	}*/
+
+
+
+
 	// Simulated annealing
 	double *solre = new double[input->getNumCoefficients()];
 	double *solim = new double[input->getNumCoefficients()];
 	std::unique_ptr<solutionbase<std::complex<double>>> currentComplex, nextComplex;
-	std::unique_ptr<solutionbase<double>> currentScalar, nextScalar;
+	std::unique_ptr<solution_lb> currentScalar, nextScalar;
 
 	int totalit;
 	int acceptit;
@@ -113,7 +168,7 @@ void workProc()
 		std::vector<double> electrodesCoeffs;
 		//for (int j = 0; j < 32; j++) electrodesCoeffs.push_back(0.002);
 		sh.reset(new shuffler(input, readingsScalar));
-		currentScalar.reset(new solution(input, readingsScalar, electrodesCoeffs));
+		currentScalar.reset(new solution_lb(input, *readingsScalar));
 	}
 
 	std::cout.flush();
@@ -158,8 +213,7 @@ void workProc()
 			}
 			else {
 				e += currentScalar->getDEstimate();
-				r += currentScalar->getRegularisationValue() - currentScalar->getElectrodeVariance();
-				v += currentScalar->getElectrodeVariance();
+				r += currentScalar->getRegularisationValue();				
 				sqe += currentScalar->getDEstimate()*currentScalar->getDEstimate();
 			}
 
@@ -356,7 +410,7 @@ int main(int argc, char *argv[])
 	QApplication app(argc, argv);
 	QApplication::setApplicationName("EIT Annealing Test");
 	QApplication::setApplicationVersion("0.1");
-
+	 
 
 	// --> Parse command line arguments
 	QCommandLineParser parser;
@@ -409,12 +463,12 @@ int main(int argc, char *argv[])
 	if (isComplexProblem) {
 		readingsComplex = new observations<std::complex<double>>;
 		currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
-		readingsComplex->initObs(currentspair, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode());
+		readingsComplex->initObs(currentspair, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	}
 	else {
 		readingsScalar = new observations<double>;
 		const char *currentsfnamecstr = currentsinfname.c_str();
-		readingsScalar->initObs(&currentsfnamecstr, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode());
+		readingsScalar->initObs(&currentsfnamecstr, tensionsfname.c_str(), input->getNodesCount(), input->getGenericElectrodesCount());
 	}
 
 	input->buildNodeCoefficients();
@@ -426,7 +480,7 @@ int main(int argc, char *argv[])
 	gradientNormRegularisationComplex::initCalibrationInstance(input);
 
 	qRegisterMetaType<QModelIndex>("QModelIndex");
-	qRegisterMetaType<QModelIndex>("QVector<int>");
+	//qRegisterMetaType<QModelIndex>("QVector<int>");
 
 	double minvalre, maxvalre, minvalim, maxvalim;
 	minvalre = input->getCalibrationMode() != 0 ? mincondint : mincond; maxvalre = input->getCalibrationMode() != 0 ? maxcondint : maxcond;
@@ -494,6 +548,8 @@ int main(int argc, char *argv[])
 
 	double *sol = new double[input->getNumCoefficients()];
 	for (int i = 0; i<input->getNumCoefficients(); i++) sol[i] = 1.0;
+	viewre->setCurrentSolution(sol);
+	if (isComplexProblem) viewim->setCurrentSolution(sol);
 	delete[] sol;
 	std::thread worker(workProc);
 

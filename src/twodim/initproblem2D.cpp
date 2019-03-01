@@ -9,7 +9,7 @@ void problem2D::initProblem(const char *meshfilename) {
 	//this->electrodeh = 0.023f;
 	//this->totalheight = 0.016f;
 	this->electrodeh = 0.0004f;
-	this->totalheight = 0.080f;
+	this->totalheight = 0.020f;
 
 	file.close();
 }
@@ -72,8 +72,8 @@ void problem2D::fillElementsGenericElectrode() {
 		nc--;
 		switch (id) {
 		case 1001:	// external ring
-			case 2001:
-			case 3001:
+			//case 2001:
+			//case 3001:
 			innerNodes.erase(na);
 			innerNodes.erase(nb);
 			innerNodes.erase(nc);
@@ -86,8 +86,8 @@ void problem2D::fillElementsGenericElectrode() {
 			elements.push_back(temp);
 			break;
 
-		//case 2001:
-		//case 3001:	// internal elements
+		case 2001:
+		case 3001:	// internal elements
 		case 4001:
 			if (!outerRingNodes.count(na))
 				innerNodes.insert(na);
@@ -156,7 +156,7 @@ void problem2D::fillElementsGenericElectrode() {
 		node2coefficient[e] = condIndex;
 	}
 
-	condIndex++;
+	if (!outerRingNodes.empty()) condIndex++;
 
 	// Inner coefficients
 	for (auto i : innerNodes) {

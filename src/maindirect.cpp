@@ -1,7 +1,7 @@
 #include "solver.h"
 #include "problem.h"
 #include "solution.h"
-#include "parameters\parametersparser.h"
+#include "parameters/parametersparser.h"
 #include "matrixview.h"
 #include "observations.h"
 #include <iostream>

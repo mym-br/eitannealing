@@ -426,7 +426,6 @@ int main(int argc, char *argv[])
 	gradientNormRegularisationComplex::initCalibrationInstance(input);
 
 	qRegisterMetaType<QModelIndex>("QModelIndex");
-	qRegisterMetaType<QModelIndex>("QVector<int>");
 
 	double minvalre, maxvalre, minvalim, maxvalim;
 	minvalre = input->getCalibrationMode() != 0 ? mincondint : mincond; maxvalre = input->getCalibrationMode() != 0 ? maxcondint : maxcond;

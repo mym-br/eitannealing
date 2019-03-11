@@ -179,20 +179,15 @@ void workProc()
 				else viewre->setCurrentSolution(currentScalar->getSolution());
 			}
 		}
+
 		double eav = e / solutions;
 		double rav = r / solutions;
 		double vav = v / solutions;
 		double sige = sqrt(sqe / solutions - eav*eav);
-		//solution probe(current->getSolution());
-		//probe.saturate();
 		int nObs = isComplexProblem ? readingsComplex->getNObs() : readingsScalar->getNObs();
 		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << vav << ":" << ((float)iterations) / (nObs*solutions) << ":" << seed << std::endl;
-		//std::cout << "last:" << current->getDEstimate() << " real:" << probe.getDEstimate() <<  std::endl;
-		/*for(int it=0;it<numcoefficients;it++) {
 		std::cout << it << ":" << current->getSolution()[it] << std::endl;
-		}*/
 
-		/*solution_lb probe(current->getSolution());
 		probe.saturate();
 		std::cout << "last (max):" << current->getDMax() << "last (min):" << current->getDMin() << " LB:" << probe.getDEstimate() <<  std::endl;
 		*//*for(int kk=0;kk<9000;kk++) {
@@ -215,107 +210,72 @@ void workProc()
 		prevE = isComplexProblem ? currentComplex->getDEstimate() : currentScalar->getDEstimate();
 
 	}
-	//probe.saturate();
-	//std::cout << "real:" << probe.getDEstimate() << " iterations: " << iterations << std::endl;
+	std::cout << "**********************\n";
+	std::unique_ptr<solution_lb> current_lb, next_lb;
+	current_lb.reset(new solution_lb(current->getSolution()));
+	kt = 4.17456e-06;
+	iterations = 0;
+	no_avance_count = 0;
+	prevE = 10000000000.0;
+	while( no_avance_count < 3) {
+		e = sqe = r = 0;
+		totalit = acceptit = 0;
+		solutions = 0;
+		iterations = 0;
+		while(totalit<15000 && acceptit < 3000) {
+			next_lb.reset(current_lb->shuffle(&sdata, sh));
+			bool decision;
 
-#ifdef GGGGGGGGGGGG
+				iterations += current_lb->getTotalIt();
+				solutions++;
+				sh.addShufflerFeedback(sdata, true);
 
-	boost::mt11213b rng(std::clock());
-
-	// Prepare a current vector, flowing from left to right
+				acceptit++;
 	Eigen::VectorXd current(numNodes - 1);
-	int i;
+				iterations += next_lb->getTotalIt();
 	Eigen::VectorXd tension(numNodes - 1);
 	for (i = 0; i<numNodes - 1; i++) tension[i] = i % 10 - 5;
-	current = *stiffness * tension;
-	/*// Left electrodes (but the top left)
-	for(i=0;i<7;i++) current[i] = -1;
-	// Bottom
-	for(;i<7+8;i++) current[i] = 0;
-	// Right
-	for(;i<7+8+8;i++) current[i] = 1;
-	// Top and the rest
-	for(;i<numNodes-1;i++) current[i] = 0;*/
 
-	// Now solve for tensions
-
-
-	Eigen::VectorXd error1, error2;
-	Eigen::VectorXd error;
-	//Eigen::VectorXd perror;
-	SparseIncompleteLLT precond(*stiffness);
-	CG_Solver solver(*stiffness, current, precond);
-	//CG_PrecondSolver psolver(*stiffness, current);
 	/*
-	matrix jacobi = solver.buildJacobiMatrx();
-	Eigen::QR<Eigen::MatrixXd> jacobi_qr(jacobi.toDense());
-	Eigen::VectorXd e1(jacobi.rows());
-	e1.fill(0); e1[0] = 1.0;
-	Eigen::VectorXd w(jacobi_qr.matrixR().transpose().solveTriangular(e1));
-	std::cout << jacobi << std::endl;
-	std::cout << "W:\n";
-	std::cout << w << std::endl;
-	std::cout << "norm:" << w.squaredNorm();
-	std::cout << "Using jacobi:    " << current.squaredNorm()*w.squaredNorm() << std::endl;*/
-	Eigen::VectorXd preTension(tension);
-	solver.getPrecond().halfMultInPlace(preTension);
-	std::cout << "Using stiffness: " << preTension.squaredNorm() << std::endl;
-	//std::cout << "Using stiffness: " << sqrt(tension.dot(preTension)) << std::endl;
-	std::cout << "Using stiffness (l2): " << tension.squaredNorm() << std::endl;
-
-
-
 	for (i = 0; i<numNodes; i++) {
-		error = preTension - solver.getY();
-		//perror = tension - psolver.getX();
 
-		solver.do_iteration();
-		//psolver.do_iteration();
-		//if((solver.getIteration() % 30)==0)
 		//solver.setrefresh();
-
-
 		std::cout << solver.getIteration() << ":" << sqrt(error.squaredNorm()) << ":" << sqrt(solver.getErrorl2Estimate()) << std::endl;
-	}
-	//matrix jacobi = solver.buildJacobiMatrx();
+			}
+			e += current_lb->getDEstimate();
+			r += current_lb->getRegularisationValue();
+			sqe += current_lb->getDEstimate()*current_lb->getDEstimate();
 
-
-
-
+			totalit++;
 	/*
-	CG_Solver solver0(*stiffness0, current, tension);
-
-	for(i=0;i<numNodes+30;i++) {
+				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
+				view->setCurrentSolution(current_lb->getSolution());
+			}
 	solver0.do_iteration();
-	}
+		}
 
-	CG_Solver solver1(*stiffness0, current, tension);
-	CG_PrecondSolver psolver1(*stiffness0, current, tension);
-	Eigen::VectorXd oldtension(tension);
-	tension = solver0.getX();
-
-	for(i=0;i<numNodes+30;i++) {
 	error1 = tension - solver1.getX();
 	error2 = tension - psolver1.getX();
-
 	solver1.do_iteration();
 	psolver1.do_iteration();
-
 	if((psolver1.getIteration() % 30)==0)
 	psolver1.setrefresh();
 
 	std::cout << solver1.getIteration() << ":" << error1.lpNorm<2>() << ":" << solver1.getErrorl2Estimate() << std::endl;
 	//std::cout << solver.getIteration() << ":" << norm.rows() << "," << norm.cols() << std::endl;
 	//std::cout << solver.getIteration() << ":" << solver.getResidueSquaredNorm() << std::endl;
-	}
+		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations)/(nobs*solutions) << std::endl;
 
-	double totalerror = 0;
-	for(i=0;i<31;i++) {
+		kt *= 0.9;
+		double variation = fabs(prevE-current_lb->getDEstimate())/prevE;
 	totalerror += (solver1.getX()[i] - oldtension[i])*(solver1.getX()[i] - oldtension[i]);
+		//std::cout << "variation: " << variation << std::endl;
+		if((fabs(prevE-current_lb->getDEstimate())/prevE) < 2.0e-15)
+			no_avance_count++;
+		else
+			no_avance_count = 0;
+		prevE = current_lb->getDEstimate();
 	}
-	totalerror = sqrt(totalerror);
-	std::cout << "Total error:" << totalerror << std::endl;*/
-#endif //#ifdef GGGGGGGGGGGG
 	QApplication::quit();
 }
 
@@ -379,7 +339,6 @@ int main(int argc, char *argv[])
 		parser.showHelp();
 		Q_UNREACHABLE();
 	}
-
 	if (!params.isSeedSpecified()) seed = getSeed();
 	else seed = params.getSeed();
 	init_genrand64(seed);
@@ -405,7 +364,6 @@ int main(int argc, char *argv[])
 		input->setCalibrationMode(params.calibrationMode == 2);
 	}
 	const char **currentspair;
-
 	if (isComplexProblem) {
 		readingsComplex = new observations<std::complex<double>>;
 		currentspair = new const char*[2]; currentspair[0] = currentsinfname.c_str(); currentspair[1] = currentsoutfname.c_str();
@@ -424,7 +382,6 @@ int main(int argc, char *argv[])
 	gradientNormRegularisation::initInstance(input);
 	gradientNormRegularisationComplex::initInstance(input);
 	gradientNormRegularisationComplex::initCalibrationInstance(input);
-
 	qRegisterMetaType<QModelIndex>("QModelIndex");
 
 	double minvalre, maxvalre, minvalim, maxvalim;

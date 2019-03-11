@@ -1,8 +1,9 @@
-.vs
+﻿.vs
 .vscode
 .directory
 *.kdev4
 .project
+.cproject
 .cproject
 build
 compile_commands.json

@@ -94,7 +94,6 @@ QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 	    }
 	}
 	if((s3-s1)<0.001) {
-		int level = 255*(((s1+s3)/2));
 		return QBrush(getColorForLevel((s1+s3)/2));
 	}
 

@@ -241,6 +241,7 @@ void CG_Solver::do_iteration() {
 	//std::cout << it << ":"  << x.squaredNorm() << std::endl;
 }
 
+
 void CG_Solver::saveVals(const char* fname, double val, bool app) {
 	std::ofstream myfile;
 	if (app) myfile.open(fname, std::ios::binary | std::ofstream::app);

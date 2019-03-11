@@ -15,13 +15,14 @@ set(eit_core_SRCS
   src/intcoef.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  #src/eigen3test.cpp
+  src/incomplete_qr_builder.cpp
   src/problem.cpp
   src/solution.cpp
   src/solutionbase.cpp
   src/solver.cpp
   src/mt19937-64/mt19937-64.c
   src/threedim/initproblem3D.cpp
+  src/observations_complex.cpp
   src/solver_lb.cpp
   src/solution_lb.cpp
   src/threedim/nodecoeficients3D.cpp
@@ -29,6 +30,8 @@ set(eit_core_SRCS
   src/twodim/nodecoeficients2D.cpp
   src/complex/incomplete_choleskycomplex.cpp
   src/complex/solvercomplex.cpp
+  src/solver_lb_complex.cpp
+  src/solution_lb_complex.cpp
   src/complex/solutioncomplex.cpp
   src/complex/gradientnormregularisationcomplex.cpp
 )
@@ -56,7 +59,7 @@ set(eit_gui_SRCS
   src/gmsh/gmshgraphics.cpp
 )
 
-add_definitions(${Qt5Widgets_DEFINITIONS})
+
 set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
 
 add_library(eit_core OBJECT ${eit_core_SRCS})

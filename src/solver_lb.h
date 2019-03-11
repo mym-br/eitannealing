@@ -96,6 +96,6 @@ class LB_Solver_EG_Estimate : public LB_Solver
     }
 };
 
-void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix2 **Kic, matrix **Kcc, problem &p);
+void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix **Kic, matrix **Kcc, problem &p);
 
 #endif  // SOLVER_LB_H_

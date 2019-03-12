@@ -212,32 +212,17 @@ void solution_lb::initSimulations()
 	// Prepare solvers
 	int i;
 	this->totalit = 0;
-  Eigen::VectorXd J, V;
-  J = currents[0].tail(31);
-  double l = -J.sum();
-  J.conservativeResize(32);
-  J(31) = l;
-  V = tensions[0].tail(31);
-  V.conservativeResize(32);
-  V(31) = 0;
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[0].tail(32)),
-                        Eigen::VectorXd(o.getTensions()[0].tail(31)), *precond,  100, 0.0001);
+                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[0]),
+                        Eigen::VectorXd(o.getTensions()[0]), *precond,  100, 0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
 	for(i=1;i<o.getNObs();i++)
 	{
-          J = currents[i].tail(31);
-          double l = -J.sum();
-          J.conservativeResize(32);
-          J(31) = l;
-          V = tensions[i].tail(31);
-          V.conservativeResize(32);
-          V(31) = 0;
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[i].tail(31)),
+                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[i]),
 			Eigen::VectorXd(o.getTensions()[i].tail(31)), *precond, a);
 		simulations[i]->do_iteration();
 		this->totalit += simulations[i]->getIteration();
@@ -249,19 +234,11 @@ void solution_lb::initSimulations(const solution_lb &base)
         // Prepare solvers
         int i;
         this->totalit = 0;
-        Eigen::VectorXd J, V;
-        J = currents[0].tail(31);
-        double l = -J.sum();
-        J.conservativeResize(32);
-        J(31) = l;
-        V = tensions[0].tail(31);
-        V.conservativeResize(32);
-        V(31) = 0;
         const LB_Solver_EG_Estimate *baseEVSolver = dynamic_cast<const LB_Solver_EG_Estimate *>(base.simulations[0]);
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[0].tail(31)),
-                        Eigen::VectorXd(o.getTensions()[0].tail(31)), *precond,
+                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[0]),
+                        Eigen::VectorXd(o.getTensions()[0]), *precond,
                         baseEVSolver->getX(),
 			baseEVSolver->getEvector(), 100, 0.0001);
         double a = solver->getLeastEvEst();
@@ -269,16 +246,9 @@ void solution_lb::initSimulations(const solution_lb &base)
 	this->totalit += solver->getIteration();
         for(i=1;i<o.getNObs();i++)
         {
-                J = currents[i].tail(31);
-                double l = -J.sum();
-                J.conservativeResize(32);
-                J(31) = l;
-                V = tensions[i].tail(31);
-                V.conservativeResize(32);
-                V(31) = 0;
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[i].tail(31)),
-                        Eigen::VectorXd(o.getTensions()[i].tail(31)), *precond, a,
+                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[i]),
+                        Eigen::VectorXd(o.getTensions()[i]), *precond, a,
 					       base.simulations[i]->getX());
 
                 simulations[i]->do_iteration();

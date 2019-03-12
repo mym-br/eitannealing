@@ -238,7 +238,7 @@ void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix **Kic, matrix *
       int iiLimit = p.getNodesCount()-p.getGenericElectrodesCount();
 
         matrix *out = new matrix(iiLimit, iiLimit);
-        matrix *outBottom = new matrix(numElect, iiLimit);
+        matrix *outBottom = new matrix(p.getGenericElectrodesCount(), iiLimit);
         double val;
         out->reserve(7*iiLimit); // estimate of the number of nonzeros (optional)
         int i;
@@ -265,7 +265,7 @@ void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix **Kic, matrix *
         *Kic = outBottom;
         // Now Kcc
         matrix *out2 = new matrix(p.getGenericElectrodesCount(), p.getGenericElectrodesCount());
-        out2->reserve((numElect)*4);
+        out2->reserve((p.getGenericElectrodesCount())*4);
         for (; i<p.getNodesCount(); ++i) {
                 nodeCoefficients *aux =  p.getNodeCoefficients()[i];
                 while(aux) { // Col-major storage in Kcc

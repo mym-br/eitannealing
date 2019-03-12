@@ -47,11 +47,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 	filec.open(*filecurrents);
 	file.open(filename);
 
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
 	int n = electrodesCount; // TODO: read number of measurements from file
-#else
-	int n = electrodesCount - 1; // TODO: read number of measurements from file
-#endif
 	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
 	nobs = valuesCount / electrodesCount;
 
@@ -60,11 +56,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 	tensions = new vectorx[nobs];
 	currents = new vectorx[nobs];
 	currentVals = vectorx(nobs);
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
 	vectorx current(nodesCount);
-#else
-	vectorx current(nodesCount-1);
-#endif
 	current.fill(0);
 	int baseIndex = (int)current.size() - n;
 	for (int i = 0; i<nobs; i++) {
@@ -76,17 +68,12 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 		entry--; exit--;	// zero-based
 		currentVals[i] = c;
 		currents[i] = current;
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
-		currents[i][baseIndex + entry] = 1; 
+		currents[i][baseIndex + entry] = 1;
 		currents[i][baseIndex + exit] = -1;
 	#ifndef BLOCKGND
 		// Zero ground node current
 		if (groundNode > 0 && groundNode < nodesCount) currents[i][groundNode] = 0;
 	#endif
-#else
-		if (entry != n) currents[i][baseIndex + entry] = 1;
-		if (exit != n) currents[i][baseIndex + exit] = -1;
-#endif
 		// read tensions from file
 		tensions[i].resize(n);
 		Scalar val, avg;
@@ -108,6 +95,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 		for (int j = 0; j < n; j++) {
 			tensions[i][j] -= val / c;
 		}
+		tensions[i][n-1] = 0.0f;
 #endif
 	}
 

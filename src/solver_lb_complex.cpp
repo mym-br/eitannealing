@@ -1,6 +1,5 @@
 #include "solver_lb_complex.h"
 #include "nodecoefficients.h"
-#include "problemdescription.h"
 #include <iostream>
 
 LB_Solver_Complex::LB_Solver_Complex(matrix *_Aii_R, matrix *_Aii_I, matrix *_Aic_R, matrix *_Aic_I, matrix *_Acc_R, matrix *_Acc_I, const Eigen::VectorXd &J_R, const Eigen::VectorXd &J_I, const Eigen::VectorXd &Phi_R, const Eigen::VectorXd &Phi_I, const Preconditioner &precond, double a):
@@ -48,9 +47,9 @@ void LB_Solver_Complex::init()
     s_R.noalias() += Aic_I.transpose()*pc_I;
     s_I.noalias() += Aic_R.transpose()*pc_I;
     s_I.noalias() -= Aic_I.transpose()*pc_R;
-    
+
     precond.solveInPlaceCT(s_R, s_I);
-    
+
     std::cout << s_R << "\n\n" << s_I << "\n";
 
     ATJhatNorm2 = s_R.squaredNorm();

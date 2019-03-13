@@ -30,6 +30,7 @@ set(eit_core_SRCS
   src/complex/incomplete_choleskycomplex.cpp
   src/complex/solvercomplex.cpp
   src/complex/solutioncomplex.cpp
+  src/complex/gradientnormregularisationcomplex.cpp
 )
 
 set(eit_new_complex_engine_SRCS
@@ -69,7 +70,10 @@ set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
 add_library(eit_core OBJECT ${eit_core_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
-add_library(eit_gui OBJECT ${eitannealing_gui_SRCS})
+add_library(eit_new_complex_engine OBJECT ${eit_new_complex_engine_SRCS})
+set_property(TARGET eit_new_complex_engine PROPERTY CXX_STANDARD 17)
+
+add_library(eit_gui OBJECT ${eit_gui_SRCS})
 target_compile_options(eit_gui PRIVATE ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 set_property(TARGET eit_gui PROPERTY POSITION_INDEPENDENT_CODE ON)
 

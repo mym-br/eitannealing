@@ -29,6 +29,7 @@ set(eit_core_SRCS
   src/twodim/nodecoeficients2D.cpp
   src/complex/incomplete_choleskycomplex.cpp
   src/complex/solvercomplex.cpp
+  src/complex/solutioncomplex.cpp
 )
 
 set(eit_new_complex_engine_SRCS

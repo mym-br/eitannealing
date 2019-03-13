@@ -179,104 +179,22 @@ void workProc()
 				else viewre->setCurrentSolution(currentScalar->getSolution());
 			}
 		}
-
 		double eav = e / solutions;
 		double rav = r / solutions;
 		double vav = v / solutions;
 		double sige = sqrt(sqe / solutions - eav*eav);
+
 		int nObs = isComplexProblem ? readingsComplex->getNObs() : readingsScalar->getNObs();
 		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << vav << ":" << ((float)iterations) / (nObs*solutions) << ":" << seed << std::endl;
-		std::cout << it << ":" << current->getSolution()[it] << std::endl;
-
-		probe.saturate();
-		std::cout << "last (max):" << current->getDMax() << "last (min):" << current->getDMin() << " LB:" << probe.getDEstimate() <<  std::endl;
-		*//*for(int kk=0;kk<9000;kk++) {
-		std::cout << (kk/32) << " Dest:" << current->getDEstimate() << std::endl;
-		current->improve();
-		}*/
-
-
-
 
 		kt *= 0.9f;
 		double variation = isComplexProblem ? fabs(prevE - currentComplex->getDEstimate()) / prevE : fabs(prevE - currentScalar->getDEstimate()) / prevE;
-		//std::cout << "totalit:" << iterations << std::endl;
-		//std::cout << "variation: " << variation << std::endl;
-		//if ((fabs(prevE - current->getDEstimate()) / prevE) < 2.0e-15)
 		if ((variation) < 2.0e-15)
 			no_avance_count++;
 		else
 			no_avance_count = 0;
 		prevE = isComplexProblem ? currentComplex->getDEstimate() : currentScalar->getDEstimate();
-
 	}
-	std::cout << "**********************\n";
-	std::unique_ptr<solution_lb> current_lb, next_lb;
-	current_lb.reset(new solution_lb(current->getSolution()));
-	kt = 4.17456e-06;
-	iterations = 0;
-	no_avance_count = 0;
-	prevE = 10000000000.0;
-	while( no_avance_count < 3) {
-		e = sqe = r = 0;
-		totalit = acceptit = 0;
-		solutions = 0;
-		iterations = 0;
-		while(totalit<15000 && acceptit < 3000) {
-			next_lb.reset(current_lb->shuffle(&sdata, sh));
-			bool decision;
-
-				iterations += current_lb->getTotalIt();
-				solutions++;
-				sh.addShufflerFeedback(sdata, true);
-
-				acceptit++;
-	Eigen::VectorXd current(numNodes - 1);
-				iterations += next_lb->getTotalIt();
-	Eigen::VectorXd tension(numNodes - 1);
-	for (i = 0; i<numNodes - 1; i++) tension[i] = i % 10 - 5;
-
-	/*
-	for (i = 0; i<numNodes; i++) {
-
-		//solver.setrefresh();
-		std::cout << solver.getIteration() << ":" << sqrt(error.squaredNorm()) << ":" << sqrt(solver.getErrorl2Estimate()) << std::endl;
-			}
-			e += current_lb->getDEstimate();
-			r += current_lb->getRegularisationValue();
-			sqe += current_lb->getDEstimate()*current_lb->getDEstimate();
-
-			totalit++;
-	/*
-				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
-				view->setCurrentSolution(current_lb->getSolution());
-			}
-	solver0.do_iteration();
-		}
-
-	error1 = tension - solver1.getX();
-	error2 = tension - psolver1.getX();
-	solver1.do_iteration();
-	psolver1.do_iteration();
-	if((psolver1.getIteration() % 30)==0)
-	psolver1.setrefresh();
-
-	std::cout << solver1.getIteration() << ":" << error1.lpNorm<2>() << ":" << solver1.getErrorl2Estimate() << std::endl;
-	//std::cout << solver.getIteration() << ":" << norm.rows() << "," << norm.cols() << std::endl;
-	//std::cout << solver.getIteration() << ":" << solver.getResidueSquaredNorm() << std::endl;
-		std::cout << kt << ":" << totalit << ":" << eav << ":" << sige << ":" << rav << ":" << ((float)iterations)/(nobs*solutions) << std::endl;
-
-		kt *= 0.9;
-		double variation = fabs(prevE-current_lb->getDEstimate())/prevE;
-	totalerror += (solver1.getX()[i] - oldtension[i])*(solver1.getX()[i] - oldtension[i]);
-		//std::cout << "variation: " << variation << std::endl;
-		if((fabs(prevE-current_lb->getDEstimate())/prevE) < 2.0e-15)
-			no_avance_count++;
-		else
-			no_avance_count = 0;
-		prevE = current_lb->getDEstimate();
-	}
-	QApplication::quit();
 }
 
 void setSol(float *sol);

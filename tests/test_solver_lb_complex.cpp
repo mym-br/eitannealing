@@ -1,36 +1,36 @@
 #include <memory>
 #include <ctime>
 #include <iostream>
-#include "../src/problemdescription.h"
+#include "../src/problem.h"
 #include "../src/nodecoefficients.h"
 #include "../src/solver_lb_complex.h"
 #include "../src/solver_lb.h"
 #include "../src/observations_complex.h"
 #include "../src/intcoef.h"
-#include "../src/assembleMatrix.h"
 
 int main(int argc, char *argv[])
  {
-  //  struct timespec time;
-  //  clock_gettime(CLOCK_REALTIME, &time);
-  // init_genrand64(time.tv_nsec);
-  initProblem(argv[1]);
-
-     buildNodeCoefficients();
+     bool is2d;
+     if(argc <2) {
+    	 std::cerr << "need mesh filename\n";
+    	 return 1;
+     }
+     std::shared_ptr<problem> input(problem::createNewProblem(argv[1], &is2d));
+     input->buildNodeCoefficients();
 
    
-     double *sol_R = new double[numcoefficients];
-     for(int i=0;i<numcoefficients;i++) sol_R[i]=1.0;
+     double *sol_R = new double[input->getNumCoefficients()];
+     for(int i=0;i<input->getNumCoefficients();i++) sol_R[i]=1.0;
      
      
-     double *sol_I = new double[numcoefficients];
+     double *sol_I = new double[input->getNumCoefficients()];
      for(int i=0;i<32;i++) sol_I[i]=0.0;
-     for(int i=32;i<numcoefficients;i++) sol_I[i]=1.0;
+     for(int i=32;i<input->getNumCoefficients();i++) sol_I[i]=1.0;
      
      matrix *Aii_R, *Aii_I, *Aic_R, *Aic_I, *Acc_R, *Acc_I;
      
-     assembleProblemMatrix_lb(sol_R, &Aii_R, &Aic_R, &Acc_R, 32);
-     assembleProblemMatrix_lb(sol_I, &Aii_I, &Aic_I, &Acc_I, 32);
+     assembleProblemMatrix_lb(sol_R, &Aii_R, &Aic_R, &Acc_R, *input);
+     assembleProblemMatrix_lb(sol_I, &Aii_I, &Aic_I, &Acc_I, *input);
              
   
      Eigen::VectorXd V_R(32), V_I(32), J_R(32), J_I(32);

@@ -10,7 +10,7 @@ include_directories(${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src ../src ../src
 
 set(directsolver_SRCS 
   src/main.cpp
-  src/cudacg.cu
+  #src/cudacg.cu
   src/conversions.cpp
   src/mm/mmio.c
   ../src/incomplete_cholesky.cpp
@@ -29,8 +29,8 @@ set(directsolver_SRCS
   ../src/cuda/solver-pcg.cu
   ../src/cuda/solvercuda.cu
   ../src/cuda/solvercuda.cpp
-  ../src/cuda/solvercublas.cu
-  ../src/cuda/solvercublas.cpp
+  #../src/cuda/solvercublas.cu
+  #../src/cuda/solvercublas.cpp
   ../src/problem.cpp
   ../src/threedim/initproblem3D.cpp
   ../src/threedim/nodecoeficients3D.cpp
@@ -39,7 +39,8 @@ set(directsolver_SRCS
 
 )
 
-set(libs ${CMAKE_THREAD_LIBS_INIT} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
+#set(libs ${CMAKE_THREAD_LIBS_INIT} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
+set(libs ${CMAKE_THREAD_LIBS_INIT})
 if(WIN32)
     set(ADDITIONAL_LIBRARIES wsock32)
 endif()
@@ -50,3 +51,4 @@ set_property(TARGET directsolver PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET directsolver PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(directsolver ${libs} ${ADDITIONAL_LIBRARIES})
 target_compile_definitions(directsolver PRIVATE CGTIMING)
+target_compile_options(directsolver PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-gencode arch=compute_60,code=sm_60 -rdc=true>)

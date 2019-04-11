@@ -7,7 +7,9 @@
 #include "incomplete_cholesky.h"
 #include "solver.h"
 #include "cuda/solvercuda.h"
-#include "cuda/solvercublas.h"
+#ifdef CUBLASCUSPARSE
+	#include "cuda/solvercublas.h"
+#endif
 #include <chrono>
 #include <fstream>
 #include <algorithm>
@@ -183,8 +185,10 @@ int main(int argc, char *argv[])
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cuda.mtx", x);
 	auto[analysertimeCCuda, executiontimeCCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, true);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccuda.mtx", x);
+	#ifdef CUBLASCUSPARSE
 	auto[analysertimeCublas, executiontimeCublas] = runCusparseCublasCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cusparse.mtx", x);
+	#endif
 
 	if(resultsfname) {
 		// Append execution times to compilation file args::get(resultsfname)
@@ -193,7 +197,9 @@ int main(int argc, char *argv[])
 			<< "\t" << analysertime << "\t" << executiontime 
 			<< "\t" << analysertimeCuda  << "\t" << executiontimeCuda 
 			<< "\t" << analysertimeCCuda  << "\t" << executiontimeCCuda 
+			#ifdef CUBLASCUSPARSE
 			<< "\t" << analysertimeCublas << "\t" << executiontimeCublas 
+			#endif
 			<< std::endl;
 	}
 
@@ -226,6 +232,8 @@ std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_ve
 	// Create solver
 	t1 = std::chrono::high_resolution_clock::now();
 	CG_Solver solver(A, b, L, res);
+	cudaDeviceSynchronize();
+
 	// Execute solver iterations
 	int totalIts = solver.getIteration();
 	double curRes = solver.getResidueSquaredNorm();
@@ -318,6 +326,7 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 	}
 }
 
+#ifdef CUBLASCUSPARSE
 std::tuple<long, long> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
 	std::vector<int> unsorted_mmrow;
 	std::vector<int> unsorted_J;
@@ -368,3 +377,4 @@ std::tuple<long, long> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &bra
 
 	return ans;
 }
+#endif CUBLASCUSPARSE

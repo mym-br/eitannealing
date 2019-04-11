@@ -2,7 +2,7 @@
 #include <string>
 #include "problem.h"
 #include <memory>
-#include <experimental/filesystem>
+#include <filesystem>
 extern "C" {
 	#include "mm/mmio.h"
 }
@@ -51,8 +51,8 @@ namespace EITFILECONVERSIONS {
 	}
 
 	std::string convertMeshFile(const std::string filename) {
-		std::experimental::filesystem::path filenamepath(filename);
-		if (!std::experimental::filesystem::exists(filenamepath)) return "";
+		//std::filesystem::path filenamepath(filename);
+		//if (!std::filesystem::exists(filenamepath)) return "";
 
 		bool is2dProblem;
 		std::shared_ptr<problem> input = problem::createNewProblem(filename.c_str(), is2dProblem);

@@ -10,25 +10,26 @@ struct MatrixCPJDS;
 namespace cgl { class Vector; };
 namespace Eigen {
 	//template<typename _Scalar, int _Flags = 0, typename _StorageIndex = int>  class SparseMatrix;
-	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows = _Rows, int _MaxCols = _Cols> class Matrix;
+	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols> class Matrix;
 }
+enum CGSOLVERTYPE {DEFAULT, CONSOLIDATED, CONSOLIDATEDCG};
 
 class CGCUDA_Solver {
 	public:
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, double res, bool consolidatedKernels = false);
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, bool consolidatedKernels = false);
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm, bool consolidatedKernels = false);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, double res, CGSOLVERTYPE solverType = DEFAULT);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, CGSOLVERTYPE = DEFAULT);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm, CGSOLVERTYPE = DEFAULT);
 		void do_iteration();
 		//std::vector<numType> getX();
-		Eigen::Matrix<numType, -1, 1, 0> getX();
+		Eigen::Matrix<numType, -1, 1, 0,-1,1> getX();
 		int getSize() { return this->size; }
 		int getIteration();
 		std::tuple<double, double, double> getIterationTimes();
 		Vector *getCpjdsX();
 
 		static numType createPreconditioner(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
-		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<numType> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
-		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<numType> *A, MatrixCPJDS *stiffness);
+		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<numType,0,int> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
+		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<numType, 0, int> *A, MatrixCPJDS *stiffness);
 		static cgl::Vector *createCurrentVector(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 		
 		double getResidueSquaredNorm() const;
@@ -36,7 +37,7 @@ class CGCUDA_Solver {
 
 		// Debug
 		static Eigen::SparseMatrix<numType, 0, int> getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
-		static Eigen::Matrix<numType, -1, 1, 0> getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
+		static Eigen::Matrix<numType, -1, 1, 0, -1, 1> getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
 
 	private:
 		static void cblas_dscal(int n, numType alpha, numType *x, int inc);

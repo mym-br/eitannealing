@@ -30,7 +30,6 @@ public:
 	int getNObs() { return nobs; }
 	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getTensions() { return tensions; }
 	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getCurrents() { return currents; }
-	const char* getMeshFilename() { return filename; }
 	_Scalar getCurrentVal(int i) { return currentVals[i]; }
 	int getCurrentsCount() { return (int)currentVals.size(); }
 
@@ -38,7 +37,7 @@ public:
 };
 
 template<>
-void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
+inline void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
 	std::ifstream file;
 	std::ifstream filec;
 
@@ -90,7 +89,7 @@ void observations<double>::initObs(const char **filecurrents, const char* filena
 };
 
 template<>
-void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
+inline void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount) {
 	std::ifstream file;
 	std::ifstream filecin, filecout;
 

@@ -27,6 +27,8 @@ set(directsolver_SRCS
   ../src/cuda/color.cpp
   ../src/cuda/analysis.cpp
   ../src/cuda/solver-pcg.cu
+  ../src/cuda/solver-cpcg.cu
+  ../src/cuda/solver-cpcgcg.cu
   ../src/cuda/solvercuda.cu
   ../src/cuda/solvercuda.cpp
   #../src/cuda/solvercublas.cu
@@ -51,4 +53,4 @@ set_property(TARGET directsolver PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET directsolver PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(directsolver ${libs} ${ADDITIONAL_LIBRARIES})
 target_compile_definitions(directsolver PRIVATE CGTIMING)
-target_compile_options(directsolver PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-gencode arch=compute_60,code=sm_60 -rdc=true>)
+set(CMAKE_CUDA_FLAGS "-gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=compute_70 -gencode arch=compute_75,code=compute_75 -rdc=true")

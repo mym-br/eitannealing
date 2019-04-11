@@ -74,7 +74,7 @@ void saveDenseVectorMtx(const std::string filename, raw_vector &vec) {
 }
 
 std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
-std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated);
+std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, CGSOLVERTYPE solverType);
 std::tuple<long, long> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
 
 int main(int argc, char *argv[])
@@ -181,10 +181,12 @@ int main(int argc, char *argv[])
 	raw_vector x(A.M);
 	auto[analysertime, executiontime] = runEigenCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if(xfname) saveDenseVectorMtx(args::get(xfname) + "_serial.mtx", x);
-	auto[analysertimeCuda, executiontimeCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, false);
+	auto[analysertimeCuda, executiontimeCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::DEFAULT);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cuda.mtx", x);
-	auto[analysertimeCCuda, executiontimeCCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, true);
+	auto[analysertimeCCuda, executiontimeCCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::CONSOLIDATED);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccuda.mtx", x);
+	auto[analysertimeCCudaCG, executiontimeCCudaCG] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::CONSOLIDATEDCG);
+	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccudacg.mtx", x);
 	#ifdef CUBLASCUSPARSE
 	auto[analysertimeCublas, executiontimeCublas] = runCusparseCublasCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cusparse.mtx", x);
@@ -197,6 +199,7 @@ int main(int argc, char *argv[])
 			<< "\t" << analysertime << "\t" << executiontime 
 			<< "\t" << analysertimeCuda  << "\t" << executiontimeCuda 
 			<< "\t" << analysertimeCCuda  << "\t" << executiontimeCCuda 
+			<< "\t" << analysertimeCCudaCG << "\t" << executiontimeCCudaCG
 			#ifdef CUBLASCUSPARSE
 			<< "\t" << analysertimeCublas << "\t" << executiontimeCublas 
 			#endif
@@ -260,7 +263,7 @@ std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_ve
 	return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
 }
 
-std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, bool isConsolidated) {
+std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, CGSOLVERTYPE solverType) {
 	// Convert to full matrix
 	std::vector<Eigen::Triplet<numType>> tripletList;
 	for (auto el : Araw) {
@@ -288,11 +291,18 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 	//Eigen::SparseMatrix<numType> precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.mtx", precondPrint);
 	//Eigen::SparseMatrix<numType> bPrint(stiffness->matrixData.n, 1); for (int i = 0; i < braw.size(); i++) bPrint.coeffRef(mgr->original2PaddedIdx[i], 0) = braw[i]; saveVals("bcpjds.mtx", bPrint);
 
-	std::cout << "Starting " << (isConsolidated ? "consolidated" : "") << " Cuda CG with res = " << res << " and max iterations = " << maxit << std::endl;
+	std::string solverLabel;
+	switch (solverType) {
+	case DEFAULT: solverLabel = "Cuda CG"; break;
+	case CONSOLIDATED: solverLabel = "Consolidated Cuda CG"; break;
+	case CONSOLIDATEDCG: solverLabel = "Consolidated Cuda CG with cooperative groups"; break;
+	}
+
+	std::cout << "Starting " << solverLabel << " with res = " << res << " and max iterations = " << maxit << std::endl;
 	res = res > 0 ? res * res : -1;
 	// Create solver
 	t1 = std::chrono::high_resolution_clock::now();
-	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, res, isConsolidated);
+	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, res, solverType);
 	// Execute solver iterations
 	int totalIts = solvercuda.getIteration();
 	double curRes = solvercuda.getResidueSquaredNorm();
@@ -310,18 +320,18 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 	try {
 		Eigen::Matrix<numType, Eigen::Dynamic, 1> xeig = solvercuda.getX();
 		std::chrono::duration<double> time_executor = t2 - t1;
-		std::cout << (isConsolidated ? "Consolidated " : "") << "Cuda executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << sqrt(curRes) << " after " << totalIts << " iterations." << std::endl;
+		std::cout << solverLabel << " executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << sqrt(curRes) << " after " << totalIts << " iterations." << std::endl;
 #ifdef CGTIMING
 		auto[cudaItTime, cudaItTriangularTime, cudaItSpmvTime] = solvercuda.getIterationTimes();
-		if(!isConsolidated) std::cout << "Average cuda iteration time breakdown: " << cudaItTriangularTime << " (triangular solver) " << cudaItSpmvTime << " (spmv) " << cudaItTime - cudaItTriangularTime - cudaItSpmvTime << " (remaining) " << cudaItTime << " (total)." << std::endl;
-		else std::cout << "Average consolidate cuda iteration time breakdown: " << cudaItTriangularTime << " (cpcg_tot_esc_add_sub_solver) " << cudaItSpmvTime << " (cpcg_tot_esc_add_mmv_inner) " << cudaItTime - cudaItTriangularTime - cudaItSpmvTime << " (remaining) " << cudaItTime << " (total)." << std::endl;
+		if(solverType == CGSOLVERTYPE::DEFAULT) std::cout << "Average cuda iteration time breakdown: " << cudaItTriangularTime << " (triangular solver) " << cudaItSpmvTime << " (spmv) " << cudaItTime - cudaItTriangularTime - cudaItSpmvTime << " (remaining) " << cudaItTime << " (total)." << std::endl;
+		else std::cout << "Average " << solverLabel << " iteration time breakdown: " << cudaItTriangularTime << " (cpcg_tot_esc_add_sub_solver) " << cudaItSpmvTime << " (cpcg_tot_esc_add_mmv_inner) " << cudaItTime - cudaItTriangularTime - cudaItSpmvTime << " (remaining) " << cudaItTime << " (total)." << std::endl;
 #endif // CGTIMING
 		for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
 		return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
 	}
 	catch (const std::exception& e) { 
 		for (int i = 0; i < x.size(); i++) x[i] = 0;
-		std::cerr << "Failed to process " << (isConsolidated ? "consolidated " : "") << "cuda executor. Message: " << e.what() << std::endl;
+		std::cerr << "Failed to process " << solverLabel << " executor. Message: " << e.what() << std::endl;
 		return std::make_tuple(-1,-1);
 	}
 }

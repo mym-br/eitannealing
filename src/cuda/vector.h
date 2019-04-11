@@ -82,45 +82,45 @@ namespace cgl {
 		//void swap(int a, int b);
 
 		/* Sum of two vectors: r = a + b */
-		void Vector::sum(Vector * b, Vector * r);
+		void sum(Vector * b, Vector * r);
 		/* Sum of two vectors: r = a + b */
-		void Vector::sum(Vector * b, Vector * r, cudaStream_t stream);
+		void sum(Vector * b, Vector * r, cudaStream_t stream);
 
 		/* Subtraction of two vectors: r = a - b */
-		void Vector::subtr(Vector * b, Vector * r);
+		void subtr(Vector * b, Vector * r);
 		/* Subtraction of two vectors: r = a - b */
-		void Vector::subtr(Vector * b, Vector * r, cudaStream_t stream);
+		void subtr(Vector * b, Vector * r, cudaStream_t stream);
 
 		/* Scaling a vector: r = k * a; k: scalar */
-		void Vector::scalar(Number * k, Vector * r);
+		void scalar(Number * k, Vector * r);
 		/* Scaling a vector: r = (k/m) * a; k, m: scalar */
-		void Vector::scalar(Number * k, Number * m, Vector * r);
+		void scalar(Number * k, Number * m, Vector * r);
 		/* Scaling a vector: r = k * a; k: scalar */
-		void Vector::scalar(Number * k, Vector * r, cudaStream_t stream);
+		void scalar(Number * k, Vector * r, cudaStream_t stream);
 		/* Scaling a vector: r = (k/m) * a; k, m: scalar */
-		void Vector::scalar(Number * k, Number * m, Vector * r, cudaStream_t stream);
+		void scalar(Number * k, Number * m, Vector * r, cudaStream_t stream);
 		/* Scaling a vector: r = (k/m) * a; k, m: scalar */
-		void Vector::scalarAdd(Number * k, Number * m, Vector * r, cudaStream_t stream);
+		void scalarAdd(Number * k, Number * m, Vector * r, cudaStream_t stream);
 		/* Scaling a vector: r = (k/m) * a; k, m: scalar, m is totalized (and saved) from partials before-hand */
-		void Vector::scalarAddTotalization(Number * k, Number * m, Vector * r, cudaStream_t stream);
+		void scalarAddTotalization(Number * k, Number * m, Vector * r, cudaStream_t stream);
 		/* Scaling a vector: r = (k/m) * a; k, m: scalar */
-		void Vector::scalarSubtr(Number * k, Number * m, Vector * r, cudaStream_t stream);
+		void scalarSubtr(Number * k, Number * m, Vector * r, cudaStream_t stream);
 		/* Multiple vector operations:
 		 * Scales and adds a vector: r += (k/m) * v;
 		 *    where k, m: scalar, m is totalized (and saved) from partials before-hand (belongs to v)
 		 * Scales and subtracts a vector: s -= (k/m) * u
 		 /    where k, m: scalar, m was previously totalized */
-		void Vector::scalarAddSubtrTotalization(Number * k, Number * m, Vector * r, Vector * s, Vector * u, cudaStream_t stream);
+		void scalarAddSubtrTotalization(Number * k, Number * m, Vector * r, Vector * s, Vector * u, cudaStream_t stream);
 
 		/* Inner product two vectors: r = a . b (dot product) */
-		void Vector::inner(Vector * b, Number * r);
+		void inner(Vector * b, Number * r);
 		/* Inner product two vectors: r = a . b (dot product) */
-		void Vector::inner(Vector * b, Number * r, cudaStream_t stream);
+		void inner(Vector * b, Number * r, cudaStream_t stream);
 
 		/* Apply mask to vector: a = a .* mask (in place!) */
-		void Vector::mask(Vector * mask);
+		void mask(Vector * mask);
 		/* Apply mask to vector: a = a .* mask (in place!) */
-		void Vector::mask(Vector * mask, cudaStream_t stream);
+		void mask(Vector * mask, cudaStream_t stream);
 	};
 
 	typedef std::vector<std::vector<numType>> VectorArray;

@@ -6,24 +6,33 @@
 
 using namespace cgl;
 
-CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, double res, bool consolidatedKernels) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
+CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, double res, CGSOLVERTYPE solverType) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
 	size = stiffness->matrixData.n;
-	if (consolidatedKernels) solver = new PCGSolverCPJDS2(mgr, stiffness, bVec);
-	else solver = new PCGSolverCPJDS(mgr, stiffness, bVec);
+	switch (solverType) {
+	case DEFAULT: solver = new PCGSolverCPJDS(mgr, stiffness, bVec); break;
+	case CONSOLIDATED: solver = new PCGSolverConsolidatedCPJDS(mgr, stiffness, bVec); break;
+	case CONSOLIDATEDCG: solver = new PCGSolverConsolidatedCPJDSCG(mgr, stiffness, bVec); break;
+	}
 	solver->init(res);
 }
 
-CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, bool consolidatedKernels) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
+CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, CGSOLVERTYPE solverType) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
 	size = stiffness->matrixData.n;
-	if(consolidatedKernels) solver = new PCGSolverCPJDS2(mgr, stiffness, bVec);
-	else solver = new PCGSolverCPJDS(mgr, stiffness, bVec);
+	switch (solverType) {
+	case DEFAULT: solver = new PCGSolverCPJDS(mgr, stiffness, bVec); break;
+	case CONSOLIDATED: solver = new PCGSolverConsolidatedCPJDS(mgr, stiffness, bVec); break;
+	case CONSOLIDATEDCG: solver = new PCGSolverConsolidatedCPJDSCG(mgr, stiffness, bVec); break;
+	}
 	solver->init();
 }
 
-CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm, bool consolidatedKernels) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
+CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm, CGSOLVERTYPE solverType) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
 	size = stiffness->matrixData.n;
-	if (consolidatedKernels) solver = new PCGSolverCPJDS2(mgr, stiffness, bVec);
-	else solver = new PCGSolverCPJDS(mgr, stiffness, bVec);
+	switch (solverType) {
+	case DEFAULT: solver = new PCGSolverCPJDS(mgr, stiffness, bVec); break;
+	case CONSOLIDATED: solver = new PCGSolverConsolidatedCPJDS(mgr, stiffness, bVec); break;
+	case CONSOLIDATEDCG: solver = new PCGSolverConsolidatedCPJDSCG(mgr, stiffness, bVec); break;
+	}
 	solver->init(x0);
 }
 
@@ -57,13 +66,13 @@ std::vector<numType> CGCUDA_Solver::transfX2Cpu() {
 	return mgr->restore(x);
 }
 
-MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<numType> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients) {
+MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<numType, 0, int> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients) {
 	MatrixCPJDSManager *mgr = new MatrixCPJDSManager(A);
 	mgr->buidMatrixCPJDS(stiffness, nodeCoef, nodesCount, numcoefficients);
 	return mgr;
 }
 
-MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<numType> *A, MatrixCPJDS *stiffness) {
+MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<numType, 0, int> *A, MatrixCPJDS *stiffness) {
 	MatrixCPJDSManager *mgr = new MatrixCPJDSManager(A);
 	mgr->buidMatrixCPJDS(stiffness);
 	return mgr;

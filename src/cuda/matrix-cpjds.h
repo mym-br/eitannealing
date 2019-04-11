@@ -14,7 +14,7 @@
 #include "../nodecoefficients.h"
 
 namespace Eigen {
-	template<typename _Scalar, int _Flags = 0, typename _StorageIndex = int>  class SparseMatrix;
+	template<typename _Scalar, int _Flags, typename _StorageIndex>  class SparseMatrix;
 }
 using namespace cgl;
 
@@ -94,7 +94,7 @@ typedef std::vector<std::vector<Dependencies>> DependeciesMap;
 // column-major!
 class MatrixCPJDSManager {
 private:
-	std::unique_ptr<Eigen::SparseMatrix<numType>> data2;
+	std::unique_ptr<Eigen::SparseMatrix<numType, 0, int>> data2;
 
 	int n;
 	std::shared_ptr<int[]> colors;
@@ -129,7 +129,7 @@ public:
 	/* map (color-sorted-padded index)=>(original index) [size N padded] */
 	std::unique_ptr<int[]> padded2OriginalIdx;
 	// data must be processed and color-sorted
-	MatrixCPJDSManager(Eigen::SparseMatrix<numType> *data);
+	MatrixCPJDSManager(Eigen::SparseMatrix<numType, 0, int> *data);
 
 	/* provided M matrix is filled with a complete CPJDS matrix */
 	int buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);

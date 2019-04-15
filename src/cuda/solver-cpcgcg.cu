@@ -1,3 +1,4 @@
+#ifdef CGROUPS
 #include "solver-pcg.h"
 
 #include <cstdio>
@@ -1072,3 +1073,5 @@ void PCGSolverConsolidatedCPJDSCG::doIteration(int iteration) {
 
 	delete data_h;
 }
+
+#endif

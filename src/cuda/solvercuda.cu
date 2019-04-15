@@ -11,7 +11,9 @@ CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Ve
 	switch (solverType) {
 	case DEFAULT: solver = new PCGSolverCPJDS(mgr, stiffness, bVec); break;
 	case CONSOLIDATED: solver = new PCGSolverConsolidatedCPJDS(mgr, stiffness, bVec); break;
+	#ifdef CGROUPS
 	case CONSOLIDATEDCG: solver = new PCGSolverConsolidatedCPJDSCG(mgr, stiffness, bVec); break;
+	#endif
 	}
 	solver->init(res);
 }
@@ -21,7 +23,9 @@ CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Ve
 	switch (solverType) {
 	case DEFAULT: solver = new PCGSolverCPJDS(mgr, stiffness, bVec); break;
 	case CONSOLIDATED: solver = new PCGSolverConsolidatedCPJDS(mgr, stiffness, bVec); break;
+	#ifdef CGROUPS
 	case CONSOLIDATEDCG: solver = new PCGSolverConsolidatedCPJDSCG(mgr, stiffness, bVec); break;
+	#endif
 	}
 	solver->init();
 }
@@ -31,7 +35,9 @@ CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Ve
 	switch (solverType) {
 	case DEFAULT: solver = new PCGSolverCPJDS(mgr, stiffness, bVec); break;
 	case CONSOLIDATED: solver = new PCGSolverConsolidatedCPJDS(mgr, stiffness, bVec); break;
+	#ifdef CGROUPS
 	case CONSOLIDATEDCG: solver = new PCGSolverConsolidatedCPJDSCG(mgr, stiffness, bVec); break;
+	#endif
 	}
 	solver->init(x0);
 }

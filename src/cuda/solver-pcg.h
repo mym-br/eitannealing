@@ -121,6 +121,7 @@ private:
 	Vector * x_1;
 };
 
+#ifdef CGROUPS
 class PCGSolverConsolidatedCPJDSCG : public PCGSolverCPJDS {
 public:
 	PCGSolverConsolidatedCPJDSCG(MatrixCPJDSManager * mgr, MatrixCPJDS *M, Vector * b) : PCGSolverCPJDS(mgr, M, b) { this->x_1 = new Vector(M->matrixData.n); }
@@ -144,5 +145,6 @@ public:
 private:
 	Vector * x_1;
 };
+#endif
 
 #endif /* SOLVERPCG_H */

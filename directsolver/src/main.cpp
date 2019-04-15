@@ -14,6 +14,7 @@
 #include <fstream>
 #include <algorithm>
 #include <numeric>
+#include <string>
 
 using namespace EITFILECONVERSIONS;
 
@@ -22,6 +23,8 @@ extern "C" {
 }
 
 #define DEFAULTMAXITS 100
+
+std::string baseoutputname;
 
 struct raw_matrix {
 	raw_matrix() {}
@@ -178,6 +181,7 @@ int main(int argc, char *argv[])
 		std::fill(b.begin(), b.end(), 1);
 	}
 
+	baseoutputname = args::get(xfname);
 	raw_vector x(A.M);
 	auto[analysertime, executiontime] = runEigenCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if(xfname) saveDenseVectorMtx(args::get(xfname) + "_serial.mtx", x);
@@ -185,8 +189,10 @@ int main(int argc, char *argv[])
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cuda.mtx", x);
 	auto[analysertimeCCuda, executiontimeCCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::CONSOLIDATED);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccuda.mtx", x);
+	#ifdef CGROUPS
 	auto[analysertimeCCudaCG, executiontimeCCudaCG] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::CONSOLIDATEDCG);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccudacg.mtx", x);
+	#endif
 	#ifdef CUBLASCUSPARSE
 	auto[analysertimeCublas, executiontimeCublas] = runCusparseCublasCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cusparse.mtx", x);
@@ -199,7 +205,9 @@ int main(int argc, char *argv[])
 			<< "\t" << analysertime << "\t" << executiontime 
 			<< "\t" << analysertimeCuda  << "\t" << executiontimeCuda 
 			<< "\t" << analysertimeCCuda  << "\t" << executiontimeCCuda 
+			#ifdef CGROUPS
 			<< "\t" << analysertimeCCudaCG << "\t" << executiontimeCCudaCG
+			#endif
 			#ifdef CUBLASCUSPARSE
 			<< "\t" << analysertimeCublas << "\t" << executiontimeCublas 
 			#endif
@@ -370,17 +378,32 @@ std::tuple<long, long> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &bra
 	int curJ = 0;
 	for (auto curmm_row : mm_row) {
 		while (currow < curmm_row) {
-			I[++currow] = I[currow - 1] + curJ;
+			currow++; I[currow] = I[currow - 1] + curJ;
 			curJ = 0;
 		}
 		curJ++;
 	}
-	I[++currow] = I[currow - 1] + curJ;
+	currow++; I[currow] = I[currow - 1] + curJ;
 
 	std::vector<float> rhs(Araw.N);
 	for (int i = 0; i < braw.size(); i++) rhs[i] = braw[i];
 
 	std::vector<float> xcublas(Araw.N);
+
+	//// DEBUG: Ouput CSR format to file
+	//std::ofstream os(baseoutputname + "_csr.bin", std::ios::binary);
+	//int M = Araw.M, N = Araw.N;
+	//os.write((char*)&M, sizeof(int));
+	//os.write((char*)&N, sizeof(int));
+	//os.write((char*)&nz, sizeof(int));
+	//int *I_ptr = I.data(), *J_ptr = J.data();
+	//os.write(reinterpret_cast<const char*> (I_ptr), sizeof(int) * N+1);
+	//os.write(reinterpret_cast<const char*> (J_ptr), sizeof(int) * nz);
+	//float *val_ptr = val.data(), *rhs_ptr = rhs.data();
+	//os.write(reinterpret_cast<const char*> (val_ptr), sizeof(float) * nz);
+	//os.write(reinterpret_cast<const char*> (rhs_ptr), sizeof(float) * N);
+	//os.close();
+
 	auto ans = runCusparseCublasCG(I, J, val, rhs, xcublas, Araw.M, Araw.N, nz, res, maxit);
 
 	for (int i = 0; i < x.size(); i++) x[i] = xcublas[i];

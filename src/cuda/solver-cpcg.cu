@@ -597,9 +597,13 @@ void PCGSolverConsolidatedCPJDS::init(Vector *x0, double res) {
 
 	doIteration0((*A).matrixData.data.get(), (*A).preconditionedData.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(), zData, rData, xData, pData, qData, partialData, partialData2);
 	doIteration1((*A).matrixData.data.get(), (*A).preconditionedData.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(), zData, rData, xData, pData, qData, partialData, partialData2);
+	#ifdef CALCULATE_ERRORS
 	if (rmod2 < res) { it = 1; return; }
+	#endif
 	doIteration2((*A).matrixData.data.get(), (*A).preconditionedData.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(), zData, rData, xData, pData, qData, partialData, partialData2);
+	#ifdef CALCULATE_ERRORS
 	if (rmod2 < res) { it = 2; return; }
+	#endif
 	doIteration3((*A).matrixData.data.get(), (*A).preconditionedData.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(), zData, rData, xData, pData, qData, partialData, partialData2);
 
 #ifdef CALCULATE_ERRORS
@@ -684,7 +688,7 @@ void PCGSolverConsolidatedCPJDS::doIteration1(numType * aData, numType * precond
 		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			zData, pData, qData, rmodData, rmod_prevData, partialData, partialData2, blocks);
 	checkedCudaEventRecord(stopSpmv);
-
+	
 	// totalizacao (intra-bloco, gamma = pt.(A*p))
 	// escalar e vetor soma (x += (rmod/gamma) * p)
 	// escalar e vetor subtracao (r -= (rmod/gamma) * q)
@@ -764,7 +768,7 @@ void PCGSolverConsolidatedCPJDS::doIteration2(numType * aData, numType * precond
 		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			zData, pData, qData, rmodData, rmod_prevData, partialData, partialData2, blocks);
 	checkedCudaEventRecord(stopSpmv);
-
+	
 	// totalizacao (intra-bloco, gamma = pt.(A*p))
 	// escalar e vetor soma (x += (rmod/gamma) * p)
 	// escalar e vetor subtracao (r -= (rmod/gamma) * q)
@@ -849,7 +853,7 @@ void PCGSolverConsolidatedCPJDS::doIteration3(numType * aData, numType * precond
 		(size, aData, aIndices, aRowLength, aRowSize, aColOffset, colorCount, colors, colorsColOffset,
 			zData, pData, qData, rmodData, rmod_prevData, partialData, partialData2, blocks);
 	checkedCudaEventRecord(stopSpmv);
-
+	
 	// totalizacao (intra-bloco, gamma = pt.(A*p))
 	// escalar e vetor soma (x += (rmod/gamma) * p)
 	// escalar e vetor subtracao (r -= (rmod/gamma) * q)
@@ -957,7 +961,7 @@ void PCGSolverConsolidatedCPJDS::doIteration(int iteration) {
 		(size, (*A).matrixData.data.get(), (*A).matrixData.indices.get(), (*A).matrixData.rowLength.get(), (*A).matrixData.rowSize.get(), (*A).matrixData.colOffset.get(), (*A).matrixColors.colorCount, (*A).matrixColors.colors_d.get(), (*A).matrixColors.colorsColOffsetSize_d.get(),
 			zData, pData, qData, rmodData, rmod_prevData, partialData, partialData2, blocks);
 	checkedCudaEventRecord(stopSpmv);
-
+	
 	// totalizacao (intra-bloco, gamma = pt.(A*p))
 	// escalar e vetor soma (x += (rmod/gamma) * p)
 	// escalar e vetor subtracao (r -= (rmod/gamma) * q)

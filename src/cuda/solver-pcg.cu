@@ -226,7 +226,6 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 
 	checkedCudaEventRecord(startTotal);
 	x->scalarAdd(rmod, gamma, p, NULL); // 3...
-	if (rmod2 < res) { rmod2_1 = rmod2; it = 2; return; }
 	r->scalarSubtr(rmod, gamma, q, NULL); //r -= alpha * q; alpha = rmod / gamma
 	// M * z = r -> solve for z, having M = L * Lt
 	// L * Lt * z = r

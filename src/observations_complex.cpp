@@ -11,7 +11,7 @@
 #include <fstream>
 #include <string>
 #include "observations.h"
-#include "problemdescription.h"
+//include "problemdescription.h"
 
 Eigen::VectorXd *tensions_I;
 Eigen::VectorXd *currents_I;

@@ -8,6 +8,7 @@
 #ifndef OBSERVATIONS_COMPLEX_H_
 #define OBSERVATIONS_COMPLEX_H_
 
+#include "problem.h"
 #include <Eigen/Core>
 #include "observations.h"
 

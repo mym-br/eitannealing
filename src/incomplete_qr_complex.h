@@ -36,7 +36,7 @@ class SparseIncompleteQRComplex
         MatricesStorageAdaptor(
           const matrix &iiUpper_R, const matrix &iiUpper_I,
           const matrix &Aic_R, const matrix &Aic_I):
-          iiR(iiUpper_R), iiI(iiUpper_I), icR(Aic_R), icI(Aic_I), upperMap(iiUpper_R.rows()), square_size(iiUpper_R.cols())
+          iiR(iiUpper_R), iiI(iiUpper_I), icR(Aic_R), icI(Aic_I), square_size(iiUpper_R.cols()), upperMap(iiUpper_R.rows())
            {}
         void iterateOverColumn(unsigned long j, std::function<void(unsigned long, std::complex<double>)> &&f) {
             // FIXME: This assumes that the columns will be iterated in order, so the current column has already

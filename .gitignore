@@ -1,6 +1,6 @@
 /﻿.vs
 /.vscode
-/.directory
+.directory
 *.kdev4
 /.project
 /.cproject

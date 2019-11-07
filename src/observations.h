@@ -29,12 +29,12 @@ public:
 		delete[] tensions;
 		delete[] currents;
 	};
-	int getNObs() { return nobs; }
-	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getTensions() { return tensions; }
-	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getCurrents() { return currents; }
-	const char* getMeshFilename() { return mesh_file.c_str(); }
-	_Scalar getCurrentVal(int i) { return currentVals[i]; }
-	int getCurrentsCount() { return (int)currentVals.size(); }
+	int getNObs() const { return nobs; }
+	const Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getTensions() const { return tensions; }
+	const Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getCurrents() const { return currents; }
+	const char* getMeshFilename() const { return mesh_file.c_str(); }
+	_Scalar getCurrentVal(int i) const { return currentVals[i]; }
+	int getCurrentsCount() const { return (int)currentVals.size(); }
 
 	void initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode = -1) {};
 };

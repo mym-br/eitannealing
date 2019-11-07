@@ -192,7 +192,7 @@ void solution::initSimulations(const solution &base)
 	for(i=0;i<readings->getNObs();i++)
 	{
 		// Reuse previous solutions as initial values
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings).head(input->getGenericElectrodesCount()-1), base.simulations[i]->getX(), *precond);
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings).head(input->getNodesCount()-1), base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -221,7 +221,7 @@ void solution::initSimulations()
 	for (i = 0; i<readings->getNObs(); i++)
 	{
 		// Current formulation takes all but the last current coefficient (ground node)
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings).head(input->getGenericElectrodesCount()-1), *precond);
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings).head(input->getNodesCount()-1), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();

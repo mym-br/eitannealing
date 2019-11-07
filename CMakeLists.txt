@@ -84,8 +84,8 @@ target_link_libraries(eitwosteps  ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitwosteps PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitwosteps PROPERTY CXX_STANDARD_REQUIRED ON)
 
-add_executable(eitlb src/mainlb.cpp src/parameters/parametersparser.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
-target_link_libraries(eitlb $<TARGET_OBJECTS:eit_new_complex_engine> ${libs} ${ADDITIONAL_LIBRARIES})
+add_executable(eitlb src/mainlb.cpp src/parameters/parametersparser.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine>)
+target_link_libraries(eitlb ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitlb PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitlb PROPERTY CXX_STANDARD_REQUIRED ON)
 

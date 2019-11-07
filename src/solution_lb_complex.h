@@ -13,7 +13,8 @@
 #include "solver_lb_complex.h"
 //#include "problemdescription.h"
 #include <memory>
-
+#include "observations.h"
+#include "problem.h"
 
 class solution_lb_complex {
 	protected:
@@ -23,6 +24,9 @@ class solution_lb_complex {
 			double *solIm;
 			matrix *Aii_R, *Aii_I, *Aic_R, *Aic_I, *Acc_R, *Acc_I;
 			std::unique_ptr<LB_Solver_Complex::Preconditioner> precond;
+
+			std::shared_ptr<problem> p;
+			const observations<std::complex<double> > &o;
 
 			LB_Solver_Complex **simulations;
 			Eigen::VectorXd distance;
@@ -62,8 +66,8 @@ class solution_lb_complex {
 
 	public:
 
-		solution_lb_complex(const double *sol_R, const double *sol_I);
-		solution_lb_complex();	// New random solution
+		solution_lb_complex(std::shared_ptr<problem> p, const observations<std::complex<double> > &o, const double *sol_R, const double *sol_I);
+		solution_lb_complex(std::shared_ptr<problem> p, const observations<std::complex<double> > &o);	// New random solution
 		bool compareWith(solution_lb_complex &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
 		//bool compareWithMaxE2(solution &target, float kt, double e2);

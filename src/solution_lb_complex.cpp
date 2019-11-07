@@ -42,7 +42,7 @@ void solution_lb_complex::improve()
 	// reevaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(int i = 1; i<nobs;i++) {
+	for(int i = 1; i<o.getNObs();i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -101,18 +101,21 @@ bool solution_lb_complex::compareWith(solution_lb_complex &target, float kt, flo
 }
 
 
-solution_lb_complex::solution_lb_complex(const double *s_R, const double *s_I):
+solution_lb_complex::solution_lb_complex(std::shared_ptr<problem> p, const observations<std::complex<double> > &o,
+																					const double *s_R, const double *s_I):
 				solRe(solution_lb_complex::copySolution(s_R)),
         solIm(solution_lb_complex::copySolution(s_I)),
-				simulations(new LB_Solver_Complex *[nobs]),
-				distance(nobs),
-				maxdist(nobs),
-				mindist(nobs),
-				err(nobs),
-				err_x_dist(nobs)
+				p(p),
+				o(o),
+				simulations(new LB_Solver_Complex *[o.getNObs()]),
+				distance(o.getNObs()),
+				maxdist(o.getNObs()),
+				mindist(o.getNObs()),
+				err(o.getNObs()),
+				err_x_dist(o.getNObs())
 {
-        assembleProblemMatrix_lb(solRe, &Aii_R, &Aic_R, &Acc_R, 32);
-        assembleProblemMatrix_lb(solIm, &Aii_I, &Aic_I, &Acc_I, 32);
+        assembleProblemMatrix_lb(solRe, &Aii_R, &Aic_R, &Acc_R, *p);
+        assembleProblemMatrix_lb(solIm, &Aii_I, &Aic_I, &Acc_I, *p);
         precond.reset(LB_Solver_Complex::makePreconditioner(*Aii_R, *Aii_I, *Aic_R, *Aic_I));
 
 	this->initSimulations();
@@ -123,15 +126,17 @@ solution_lb_complex::solution_lb_complex(const double *s_R, const double *s_I):
 solution_lb_complex::solution_lb_complex(double *s_R, double *s_I, const solution_lb_complex &base):
                 solRe(s_R),
                 solIm(s_I),
-                simulations(new LB_Solver_Complex *[nobs]),
-                distance(nobs),
-                maxdist(nobs),
-                mindist(nobs),
-                err(nobs),
-                err_x_dist(nobs)
+								p(base.p),
+								o(base.o),
+                simulations(new LB_Solver_Complex *[o.getNObs()]),
+                distance(o.getNObs()),
+                maxdist(o.getNObs()),
+                mindist(o.getNObs()),
+                err(o.getNObs()),
+                err_x_dist(o.getNObs())
 {
-      assembleProblemMatrix_lb(solRe, &Aii_R, &Aic_R, &Acc_R, 32);
-      assembleProblemMatrix_lb(solIm, &Aii_I, &Aic_I, &Acc_I, 32);
+      assembleProblemMatrix_lb(solRe, &Aii_R, &Aic_R, &Acc_R, *p);
+      assembleProblemMatrix_lb(solIm, &Aii_I, &Aic_I, &Acc_I, *p);
       precond.reset(LB_Solver_Complex::makePreconditioner(*Aii_R, *Aii_I, *Aic_R, *Aic_I));
 
         this->initSimulations(base);
@@ -140,18 +145,20 @@ solution_lb_complex::solution_lb_complex(double *s_R, double *s_I, const solutio
 
 
 // New random solution
-solution_lb_complex::solution_lb_complex():
+solution_lb_complex::solution_lb_complex(std::shared_ptr<problem> p, const observations<std::complex<double> > &o):
 		solRe(solution_lb_complex::getNewRandomSolution_R()),
     solIm(solution_lb_complex::getNewRandomSolution_I()),
-		simulations(new LB_Solver_Complex *[nobs]),
-		distance(nobs),
-		maxdist(nobs),
-		mindist(nobs),
-		err(nobs),
-		err_x_dist(nobs)
+		p(p),
+		o(o),
+		simulations(new LB_Solver_Complex *[o.getNObs()]),
+		distance(o.getNObs()),
+		maxdist(o.getNObs()),
+		mindist(o.getNObs()),
+		err(o.getNObs()),
+		err_x_dist(o.getNObs())
 {
-  assembleProblemMatrix_lb(solRe, &Aii_R, &Aic_R, &Acc_R, 32);
-  assembleProblemMatrix_lb(solIm, &Aii_I, &Aic_I, &Acc_I, 32);
+  assembleProblemMatrix_lb(solRe, &Aii_R, &Aic_R, &Acc_R, *p);
+  assembleProblemMatrix_lb(solIm, &Aii_I, &Aic_I, &Acc_I, *p);
   precond.reset(LB_Solver_Complex::makePreconditioner(*Aii_R, *Aii_I, *Aic_R, *Aic_I));
   this->initSimulations();
 	this->initErrors();
@@ -164,18 +171,10 @@ void solution_lb_complex::initSimulations()
 	int i;
 	this->totalit = 0;
   Eigen::VectorXd J_R, J_I, V_R, V_I;
-  J_R = currents[0].tail(31);
-  J_I = currents_I[0].tail(31);
-  J_R.conservativeResize(32);
-  J_R(31) = -J_R.sum();
-  J_I.conservativeResize(32);
-  J_I(31) = -J_I.sum();
-  V_R = tensions[0].tail(31);
-  V_R.conservativeResize(32);
-  V_R(31) = 0;
-  V_I = tensions_I[0].tail(31);
-  V_I.conservativeResize(32);
-  V_I(31) = 0;
+  J_R = o.getCurrents()[0].tail(32).real();
+  J_I = o.getCurrents()[0].tail(32).imag();
+  V_R = o.getTensions()[0].tail(32).real();
+  V_I = o.getTensions()[0].tail(32).imag();
 
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Complex_Estimate *solver = new LB_Solver_EG_Complex_Estimate(
@@ -183,22 +182,14 @@ void solution_lb_complex::initSimulations()
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
-	for(i=1;i<nobs;i++)
+	for(i=1;i<o.getNObs();i++)
 	{
-    J_R = currents[i].tail(31);
-    J_I = currents_I[i].tail(31);
-    J_R.conservativeResize(32);
-    J_R(31) = -J_R.sum();
-    J_I.conservativeResize(32);
-    J_I(31) = -J_I.sum();
-    V_R = tensions[i].tail(31);
-    V_R.conservativeResize(32);
-    V_R(31) = 0;
-    V_I = tensions_I[i].tail(31);
-    V_I.conservativeResize(32);
-    V_I(31) = 0;
-                simulations[i] = new LB_Solver_Complex(
-                        Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_R, J_R, J_I, V_R, V_I, *precond, a);
+    J_R = o.getCurrents()[i].tail(32).real();
+    J_I = o.getCurrents()[i].tail(32).imag();
+    V_R = o.getTensions()[i].tail(32).real();
+    V_I = o.getTensions()[i].tail(32).imag();
+          simulations[i] = new LB_Solver_Complex(
+                  Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_R, J_R, J_I, V_R, V_I, *precond, a);
 		simulations[i]->do_iteration();
 		this->totalit += simulations[i]->getIteration();
 	}
@@ -210,18 +201,11 @@ void solution_lb_complex::initSimulations(const solution_lb_complex &base)
         int i;
         this->totalit = 0;
         Eigen::VectorXd J_R, J_I, V_R, V_I;
-        J_R = currents[0].tail(31);
-        J_I = currents_I[0].tail(31);
+        J_R = o.getCurrents()[0].tail(32).real();
+        J_I = o.getCurrents()[0].tail(32).imag();
         J_R.conservativeResize(32);
-        J_R(31) = -J_R.sum();
-        J_I.conservativeResize(32);
-        J_I(31) = -J_I.sum();
-        V_R = tensions[0].tail(31);
-        V_R.conservativeResize(32);
-        V_R(31) = 0;
-        V_I = tensions[0].tail(31);
-        V_I.conservativeResize(32);
-        V_I(31) = 0;
+        V_R = o.getTensions()[0].tail(32).real();
+        V_I = o.getTensions()[0].tail(32).imag();
         const LB_Solver_EG_Complex_Estimate *baseEVSolver = dynamic_cast<const LB_Solver_EG_Complex_Estimate *>(base.simulations[0]);
         // 1st solution estimates also least eigenvalue
         Eigen::VectorXd X_R, X_I;
@@ -232,20 +216,12 @@ void solution_lb_complex::initSimulations(const solution_lb_complex &base)
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
-        for(i=1;i<nobs;i++)
+        for(i=1;i<o.getNObs();i++)
         {
-                J_R = currents[i].tail(31);
-                J_I = currents_I[i].tail(31);
-                J_R.conservativeResize(32);
-                J_R(31) = -J_R.sum();;
-                J_I.conservativeResize(32);
-                J_I(31) = -J_I.sum();
-                V_R = tensions[0].tail(31);
-                V_I = tensions_I[i].tail(31);
-                V_R.conservativeResize(32);
-                V_R(31) = 0;
-                V_I.conservativeResize(32);
-                V_I(31) = 0;
+								J_R = o.getCurrents()[i].tail(32).real();
+								J_I = o.getCurrents()[i].tail(32).imag();
+								V_R = o.getTensions()[i].tail(32).real();
+								V_I = o.getTensions()[i].tail(32).imag();
                 base.simulations[i]->getX(X_R, X_I);
                 simulations[i] = new LB_Solver_Complex(
                         Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_R, J_R, J_I, V_R, V_I, *precond, a,
@@ -263,7 +239,7 @@ void solution_lb_complex::initErrors()
 	// Calc regularisation value
 	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->solRe)*0.0005+gradientNormRegularisation::getInstance()->getRegularisation(this->solIm)*0.0005;
 	// Retrieve distance estimates, errors and boundaries
-	for(i=0;i<nobs;i++) {
+	for(i=0;i<o.getNObs();i++) {
 		// Compare with observation
 
 		distance[i] = simulations[i]->getErrorl2Estimate();
@@ -278,7 +254,7 @@ void solution_lb_complex::initErrors()
 	// evaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
-	for(i = 1; i<nobs;i++) {
+	for(i = 1; i<o.getNObs();i++) {
 		if(max < err_x_dist[i]) {
 			max = err_x_dist[i];
 			critical = i;
@@ -290,9 +266,9 @@ void solution_lb_complex::initErrors()
 
 double *solution_lb_complex::copySolution(const double *sol) const
 {
-	double *res = new double[numcoefficients];
+	double *res = new double[p->getNumCoefficients()];
 
-	for(int i=0;i<numcoefficients;i++)
+	for(int i=0;i<p->getNumCoefficients();i++)
 		res[i] = sol[i];
 
 	return res;
@@ -300,9 +276,9 @@ double *solution_lb_complex::copySolution(const double *sol) const
 
 double *solution_lb_complex::getNewRandomSolution_R()
 {
-	double *res = new double[numcoefficients];
+	double *res = new double[p->getNumCoefficients()];
 	int i = 0;
-	for(;i<numcoefficients;i++)
+	for(;i<p->getNumCoefficients();i++)
 		res[i] = mincond+genreal()*(maxcond-mincond);
 
 	return res;
@@ -310,9 +286,9 @@ double *solution_lb_complex::getNewRandomSolution_R()
 
 double *solution_lb_complex::getNewRandomSolution_I()
 {
-	double *res = new double[numcoefficients];
+	double *res = new double[p->getNumCoefficients()];
 	int i = 0;
-	for(;i<numcoefficients;i++)
+	for(;i<p->getNumCoefficients();i++)
 		res[i] = mincond_I+genreal()*(maxcond_I-mincond_I);
 	return res;
 }
@@ -322,7 +298,7 @@ double *solution_lb_complex::getShuffledSolution_I(shuffleData *data, const shuf
 	double *res = solution_lb_complex::copySolution(solIm);
 	// head or tails
 	if(genint(2)) { // Normal
-		int ncoef = genint(numcoefficients);
+		int ncoef = genint(p->getNumCoefficients());
 		float minc, maxc;
                   maxc = maxcond_I;
                   minc = mincond_I;
@@ -348,11 +324,11 @@ double *solution_lb_complex::getShuffledSolution_I(shuffleData *data, const shuf
 			data->ncoef = ncoef;
 		}
 	} else { // swap
-		int ncoef = genint(innerAdjacency.size());
+		int ncoef = genint(p->getInnerAdjacencyCount());
 		int node1, node2;
 
-		node1 = node2coefficient[innerAdjacency[ncoef].first];
-		node2 = node2coefficient[innerAdjacency[ncoef].second];
+		node1 = p->getNode2Coefficient(p->getAdjacency(ncoef).first);
+		node2 = p->getNode2Coefficient(p->getAdjacency(ncoef).second);
 
 		// Order nodes
 		if(res[node1]>res[node2]) {
@@ -394,7 +370,7 @@ double *solution_lb_complex::getShuffledSolution_R(shuffleData *data, const shuf
 	double *res = solution_lb_complex::copySolution(solRe);
 	// head or tails
 	if(genint(2)) { // Normal
-		int ncoef = genint(numcoefficients);
+		int ncoef = genint(p->getNumCoefficients());
 		float minc, maxc;
                   maxc = maxcond;
                   minc = mincond;
@@ -420,11 +396,13 @@ double *solution_lb_complex::getShuffledSolution_R(shuffleData *data, const shuf
 			data->ncoef = ncoef;
 		}
 	} else { // swap
-		int ncoef = genint(innerAdjacency.size());
+		int ncoef = genint(p->getInnerAdjacencyCount());
 		int node1, node2;
 
-		node1 = node2coefficient[innerAdjacency[ncoef].first];
-		node2 = node2coefficient[innerAdjacency[ncoef].second];
+
+		node1 = p->getNode2Coefficient(p->getAdjacency(ncoef).first);
+		node2 = p->getNode2Coefficient(p->getAdjacency(ncoef).second);
+
 
 		// Order nodes
 		if(res[node1]>res[node2]) {
@@ -480,13 +458,12 @@ solution_lb_complex *solution_lb_complex::shuffle(shuffleData *data_R, const shu
 
 void solution_lb_complex::saturate()
 {
-      ensureMinIt(nodes.size()+30);
+      ensureMinIt(p->getNodesCount()+30);
 }
 
 void solution_lb_complex::ensureMinIt(unsigned int it)
 {
-      static Eigen::VectorXd aux(gelectrodes.size()-1);
-      for(int i = 0; i<nobs;i++) {
+      for(int i = 0; i<o.getNObs();i++) {
             LB_Solver_Complex *sim = this->simulations[i];
             while(sim->getIteration()<it) {
                 simulations[i]->do_iteration();
@@ -504,7 +481,7 @@ void solution_lb_complex::ensureMinIt(unsigned int it)
                // reevaluate critical
                 double max = err_x_dist[0];
                 critical = 0;
-                for(int j = 1; j<nobs;j++) {
+                for(int j = 1; j<o.getNObs();j++) {
                   if(max < err_x_dist[j]) {
                         max = err_x_dist[j];
                         critical = j;
@@ -526,7 +503,7 @@ solution_lb_complex::~solution_lb_complex()
   delete Aic_I;
 	delete Acc_R;
   delete Acc_I;
-	for(int i=0;i<nobs;i++) {
+	for(int i=0;i<o.getNObs();i++) {
 		delete simulations[i];
 	}
 	delete[] simulations;

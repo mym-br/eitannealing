@@ -42,9 +42,8 @@ class solution_lb {
 			matrix *Aii, *Acc;
 			matrix *Aic;
 			std::unique_ptr<LB_Solver::Preconditioner> precond;
-                        std::shared_ptr<problem> p;
-                        // FIXME: o should be const!
-                        observations<double> &o;
+      std::shared_ptr<problem> p;
+      const observations<double> &o;
 
 			LB_Solver **simulations;
 			Eigen::VectorXd distance;

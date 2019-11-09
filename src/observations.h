@@ -70,7 +70,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 		currents[i] = current;
 		currents[i][baseIndex + entry] = 1;
 		currents[i][baseIndex + exit] = -1;
-	#ifndef BLOCKGND
+	#ifdef ZEROELECSUM
 		// Zero ground node current
 		if (groundNode > 0 && groundNode < nodesCount) currents[i][groundNode] = 0;
 	#endif
@@ -91,9 +91,9 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 		}
 #else
 		// rebase tensions, as our last electrode is always the ground
-		file >> val;
-		for (int j = 0; j < n; j++) {
-			tensions[i][j] -= val / c;
+		val = tensions[i][n-1];
+		for (int j = 0; j < n-1; j++) {
+			tensions[i][j] -= val;
 		}
 		tensions[i][n-1] = 0.0f;
 #endif

@@ -28,7 +28,7 @@ QPoint translateCoordinate(float x, float y)
 }
 
 viewport::viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input, double mincond, double maxcond) :
-scale(width, 70, QImage::Format_RGB32), paintbuff(width, height, QImage::Format_RGB32), input(_input), minval(mincond), maxval(maxcond)
+paintbuff(width, height, QImage::Format_RGB32), scale(width, 70, QImage::Format_RGB32), input(_input), minval(mincond), maxval(maxcond)
 {
 	this->setWindowTitle(title);
 	this->setFixedSize(width, height+scale.height());

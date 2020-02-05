@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
             c.insertBack(iti.row(), i) = iti.value();
         }
         for(Eigen::SparseMatrix<double>::InnerIterator itc(*Aic_R, i); itc; ++itc) {
-            c.insertBack(itc.row(), i) = itc.value();
+            c.insertBack(ii.rows()+itc.row(), i) = itc.value();
         }     
      }
      c.finalize();
@@ -109,47 +109,7 @@ int main(int argc, char *argv[])
      std::cout << "transposed symmetric: "  <<  ((double)(stop - start))/400000 << std::endl;
 
 
-     /*
-
-     Eigen::VectorXd V_R(32), V_I(32), J_R(32), J_I(32);
-
-     V_R.fill(0.0);
-     V_I.fill(0.0);
-     J_R.fill(0.0);
-     J_I.fill(0.0);
-     V_R(4) = -30.738288239574686;
-     V_R(0) = 30.733620796726793;
-     V_R(5) = -12.495870755237416;
-     V_R(31) = 12.49545757830731;
-     V_R(1) = 8.627724263627385;
-     V_R(3) = -8.624816166327843;
-
-     V_I(4) = 27.881561780188846;
-     V_I(0) = -27.87684498288155;
-     V_I(5) = 12.393968674438954;
-     V_I(31) = -12.3936017438714986;
-     V_I(1) = -8.53400765435308;
-     V_I(3) = 8.531044976628754;
-
-     J_R(0) = 1.0;
-     J_R(4) = -1.0;
-
-
-
-     LB_Solver_Complex::Preconditioner *pre;
-     pre = new SparseIncompleteQRComplex(8, 10, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
-
-
-     LB_Solver_Complex *solver;
-     solver = new LB_Solver_Complex(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, V_R, V_I, *pre, 0.002);
-
-     for(int i=0; i<50;i++)
-         solver->do_iteration();
-
-     solver->do_iteration();
-     */
-
-
+    
 
      return 0;
  }

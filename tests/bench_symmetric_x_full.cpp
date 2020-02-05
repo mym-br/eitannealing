@@ -48,6 +48,30 @@ int main(int argc, char *argv[])
      assembleProblemMatrix_lb(sol_I, &Aii_I, &Aic_I, &Acc_I, *input);
      std::cout << "Done\n" << std::flush;
 
+     matrix c(Aii_R->selfadjointView<Eigen::Lower>());
+     Eigen::VectorXd  x(Eigen::VectorXd::Zero(c.rows())), y;
+     long start, stop;
+     for(int i = 0; i<100; i++)
+            y.noalias() = c*x;
+
+     start = get_time();
+     for(int i = 0; i<100000; i++)
+            y.noalias() = c*x;
+     stop = get_time();
+
+     std::cout << "full: "  <<  ((double)(stop - start))/100000 << std::endl;
+
+     for(int i = 0; i<100; i++)
+            y.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x;
+
+     start = get_time();
+     for(int i = 0; i<100000; i++)
+            y.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x;
+     stop = get_time();
+
+     std::cout << "Symmetric: "  <<  ((double)(stop - start))/100000 << std::endl;
+
+     /*
 
      Eigen::VectorXd V_R(32), V_I(32), J_R(32), J_I(32);
 
@@ -85,6 +109,8 @@ int main(int argc, char *argv[])
          solver->do_iteration();
 
      solver->do_iteration();
+     */
+
 
 
      return 0;

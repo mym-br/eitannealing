@@ -15,5 +15,5 @@ set_property(TARGET test_solver_lb_complex PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_solver_lb_complex PROPERTY CXX_STANDARD_REQUIRED ON)
 
 add_executable(bench_symmetric_x_full bench_symmetric_x_full.cpp $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine>)
-set_property(TARGET test_solver_lb_complex PROPERTY CXX_STANDARD 17)
-set_property(TARGET test_solver_lb_complex PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET bench_symmetric_x_full PROPERTY CXX_STANDARD 17)
+set_property(TARGET bench_symmetric_x_full PROPERTY CXX_STANDARD_REQUIRED ON)

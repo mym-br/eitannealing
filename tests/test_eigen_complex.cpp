@@ -33,7 +33,7 @@ inline void symmetric_complex_mult_and_assign(const matrixcomplex &m, const vect
     const Eigen::SparseMatrix<__complex_wrapper_noconj, Eigen::ColMajor> *mm  = (const Eigen::SparseMatrix<__complex_wrapper_noconj, Eigen::ColMajor> *)&m;
     const Eigen::Matrix<__complex_wrapper_noconj, Eigen::Dynamic, 1> *xx  = (const Eigen::Matrix<__complex_wrapper_noconj, Eigen::Dynamic, 1> *)&x;
     Eigen::Matrix<__complex_wrapper_noconj, Eigen::Dynamic, 1> *rr  = (Eigen::Matrix<__complex_wrapper_noconj, Eigen::Dynamic, 1> *)&res;
-    rr->noalias() = (*mm)*(*xx);
+    rr->noalias() = mm->selfadjointView<Eigen::Lower>()*(*xx);
 }
 
 
@@ -44,7 +44,6 @@ int main(int argc, char *argv[])
     	 std::cerr << "need mesh filename\n";
     	 return 1;
      }
-     //Eigen::setNbThreads(16);
      std::cout << "Parsing mesh file..." << std::flush;
      std::shared_ptr<problem> input(problem::createNewProblem(argv[1], &is2d));
      input->initProblem(argv[1]);
@@ -86,7 +85,10 @@ int main(int argc, char *argv[])
      }
      c.finalize();
      
-     Eigen::VectorXd  x(Eigen::VectorXd::Random(c.cols())), y, y2, x2(Eigen::VectorXd::Random(c.rows()));
+     Eigen::VectorXcd  x(Eigen::VectorXd::Random(c.cols())), y, y2, x2(Eigen::VectorXcd::Random(c.rows()));
+     
+     symmetric_complex_mult_and_assign(Aii, x, y);
+     
     
      return 0;
  }

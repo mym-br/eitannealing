@@ -21,12 +21,9 @@ unsigned long get_time()
     return t.tv_sec*1e6 + t.tv_usec;
 }
 
-
-
 struct __complex_wrapper_noconj : public std::complex<double> {
     using std::complex<double>::complex;
 };
-inline const __complex_wrapper_noconj & conj(const __complex_wrapper_noconj &x) { return x; }
 
 inline void symmetric_complex_mult_and_assign(const matrixcomplex &m, const vectorxcomplex &x, vectorxcomplex &res)
 {
@@ -89,6 +86,39 @@ int main(int argc, char *argv[])
      
      symmetric_complex_mult_and_assign(Aii, x, y);
      
+     std::cout << "Residual (real): " << (y.real() - (Aii_R->selfadjointView<Eigen::Lower>()*x.real() - Aii_I->selfadjointView<Eigen::Lower>()*x.imag())).squaredNorm() << std::endl;
+     std::cout << "Residual (imag): " << (y.imag() - (Aii_R->selfadjointView<Eigen::Lower>()*x.imag() + Aii_I->selfadjointView<Eigen::Lower>()*x.real())).squaredNorm() << std::endl;
+     
+     Eigen::VectorXcd  y_r, y_i;
+     long start, stop;
+     
+     
+     
+     for(int i = 0; i<100; i++)
+        symmetric_complex_mult_and_assign(Aii, x, y);
+     start = get_time();
+     for(int i = 0; i<400000; i++)
+            symmetric_complex_mult_and_assign(Aii, x, y);
+     stop = get_time();
+     std::cout << "Eigen complex symmetric: "  <<  ((double)(stop - start))/400000 << std::endl;
+     
+     
+     for(int i = 0; i<100; i++) {
+        y_r.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x.real() - Aii_I->selfadjointView<Eigen::Lower>()*x.imag();
+        y_i.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x.imag() + Aii_I->selfadjointView<Eigen::Lower>()*x.real();
+     }
+     start = get_time();
+     for(int i = 0; i<400000; i++)  {
+        y_r.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x.real() - Aii_I->selfadjointView<Eigen::Lower>()*x.imag();
+        y_i.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x.imag() + Aii_I->selfadjointView<Eigen::Lower>()*x.real();
+     }
+     stop = get_time();
+     std::cout << "Split components symmetric: "  <<  ((double)(stop - start))/400000 << std::endl;
+     
+     
+     
     
+     
+     
      return 0;
  }

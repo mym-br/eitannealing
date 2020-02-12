@@ -164,7 +164,7 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, co
 				err_x_dist(o.getNObs())
 {
         assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, *p);
-        precond.reset(LB_Solver::makePreconditioner(*Aii));
+        precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
 
 	this->initSimulations();
 	this->initErrors();
@@ -182,7 +182,7 @@ solution_lb::solution_lb(double *sigma, const solution_lb &base):
                 err_x_dist(o.getNObs())
 {
         assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, *p);
-        precond.reset(LB_Solver::makePreconditioner(*Aii));
+        precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
 
         this->initSimulations(base);
         this->initErrors();
@@ -201,7 +201,7 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o):
 		err_x_dist(o.getNObs())
 {
         assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, *p);
-        precond.reset(LB_Solver::makePreconditioner(*Aii));
+        precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
 	this->initSimulations();
 	this->initErrors();
 }

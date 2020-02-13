@@ -76,7 +76,6 @@ template<class scalar> class SparseIncompleteQRBuilder
                     // Get nr-1 *largest* elements
                     //  -1 accounts for the diagonal
                     fillWithNSmallest(selectedR, buildingR, nr - 1, cmp_larger_abs_coef);
-                    fillWithNSmallest(selectedR, buildingR, nr - 1, cmp_larger_abs_coef);
                     // Sort it according to index
                     std::sort(selectedR.begin(), selectedR.end(), [](const i_c &a, const i_c &b){return a.first<b.first;});
                     // Now fill R matrix column and finalize Q calculation

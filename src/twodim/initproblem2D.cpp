@@ -3,8 +3,21 @@
 void problem2D::initProblem(const char *meshfilename) {
 	file.open(meshfilename);
 
-	fillNodes();
-	fillElementsGenericElectrode();
+	// Check mesh file version
+	int meshVer = 1;
+	std::string aux;
+	std::getline(file, aux);
+	if(aux.compare("$MeshFormat") == 0) {
+		std::string numVer; file >> numVer;
+		if (numVer[0] == '2') meshVer = 2;
+		else { std::cerr << "Incompatible mesh file version: " << numVer << std::endl; return; }
+		int binary; file >> binary;
+		if(binary != 0) { std::cerr << "Only compatible with ASCII mesh file" << std::endl; return; }
+	}
+	else file.seekg(0, std::ios::beg);
+
+	fillNodes(meshVer);
+	fillElementsGenericElectrode(meshVer);
 	preparePerimeter();
 	//this->electrodeh = 0.023f;
 	//this->totalheight = 0.016f;
@@ -14,16 +27,16 @@ void problem2D::initProblem(const char *meshfilename) {
 	file.close();
 }
 
-void problem2D::fillNodes() {
+void problem2D::fillNodes(int meshVer) {
 	//file.seekg(0)
+	std::string nodeStartSection(meshVer == 1 ? "$NOD" : "$Nodes");
 	std::string aux;
 	do {
 		std::getline(file, aux);
-	} while (aux.compare("$NOD") != 0);
+	} while (aux.compare(nodeStartSection) != 0);
 
 	int numNodes;
 	file >> numNodes;
-
 	nodes.reserve(numNodes);
 
 	int i;
@@ -34,19 +47,21 @@ void problem2D::fillNodes() {
 		file >> n.x;
 		file >> n.y;
 		file.ignore(256, ' ');
+
 		nodes.push_back(n);
 	}
 
 	nodeCount = nodes.size();
 }
 
-void problem2D::fillElementsGenericElectrode() {
+void problem2D::fillElementsGenericElectrode(int meshVer) {
 	std::set<int> outerRingNodes;
 	std::set<int> innerNodes;
+	std::string elmStartSection(meshVer == 1 ? "$ELM" : "$Elements");
 	std::string aux;
 	do {
 		std::getline(file, aux);
-	} while (aux.compare("$ELM") != 0);
+	} while (aux.compare(elmStartSection) != 0);
 
 	triangularElement temp;
 	int numElements;	// Notice this includes also electrode elements
@@ -57,14 +72,14 @@ void problem2D::fillElementsGenericElectrode() {
 	elements.reserve(numElements);
 
 	for (i = 0; i<numElements; i++) {
-		int id;
+		int id, numTags;
 		int na, nb, nc;
 		file.ignore(256, ' ');
 		file.ignore(256, ' ');
+		if (meshVer == 2) file >> numTags;
+		else numTags = 3;
 		file >> id;
-		file.ignore(256, ' ');
-		file.ignore(256, ' ');
-		file.ignore(256, ' ');
+		for(int i = 0; i < numTags; i++) file.ignore(256, ' ');
 		file >> na >> nb >> nc;
 		// 1 based
 		na--;

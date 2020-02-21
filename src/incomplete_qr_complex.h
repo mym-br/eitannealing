@@ -42,11 +42,11 @@ class SparseIncompleteQRComplex
             // FIXME: This assumes that the columns will be iterated in order, so the current column has already
             //  an appropriate upper map
             // First iterate over upper elements
-            for(auto [j, x] : upperMap[j]) f(j, x);
+            for(auto [i, x] : upperMap[j]) f(i, x);
             // Now, lower elements and fill map for next columns
             for(typename Eigen::SparseMatrix<double>::InnerIterator itR(iiR, j), itI(iiI, j); itR; ++itR, ++itI) {
                 std::complex<double> val(itR.value(), itI.value());
-                if(itR.index()>j) {
+                if((unsigned)itR.index()>j) {
                   upperMap[itR.index()].push_back(std::pair<unsigned long, std::complex<double> >(j, val));
                 }
                 f(itR.index(), val);
@@ -57,8 +57,8 @@ class SparseIncompleteQRComplex
                 f(itR.index() + square_size, val);
             }
         }
-        unsigned long rows() const { return square_size+icR.rows(); }
-        unsigned long cols() const { return square_size; }
+        unsigned long rows() const { return (unsigned long)square_size+icR.rows(); }
+        unsigned long cols() const { return (unsigned long)square_size; }
     };
 
   public:
@@ -79,7 +79,7 @@ class SparseIncompleteQRComplex
     }
 
     void solveInPlaceC(Eigen::VectorXd &bR, Eigen::VectorXd &bI) const {
-      long i = idiagonal.size() - 1;
+      size_t i = idiagonal.size() - 1;
       for(; i>=0; i--) {
         for(auto [j, x] : rows[i]) {
           bR[i] -= bR[j]*x.real() - bI[j]*x.imag();
@@ -92,7 +92,7 @@ class SparseIncompleteQRComplex
 
      // conjugated transpose
     void solveInPlaceCT(Eigen::VectorXd &bR, Eigen::VectorXd &bI) const {
-      unsigned long n = idiagonal.size();
+	  size_t n = idiagonal.size();
       for(unsigned int i = 0; i<n; i++) {
 
         for(auto [j, x] : cols[i]) {

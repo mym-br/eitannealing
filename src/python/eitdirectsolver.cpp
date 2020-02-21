@@ -3,15 +3,14 @@
 #include "solution.h"
 #include "observations.h"
 
-int solve()
+int solve(const char *meshfilename,const  char *currentfilename)
 {
 	bool is2dProblem;
-	std::shared_ptr<problem> input = problem::createNewProblem("circular_A_2D.msh", &is2dProblem);
+	std::shared_ptr<problem> input = problem::createNewProblem(meshfilename, &is2dProblem);
 	//input->setGroundNode(params.ground);
-	input->initProblem("circular_A_2D.msh");
+	input->initProblem(meshfilename);
 	observations<double> *readings = new observations<double>;
-	const char *curfile = "cuba_190ma_cp.txt";
-	readings->initObs(&curfile, NULL, input->getNodesCount(), input->getGenericElectrodesCount());
+	readings->initObs(&currentfilename, NULL, input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();

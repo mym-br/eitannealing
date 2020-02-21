@@ -6,7 +6,7 @@
 #include "problem.h"
 #include "solution.h"
 #include "observations.h"
-extern int    solve();
+extern int    solve(const char *meshfilename,const  char *currentfilename);
 %}
 
-extern int    solve();
+extern int    solve(const char *meshfilename,const  char *currentfilename);

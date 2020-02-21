@@ -45,7 +45,7 @@ protected:
 
 private:
 	void fillNodes(int meshVer);
-	void fillElementsGenericElectrode(int meshVer);
+	void fillElementsGenericElectrode(int meshVer, bool ignoreouterring);
 	void addToGenericElectrode(int n1, int n2, int n3);
 	void preparePerimeter();
 
@@ -65,7 +65,7 @@ private:
 	std::vector<std::pair<int, int> > perimeter;
 
 public:
-	void initProblem(const char *meshfilename);
+	void initProblem(const char *meshfilename, bool ignoreouterring = false);
 	void setCalibrationMode(bool individualcoeffs = false);
 	void buildNodeCoefficients();
 	int getGenericElectrodesCount() { return (int)gelectrodes.size(); }

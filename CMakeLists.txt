@@ -7,11 +7,11 @@ find_package(Threads REQUIRED)
 find_package(CUDA 10 REQUIRED)
 find_package(GMSH REQUIRED)
 find_package(SWIG REQUIRED)
-find_package(PythonLibs)
+find_package(Python3 COMPONENTS NumPy)
 
 set(CMAKE_AUTOMOC ON)
 include(${SWIG_USE_FILE})
-include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH} ${CMAKE_CURRENT_SOURCE_DIR} src src/complex)
+include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIR} src src/complex)
 
 set(eit_core_SRCS
   src/gradientnormregularisation.cpp
@@ -94,7 +94,7 @@ set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 set_source_files_properties(src/python/eitdirectsolver.i PROPERTIES CPLUSPLUS ON)
 set_source_files_properties(src/python/eitdirectsolver.i PROPERTIES SWIG_FLAGS "-includeall")
-SWIG_ADD_MODULE(eitdirectsolver python src/python/eitdirectsolver.i src/python/eitdirectsolver.cpp $<TARGET_OBJECTS:eit_core>)
-SWIG_LINK_LIBRARIES(eitdirectsolver ${PYTHON_LIBRARIES} ${libs} ${ADDITIONAL_LIBRARIES})
+SWIG_ADD_LIBRARY(eitdirectsolver LANGUAGE python SOURCES src/python/eitdirectsolver.i src/python/eitdirectsolver.cpp $<TARGET_OBJECTS:eit_core>)
+SWIG_LINK_LIBRARIES(eitdirectsolver ${Python3_LIBRARIES} ${libs} ${ADDITIONAL_LIBRARIES})
 
 add_subdirectory(tests)

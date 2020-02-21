@@ -85,7 +85,7 @@ private:
 	std::vector<std::pair<int, int> > perimeter;
 
 public:
-	void initProblem(const char *meshfilename);
+	void initProblem(const char *meshfilename, bool ignoreouterring = false);
 	void setCalibrationMode(bool individualcoeffs = false);
 	void buildNodeCoefficients();
 	int getGenericElectrodesCount() { return (int)gelectrodes.size(); }

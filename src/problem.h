@@ -57,7 +57,7 @@ public:
 	static std::shared_ptr<problem> createNewProblem(const char *meshfilename, bool *is2D);
 
 	// Virtual functions
-	virtual void initProblem(const char *meshfilename) = 0;
+	virtual void initProblem(const char *meshfilename, bool ignoreouterring = false) = 0;
 	virtual void setCalibrationMode(bool individualcoeffs = false) = 0;
 	virtual void buildNodeCoefficients() = 0;
 	virtual int getGenericElectrodesCount() = 0;

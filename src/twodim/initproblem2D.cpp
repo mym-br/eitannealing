@@ -1,6 +1,6 @@
 #include "problem2D.h"
 
-void problem2D::initProblem(const char *meshfilename) {
+void problem2D::initProblem(const char *meshfilename, bool ignoreouterring) {
 	file.open(meshfilename);
 
 	// Check mesh file version
@@ -17,7 +17,7 @@ void problem2D::initProblem(const char *meshfilename) {
 	else file.seekg(0, std::ios::beg);
 
 	fillNodes(meshVer);
-	fillElementsGenericElectrode(meshVer);
+	fillElementsGenericElectrode(meshVer, ignoreouterring);
 	preparePerimeter();
 	//this->electrodeh = 0.023f;
 	//this->totalheight = 0.016f;
@@ -54,7 +54,7 @@ void problem2D::fillNodes(int meshVer) {
 	nodeCount = nodes.size();
 }
 
-void problem2D::fillElementsGenericElectrode(int meshVer) {
+void problem2D::fillElementsGenericElectrode(int meshVer, bool ignoreouterring) {
 	std::set<int> outerRingNodes;
 	std::set<int> innerNodes;
 	std::string elmStartSection(meshVer == 1 ? "$ELM" : "$Elements");
@@ -169,9 +169,10 @@ void problem2D::fillElementsGenericElectrode(int meshVer) {
 	// Outter ring coefficient
 	for (auto e : outerRingNodes) {
 		node2coefficient[e] = condIndex;
+		if (ignoreouterring) condIndex++;
 	}
 
-	if (!outerRingNodes.empty()) condIndex++;
+	if (!outerRingNodes.empty() && !ignoreouterring) condIndex++;
 
 	// Inner coefficients
 	for (auto i : innerNodes) {

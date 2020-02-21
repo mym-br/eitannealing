@@ -1,6 +1,6 @@
 #include "problem3D.h"
 
-void problem3D::initProblem(const char *meshfilename) {
+void problem3D::initProblem(const char *meshfilename, bool ignoreouterring) {
 	file.open(meshfilename);
 
 	fillNodes();

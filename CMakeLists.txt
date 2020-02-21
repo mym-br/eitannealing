@@ -6,9 +6,12 @@ find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
 find_package(Threads REQUIRED)
 find_package(CUDA 10 REQUIRED)
 find_package(GMSH REQUIRED)
+find_package(SWIG REQUIRED)
+find_package(PythonLibs)
 
 set(CMAKE_AUTOMOC ON)
-include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} src src/complex)
+include(${SWIG_USE_FILE})
+include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} ${PYTHON_INCLUDE_PATH} ${CMAKE_CURRENT_SOURCE_DIR} src src/complex)
 
 set(eit_core_SRCS
   src/gradientnormregularisation.cpp
@@ -56,6 +59,8 @@ set(eit_gui_SRCS
   src/gmsh/gmshgraphics.cpp
 )
 
+set(CMAKE_SWIG_FLAGS "")
+
 add_definitions(${Qt5Widgets_DEFINITIONS})
 set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
 
@@ -86,5 +91,10 @@ cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp
 target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+
+set_source_files_properties(src/python/eitdirectsolver.i PROPERTIES CPLUSPLUS ON)
+set_source_files_properties(src/python/eitdirectsolver.i PROPERTIES SWIG_FLAGS "-includeall")
+SWIG_ADD_MODULE(eitdirectsolver python src/python/eitdirectsolver.i src/python/eitdirectsolver.cpp $<TARGET_OBJECTS:eit_core>)
+SWIG_LINK_LIBRARIES(eitdirectsolver ${PYTHON_LIBRARIES} ${libs} ${ADDITIONAL_LIBRARIES})
 
 add_subdirectory(tests)

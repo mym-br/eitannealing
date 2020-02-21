@@ -1,19 +1,16 @@
 #include "solver.h"
 #include "problem.h"
 #include "solution.h"
-#include "parameters/parametersparser.h"
-#include "matrixview.h"
 #include "observations.h"
-#include <iostream>
 
-int main(int argc, char *argv[])
+int solve()
 {
 	bool is2dProblem;
-	std::shared_ptr<problem> input = problem::createNewProblem(argv[1], &is2dProblem);
+	std::shared_ptr<problem> input = problem::createNewProblem("circular_A_2D.msh", &is2dProblem);
 	//input->setGroundNode(params.ground);
-	input->initProblem(argv[1]);
+	input->initProblem("circular_A_2D.msh");
 	observations<double> *readings = new observations<double>;
-	const char *curfile = argv[2];
+	const char *curfile = "cuba_190ma_cp.txt";
 	readings->initObs(&curfile, NULL, input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
@@ -35,17 +32,12 @@ int main(int argc, char *argv[])
 		CG_Solver solver(*m1, currents, precond);
 		for (int i = 0; i < 100; i++) solver.do_iteration();
 		x = solver.getX();
-
-#ifdef ZEROELECSUM
-		// Correct potentials
-		double avg = 0;
-		for (int i = input->getNodesCount() - input->getGenericElectrodesCount(); i < input->getNodesCount(); i++) avg += x[i];
-		avg /= input->getGenericElectrodesCount();
-		for (int i = 0; i < input->getNodesCount(); i++) x[i] -= avg;
-#endif
+		
 		solutions.push_back(x);
 		std::cout << "Finished solution " << patterno + 1 << " of " << readings->getCurrentsCount() << std::endl;
 	}
 
 	solution::savePotentials(solutions, "directsol.msh", input, readings);
+	
+	return 2;
 }

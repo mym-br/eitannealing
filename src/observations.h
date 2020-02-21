@@ -43,20 +43,21 @@ template<>
 inline void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode) {
 	std::ifstream file;
 	std::ifstream filec;
-        //mesh_file = filename;
+	bool readPotentials = (filename != NULL);
 	filec.open(*filecurrents);
-	file.open(filename);
+	if(readPotentials) file.open(filename);
 
 #if defined(ZEROELECSUM) || defined(BLOCKGND)
 	int n = electrodesCount; // TODO: read number of measurements from file
 #else
 	int n = electrodesCount - 1; // TODO: read number of measurements from file
 #endif
-	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
-	nobs = valuesCount / electrodesCount;
+	//int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
+	int valuesCount = std::distance(std::istream_iterator<double>(filec), std::istream_iterator<double>());
+	nobs = valuesCount / 3;
 
-	file.clear();
-	file.seekg(0, std::ios::beg);
+	filec.clear();
+	filec.seekg(0, std::ios::beg);
 	tensions = new vectorx[nobs];
 	currents = new vectorx[nobs];
 	currentVals = vectorx(nobs);
@@ -88,6 +89,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 		if (exit != n) currents[i][baseIndex + exit] = -1;
 #endif
 		// read tensions from file
+		if (!readPotentials) continue;
 		tensions[i].resize(n);
 		Scalar val, avg;
 		avg = 0;
@@ -112,7 +114,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 	}
 
 	filec.close();
-	file.close();
+	if (readPotentials) file.close();
 };
 
 template<>

@@ -21,8 +21,8 @@
 #define min(x,y) ((x)<(y)?(x):(y))
 #endif
 
-float mincond_I = 0;
-float maxcond_I = 0.1;
+float mincond_I = (float)0;
+float maxcond_I = (float)0.1;
 
 void solution_lb_complex::improve()
 {
@@ -178,7 +178,7 @@ void solution_lb_complex::initSimulations()
 
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Complex_Estimate *solver = new LB_Solver_EG_Complex_Estimate(
-                        Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_R, J_R, J_I, V_R, V_I, *precond,  100, 0.0001);
+                        Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_R, J_R, J_I, V_R, V_I, *precond,  100, (float)0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
@@ -212,7 +212,7 @@ void solution_lb_complex::initSimulations(const solution_lb_complex &base)
         baseEVSolver->getX(X_R, X_I);
         LB_Solver_EG_Complex_Estimate *solver = new LB_Solver_EG_Complex_Estimate(
                         Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_R, J_R, J_I, V_R, V_I, *precond,
-                        X_R, X_I, baseEVSolver->getEvector(), 100, 0.0001);
+                        X_R, X_I, baseEVSolver->getEvector(), 100, (float)0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();

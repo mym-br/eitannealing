@@ -56,7 +56,7 @@ SparseIncompleteLLT::SparseIncompleteLLT(const matrix& matrix):
 /** Computes b = L^-T L^-1 b */
 bool SparseIncompleteLLT::solveInPlace(Eigen::VectorXd &b)  const
 {
-  const int size = m_matrix.rows();
+  const matrix::Index size = m_matrix.rows();
   assert(size==b.rows());
   m_matrix.triangularView<Eigen::Lower>().solveInPlace(b);
   m_matrix.triangularView<Eigen::Lower>().transpose().solveInPlace(b);
@@ -67,7 +67,7 @@ bool SparseIncompleteLLT::solveInPlace(Eigen::VectorXd &b)  const
 /** Computes b = L^-T L^-1 b */
 bool SparseIncompleteLLT::halfSolveInPlace(Eigen::VectorXd &b)  const
 {
-  const int size = m_matrix.rows();
+  const matrix::Index size = m_matrix.rows();
   assert(size==b.rows());
   m_matrix.triangularView<Eigen::Lower>().solveInPlace(b);
 
@@ -77,7 +77,7 @@ bool SparseIncompleteLLT::halfSolveInPlace(Eigen::VectorXd &b)  const
 /** Computes b = L^-T L^-1 b */
 bool SparseIncompleteLLT::halfSolveInPlaceT(Eigen::VectorXd &b)  const
 {
-  const int size = m_matrix.rows();
+  const matrix::Index size = m_matrix.rows();
   assert(size==b.rows());
   m_matrix.triangularView<Eigen::Lower>().transpose().solveInPlace(b);
 

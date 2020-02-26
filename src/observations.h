@@ -36,11 +36,11 @@ public:
 	_Scalar getCurrentVal(int i) { return currentVals[i]; }
 	int getCurrentsCount() { return (int)currentVals.size(); }
 
-	void initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode = -1) {};
+	void initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode = -1, int baseIndex = -1) {};
 };
 
 template<>
-inline void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode) {
+inline void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode, int baseIndex) {
 	std::ifstream file;
 	std::ifstream filec;
 	bool readPotentials = (filename != NULL);
@@ -67,7 +67,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 	vectorx current(nodesCount-1);
 #endif
 	current.fill(0);
-	int baseIndex = (int)current.size() - n;
+	if(baseIndex < 0) baseIndex = (int)current.size() - n;
 	for (int i = 0; i<nobs; i++) {
 		double c;
 		int entry, exit;
@@ -118,7 +118,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 };
 
 template<>
-inline void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode) {
+inline void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode, int baseIndex) {
 	std::ifstream file;
 	std::ifstream filecin, filecout;
 
@@ -137,7 +137,7 @@ inline void observations<std::complex<double>>::initObs(const char **filecurrent
 	currentVals = vectorxcomplex(nobs);
 	vectorxcomplex current(nodesCount);
 	current.fill(0);
-	int baseIndex = (int)current.size() - n;
+	if (baseIndex < 0) baseIndex = (int)current.size() - n;
 	for (int i = 0; i<nobs; i++) {
 		char ch;
 		double valreal, valimag;

@@ -12,13 +12,12 @@ void init(const char* meshfilename, const  char* currentfilename)
 {
 	bool is2dProblem;
 	input = problem::createNewProblem(meshfilename, &is2dProblem);
-	//input->setGroundNode(params.ground);
 	input->initProblem(meshfilename, true);
 	readings = new observations<double>;
-	readings->initObs(&currentfilename, NULL, input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
+	readings->initObs(&currentfilename, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), input->getGroundNode() - input->getGenericElectrodesCount() + 1);
 }
 
 void setconds(double* cond, int n) {

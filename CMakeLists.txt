@@ -34,7 +34,7 @@ set(eit_core_SRCS
   src/complex/solvercomplex.cpp
   src/complex/solutioncomplex.cpp
   src/complex/gradientnormregularisationcomplex.cpp
-  src/mm/mmio.c
+  #src/mm/mmio.c
 )
 
 set(eit_cuda_SRCS
@@ -93,11 +93,9 @@ target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIB
 set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
-IF(CMAKE_BUILD_TYPE MATCHES RELEASE)
-    set_source_files_properties(src/python/eitdirectsolver.i PROPERTIES CPLUSPLUS ON)
-    set_source_files_properties(src/python/eitdirectsolver.i PROPERTIES SWIG_FLAGS "-includeall")
-    SWIG_ADD_LIBRARY(eitdirectsolver LANGUAGE python SOURCES src/python/eitdirectsolver.i src/python/eitdirectsolver.cpp $<TARGET_OBJECTS:eit_core>)
-    SWIG_LINK_LIBRARIES(eitdirectsolver ${Python3_LIBRARIES} ${libs} ${ADDITIONAL_LIBRARIES})
-ENDIF(CMAKE_BUILD_TYPE MATCHES RELEASE)
+set_source_files_properties(src/python/eitdirectsolver.i PROPERTIES CPLUSPLUS ON)
+set_source_files_properties(src/python/eitdirectsolver.i PROPERTIES SWIG_FLAGS "-includeall")
+SWIG_ADD_LIBRARY(eitdirectsolver LANGUAGE python SOURCES src/python/eitdirectsolver.i src/python/eitdirectsolver.cpp $<TARGET_OBJECTS:eit_core>)
+SWIG_LINK_LIBRARIES(eitdirectsolver ${Python3_LIBRARIES} ${libs} ${ADDITIONAL_LIBRARIES})
 
 add_subdirectory(tests)

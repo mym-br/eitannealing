@@ -30,7 +30,7 @@ void setconds(double* cond, int n) {
 }
 
 void solve(double* potentials, int n, int patterno) {
-	if (n != input->getNodesCount()) { std::cout << "Wrong potentials vector size " << n << " (should be " << input->getNodesCount() << ")" << std::endl; return; }
+	if (n != input->getGenericElectrodesCount()) { std::cout << "Wrong potentials vector size " << n << " (should be " << input->getGenericElectrodesCount() << ")" << std::endl; return; }
 
 	Eigen::VectorXd x, currents;
 	currents = input->getCurrentVector(patterno, readings);
@@ -38,5 +38,9 @@ void solve(double* potentials, int n, int patterno) {
 	for (int i = 0; i < 100; i++) solver.do_iteration();
 	x = solver.getX();
 
-	for (int i = 0; i < n; i++) potentials[i] = x[i] * readings->getCurrentVal(patterno);
+	int firstElectrodeIdx = input->getGroundNode() - input->getGenericElectrodesCount() + 1;
+	for (int i = 0; i < input->getGenericElectrodesCount(); i++) {
+		if(firstElectrodeIdx + i == input->getGroundNode()) potentials[i] = 0;
+		else potentials[i] = x[firstElectrodeIdx + i] * readings->getCurrentVal(patterno);
+	}
 }

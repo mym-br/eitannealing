@@ -117,7 +117,7 @@ struct eigen_double_qr_engine {
 	}
 
 	inline static preconditioner *make_new_preconditioner(const symMatrix &A_ii, const matrix &A_ic) {
-		return new preconditioner(16, 8, A_ii, A_ic);
+		return new preconditioner(32, 16, A_ii, A_ic);
 	}
 };
 
@@ -200,6 +200,22 @@ int main(int argc, char *argv[])
          std::cout << solverqr->getIteration() << ": (min): " << solverqr->getMinErrorl2Estimate() << " (max): " << solverqr->getMaxErrorl2Estimate() << std::endl;
          solverqr->do_iteration();
      }
+     
+     std::cout << "Evaluating qr and nr values\n" << std::flush;
+     for(unsigned nq = 4; nq < 65; nq++) {
+         for(unsigned nr = 4; nr < 65; nr++) {
+             std::cout << "nq: " << nq << " nr: " << nr << "\n";
+             precondqr.reset(new SparseIncompleteQR(nq, nr, *Aii, *Aic));
+             solverqr.reset(new LB_Solver_A<eigen_double_qr_engine>(
+                Aii, Aic, Acc, Eigen::VectorXd(readingsScalar->getCurrents()[0].tail(input->getGenericElectrodesCount())), Eigen::VectorXd(readingsScalar->getTensions()[0]), *precondqr, a
+             ));
+             solverqr->do_iteration();
+             for(unsigned i = 0; i<300; i++) {
+                 std::cout << "    " << solverqr->getIteration() << ": (min): " << solverqr->getMinErrorl2Estimate() << " (max): " << solverqr->getMaxErrorl2Estimate() << std::endl;
+                 solverqr->do_iteration();
+             }
+         }
+      }
     
      return 0;
  }

@@ -25,3 +25,7 @@ set_property(TARGET test_eigen_complex PROPERTY CXX_STANDARD_REQUIRED ON)
 add_executable(test_lb_solution test_lb_solution.cpp $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine>)
 set_property(TARGET test_lb_solution PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_lb_solution PROPERTY CXX_STANDARD_REQUIRED ON)
+
+add_executable(test_lb_solver test_lb_solver.cpp $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine>)
+set_property(TARGET test_lb_solver PROPERTY CXX_STANDARD 17)
+set_property(TARGET test_lb_solver PROPERTY CXX_STANDARD_REQUIRED ON)

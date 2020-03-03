@@ -18,74 +18,6 @@ unsigned long get_time()
     return t.tv_sec*1e6 + t.tv_usec;
 }
 
-class SparseIncompleteQR
-{
-  protected:
-    vectorx idiagonal;
-    matrix rmatrix;
-
-    struct MatricesStorageAdaptor {
-        const matrix &ii;
-        const matrix &ic;
-        unsigned long square_size;
-        // FIXME: This map can be reused!
-        std::vector<std::vector<std::pair<unsigned long, double > > > upperMap;
-        MatricesStorageAdaptor(const matrix &Aii_low, const matrix &Aic):
-             ii(Aii_low), ic(Aic), square_size(Aii_low.cols()), upperMap(Aii_low.rows())  {}
-        void iterateOverColumn(unsigned long j, std::function<void(unsigned long, double)> &&f) {
-            // FIXME: This assumes that the columns will be iterated in order, so the current column has already
-            //  an appropriate upper map
-            // First iterate over upper elements
-            for(auto [j, x] : upperMap[j]) f(j, x);
-            // Now, lower elements and fill map for next columns
-            for(typename matrix::InnerIterator it(ii, j); it; ++it) {
-                if(it.index()>j) {
-                  upperMap[it.index()].push_back(std::make_pair(j, it.value()));
-                }
-                f(it.index(), it.value());
-            }
-            // Finally, ic elements
-            for(typename matrix::InnerIterator it(ic, j); it; ++it) {
-                f(it.index() + square_size, it.value());
-            }
-        }
-        unsigned long rows() const { return square_size+ic.rows(); }
-        unsigned long cols() const { return square_size; }
-    };
-
-  public:
-
-    SparseIncompleteQR(unsigned long nr, unsigned long nq, const matrix &Aii_low, const matrix &Aic):
-        idiagonal(Aii_low.rows()), rmatrix(Aii_low.rows(), Aii_low.rows()) {
-
-        SparseIncompleteQRBuilder<double> builder;
-
-        this->rmatrix.reserve(Aii_low.rows()*nr);
-
-        builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(Aii_low, Aic), nr, nq,
-         [this](unsigned long j, double x) {
-            this->idiagonal(j) = x;
-         },
-         [this](unsigned long i, unsigned long j, double x) {
-             this->rmatrix.insert(i,j) = x;
-         });
-        rmatrix.makeCompressed();
-        idiagonal = idiagonal.cwiseInverse();
-        for(int i = 0; i<rmatrix.outerSize(); i++)
-            rmatrix.col(i) *= idiagonal(i);
-    }
-
-    void solveInPlace(vectorx &b) const {
-      rmatrix.triangularView<Eigen::UnitUpper>().solveInPlace(b);
-      b = b.cwiseProduct(idiagonal);
-    }
-
-     // conjugated transpose
-    void solveInPlaceT(vectorx &b) const {
-        b = b.cwiseProduct(idiagonal);
-        rmatrix.triangularView<Eigen::UnitUpper>().transpose().solveInPlace(b);
-    }
-};
 
 struct eigen_double_qr_engine {
 	typedef double scalar;
@@ -93,7 +25,7 @@ struct eigen_double_qr_engine {
 	typedef Eigen::SparseMatrix<double, Eigen::ColMajor> symMatrix;
 	typedef Eigen::SparseMatrix<double, Eigen::ColMajor> matrix;
 	typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> vector;
-	typedef SparseIncompleteQR preconditioner;
+	typedef SparseIncompleteQR<double> preconditioner;
 
 	inline static void product_ii_ic_vector(vector &dest_i, vector &dest_c, const symMatrix &ii, const symMatrix &ic, const vector &b) {
 		dest_i.noalias() = ii.selfadjointView<Eigen::Lower>()*b;

@@ -171,13 +171,13 @@ template<class num_engine> class LB_Solver_A {
 				    precond.solveInPlace(qaux); // q  <- q*C^-1
 						//r.noalias() = Aii*qaux;
 				    //rc.noalias() = Aic*qaux;
-						num_engine::product_ii_ic_vector(r, rc, Aii, Aic, qaux);						
+						num_engine::product_ii_ic_vector(r, rc, Aii, Aic, qaux);
 					r -= gamma_ip*p; rc -= gamma_ip*pc;
 				    delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 					p = r/delta; pc = rc/delta;
 				    //s.noalias() = Aii*p; 	// Aii^T = Aii
 				    //s.noalias() += Aic.transpose()*pc;
-						num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);						
+						num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
 				    precond.solveInPlaceT(s);
 					s -= delta*q;
 				        // *** Gauss, as next value for gamma will be pertinent to next iteration!
@@ -356,16 +356,16 @@ struct eigen_double_engine {
 		dest.noalias() = ii.selfadjointView<Eigen::Lower>()*b_i;
 		dest.noalias() += ic.transpose()*b_c;
 	}
-	
+
 	inline static void j_minus_a_x_phi(vector &dest_i, vector &dest_c, const matrix &ic, const symMatrix &cc, const vector &j, const vector &phi) {
-		dest_i = -ic.transpose()*phi;
-		dest_c = j;
-		dest_c -= cc.selfadjointView<Eigen::Lower>()*phi;		
+		dest_i.noalias() = -ic.transpose()*phi;
+		dest_c.noalias() = j;
+		dest_c.noalias() -= cc.selfadjointView<Eigen::Lower>()*phi;
 	}
-	
+
 	inline static void subtract_a_x(vector &dest_i, vector &dest_c, const symMatrix &ii,  const symMatrix &ic, const vector &x) {
-		dest_i -= ii.selfadjointView<Eigen::Lower>()*x;
-		dest_c -= ic*x;
+		dest_i.noalias() -= ii.selfadjointView<Eigen::Lower>()*x;
+		dest_c.noalias() -= ic*x;
 	}
 
 	inline static preconditioner *make_new_preconditioner(const symMatrix &A_ii, const matrix &A_ic) {

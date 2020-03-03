@@ -16,7 +16,7 @@
 
 #include "basematrix.h"
 #include "incomplete_qr_builder.h"
-#include "incomplete_qr.h"
+#include "sparse_incomplete_qr.h"
 
 typedef SparseIncompleteQR<std::complex<double> > SparseIncompleteQRComplex2;
 

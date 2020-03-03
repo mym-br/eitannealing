@@ -8,19 +8,19 @@
 template <class scalar> class SparseIncompleteQR
 {
   protected:
-    typedef Eigen::SparseMatrix<scalar, Eigen::ColMajor> matrix;
-    typedef Eigen::SparseMatrix<scalar, Eigen::ColMajor> vectorx
-    vectorx idiagonal;
-    matrix rmatrix;
+    typedef Eigen::SparseMatrix<scalar, Eigen::ColMajor> basematrix;
+    typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> basevector;
+    basevector idiagonal;
+    basematrix rmatrix;
 
     struct MatricesStorageAdaptor {
         
-        const Eigen::SparseMatrix<scalar, Eigen::ColMajor> matrix; &ii;
-        const matrix &ic;
+        const basematrix &ii;
+        const basematrix &ic;
         unsigned long square_size;
         // FIXME: This map can be reused!
         std::vector<std::vector<std::pair<unsigned long, scalar > > > upperMap;
-        MatricesStorageAdaptor(const matrix &Aii_low, const matrix &Aic):
+        MatricesStorageAdaptor(const basematrix &Aii_low, const basematrix &Aic):
              ii(Aii_low), ic(Aic), square_size(Aii_low.cols()), upperMap(Aii_low.rows())  {}
         void iterateOverColumn(unsigned long j, std::function<void(unsigned long, scalar)> &&f) {
             // FIXME: This assumes that the columns will be iterated in order, so the current column has already
@@ -28,14 +28,14 @@ template <class scalar> class SparseIncompleteQR
             // First iterate over upper elements
             for(auto [j, x] : upperMap[j]) f(j, x);
             // Now, lower elements and fill map for next columns
-            for(typename matrix::InnerIterator it(ii, j); it; ++it) {
+            for(typename basematrix::InnerIterator it(ii, j); it; ++it) {
                 if(it.index()>j) {
                   upperMap[it.index()].push_back(std::make_pair(j, it.value()));
                 }
                 f(it.index(), it.value());
             }
             // Finally, ic elements
-            for(typename matrix::InnerIterator it(ic, j); it; ++it) {
+            for(typename basematrix::InnerIterator it(ic, j); it; ++it) {
                 f(it.index() + square_size, it.value());
             }
         }
@@ -45,7 +45,7 @@ template <class scalar> class SparseIncompleteQR
 
   public:
 
-    SparseIncompleteQR(unsigned long nr, unsigned long nq, const matrix &Aii_low, const matrix &Aic):
+    SparseIncompleteQR(unsigned long nr, unsigned long nq, const basematrix &Aii_low, const basematrix &Aic):
         idiagonal(Aii_low.rows()), rmatrix(Aii_low.rows(), Aii_low.rows()) {
 
         SparseIncompleteQRBuilder<scalar> builder;
@@ -65,15 +65,15 @@ template <class scalar> class SparseIncompleteQR
             rmatrix.col(i) *= idiagonal(i);
     }
 
-    void solveInPlace(vectorx &b) const {
-      rmatrix.triangularView<Eigen::UnitUpper>().solveInPlace(b);
-      b = b.cwiseProduct(idiagonal);
+    void solveInPlace(basevector &b) const {
+      this->rmatrix.template triangularView<Eigen::UnitUpper>().solveInPlace(b);
+      b = b.cwiseProduct(this->idiagonal);
     }
 
      // conjugated transpose
-    void solveInPlaceT(vectorx &b) const {
+    void solveInPlaceT(basevector &b) const {
         b = b.cwiseProduct(idiagonal);
-        rmatrix.triangularView<Eigen::UnitUpper>().transpose().solveInPlace(b);
+        rmatrix.template triangularView<Eigen::UnitUpper>().transpose().solveInPlace(b);
     }
 };
 

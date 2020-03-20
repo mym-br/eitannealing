@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project(eitannealingtests)
+project(eitannealingtests VERSION 0.9)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 find_package(Qt5Widgets REQUIRED)
-find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
+find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for 
 find_package(Threads REQUIRED)
 find_package(GMSH REQUIRED)
 find_package(CUDA 10)

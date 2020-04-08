@@ -108,17 +108,15 @@ int test3(void) {
 
     std::cout << "Khat:" << Kh << std::endl;
 
-    vectorx b_R(vectorx::Ones(4)), b_I(vectorx::Zero(4));
-    SparseIncompleteQRComplex precond(4, 4, Kii_R, Kii_I, Kic_R, Kic_I);
-    precond.solveInPlaceC(b_R, b_I);
-    std::cout << "QRComplex:\n" << b_R << std::endl << b_I << std::endl;
-
-
     SparseIncompleteQRComplex2 precond2(4, 4, Kii, Kic);
     vectorxcomplex b(vectorxcomplex::Ones(4));
     precond2.solveInPlace(b);
     std::cout << "QRComplex2:\n" << b.real() << std::endl << b.imag() << std::endl;
 
+    vectorx b_R(vectorx::Ones(4)), b_I(vectorx::Zero(4));
+    SparseIncompleteQRComplex precond(4, 4, Kii_R, Kii_I, Kic_R, Kic_I);
+    precond.solveInPlaceC(b_R, b_I);
+    std::cout << "QRComplex:\n" << b_R << std::endl << b_I << std::endl;
 
     SparseIncompleteQRBuilder<std::complex<double> > builder;
 

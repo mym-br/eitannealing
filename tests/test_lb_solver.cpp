@@ -6,6 +6,7 @@
 #include "../src/intcoef.h"
 #include "../src/solver_lb.h"
 #include "../src/incomplete_qr_builder.h"
+#include "../src/sparse_incomplete_qr.h"
 
 
 struct eigen_double_qr_engine {

@@ -7,17 +7,6 @@
 #include "../src/solver_lb.h"
 #include "../src/incomplete_qr_builder.h"
 
-#include <sys/time.h>
-#include <sys/resource.h>
-
-unsigned long get_time()
-{
-    struct timeval t;
-    struct timezone tzp;
-    gettimeofday(&t, &tzp);
-    return t.tv_sec*1e6 + t.tv_usec;
-}
-
 
 struct eigen_double_qr_engine {
 	typedef double scalar;

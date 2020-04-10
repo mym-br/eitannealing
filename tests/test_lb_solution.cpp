@@ -7,19 +7,6 @@
 #include "../src/solution_lb.h"
 #include "../src/gradientnormregularisation.h"
 
-
-#include <sys/time.h>
-#include <sys/resource.h>
-
-unsigned long get_time()
-{
-    struct timeval t;
-    struct timezone tzp;
-    gettimeofday(&t, &tzp);
-    return t.tv_sec*1e6 + t.tv_usec;
-}
-
-
 int main(int argc, char *argv[])
  {
      bool is2d;

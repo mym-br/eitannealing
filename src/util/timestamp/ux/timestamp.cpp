@@ -1,7 +1,8 @@
 #include "../timestamp.h"
 #include <sys/time.h>
+#include <sys/resource.h>
 
-unsigned long get_usec_timestamp();
+unsigned long get_usec_timestamp()
 {
 	struct timeval t;
 	struct timezone tzp;

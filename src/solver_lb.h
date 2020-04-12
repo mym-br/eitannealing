@@ -52,7 +52,7 @@ template<class num_engine> class LB_Solver_A {
 			real alpha, beta;
 
             vector x0, x, w;
-            float fit;
+			real fit;
             void init(){
 			    JhatNorm2 = r.squaredNorm()+rc.squaredNorm();
 			    delta = sqrt(JhatNorm2);
@@ -171,13 +171,13 @@ template<class num_engine> class LB_Solver_A {
 				    precond.solveInPlace(qaux); // q  <- q*C^-1
 						//r.noalias() = Aii*qaux;
 				    //rc.noalias() = Aic*qaux;
-						num_engine::product_ii_ic_vector(r, rc, Aii, Aic, qaux);						
+						num_engine::product_ii_ic_vector(r, rc, Aii, Aic, qaux);
 					r -= gamma_ip*p; rc -= gamma_ip*pc;
 				    delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 					p = r/delta; pc = rc/delta;
 				    //s.noalias() = Aii*p; 	// Aii^T = Aii
 				    //s.noalias() += Aic.transpose()*pc;
-						num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);						
+						num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
 				    precond.solveInPlaceT(s);
 					s -= delta*q;
 				        // *** Gauss, as next value for gamma will be pertinent to next iteration!
@@ -275,7 +275,7 @@ template<class num_engine> class LB_Solver_EG_Estimate_A : public LB_Solver_A<nu
 	      //std::cout << "Alpha[1]:"<<AlphaVector[0]<<std::endl;
 	      this->dt = AlphaVector[0] - this->a;
 	      //std::cout << "dt[1]:"<<dt<<std::endl;
-	      for(int i=1;i<this->it;i++) {
+	      for(unsigned int i=1;i<this->it;i++) {
 	        this->dt = AlphaVector[i] - this->a - (BetaVector[i-1]*BetaVector[i-1])/this->dt;
 	        //std::cout << "dt[" << i+1 << "]:" << dt << std::endl;
 	      }
@@ -294,7 +294,7 @@ template<class num_engine> class LB_Solver_EG_Estimate_A : public LB_Solver_A<nu
 	      BetaVector.push_back(this->beta);
 	      U.reserve(2*n-1);
 	      U.insert(0,0) = this->phi;
-	      for(int i=1;i<n;i++) {
+	      for(unsigned int i=1;i<n;i++) {
 	        this->do_iteration();
 	        AlphaVector.push_back(this->alpha);
 	        BetaVector.push_back(this->beta);
@@ -318,7 +318,7 @@ template<class num_engine> class LB_Solver_EG_Estimate_A : public LB_Solver_A<nu
 	      //std::cout << "Alpha[1]:"<<AlphaVector[0]<<std::endl;
 	      this->dt = AlphaVector[0] - this->a;
 	      //std::cout << "dt[1]:"<<dt<<std::endl;
-	      for(int i=1;i<this->it;i++) {
+	      for(unsigned int i=1;i<this->it;i++) {
 	        this->dt = AlphaVector[i] - this->a - (BetaVector[i-1]*BetaVector[i-1])/this->dt;
 	        //std::cout << "dt[" << i+1 << "]:" << dt << std::endl;
 	      }
@@ -356,13 +356,13 @@ struct eigen_double_engine {
 		dest.noalias() = ii.selfadjointView<Eigen::Lower>()*b_i;
 		dest.noalias() += ic.transpose()*b_c;
 	}
-	
+
 	inline static void j_minus_a_x_phi(vector &dest_i, vector &dest_c, const matrix &ic, const symMatrix &cc, const vector &j, const vector &phi) {
 		dest_i.noalias() = -ic.transpose()*phi;
-		dest_c = j;
-		dest_c.noalias() -= cc.selfadjointView<Eigen::Lower>()*phi;		
+		dest_c.noalias() = j;
+		dest_c.noalias() -= cc.selfadjointView<Eigen::Lower>()*phi;
 	}
-	
+
 	inline static void subtract_a_x(vector &dest_i, vector &dest_c, const symMatrix &ii,  const symMatrix &ic, const vector &x) {
 		dest_i.noalias() -= ii.selfadjointView<Eigen::Lower>()*x;
 		dest_c.noalias() -= ic*x;

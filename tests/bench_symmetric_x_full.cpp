@@ -8,16 +8,8 @@
 #include "../src/observations_complex.h"
 #include "../src/intcoef.h"
 
-#include <sys/time.h>
-#include <sys/resource.h>
+#include "util/timestamp/timestamp.h"
 #include "solver_lb.h"
-unsigned long get_time()
-{
-    struct timeval t;
-    struct timezone tzp;
-    gettimeofday(&t, &tzp);
-    return t.tv_sec*1e6 + t.tv_usec;
-}
 
 
 int main(int argc, char *argv[])
@@ -69,30 +61,30 @@ int main(int argc, char *argv[])
      long start, stop;
      for(int i = 0; i<100; i++)
             y.noalias() = c*x;
-     start = get_time();
+     start = get_usec_timestamp();
      for(int i = 0; i<400000; i++)
             y.noalias() = c*x;
-     stop = get_time();
+     stop = get_usec_timestamp();
      std::cout << "full: "  <<  ((double)(stop - start))/400000 << std::endl;
 
      for(int i = 0; i<100; i++) {
             y.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x;
             y2.noalias() = (*Aic_R)*x;
      }
-     start = get_time();
+     start = get_usec_timestamp();
      for(int i = 0; i<400000; i++) {
             y.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x;
             y2.noalias() = (*Aic_R)*x;
      }
-     stop = get_time();
+     stop = get_usec_timestamp();
      std::cout << "symmetric: "  <<  ((double)(stop - start))/400000 << std::endl;
      
      for(int i = 0; i<100; i++)
             y.noalias() = c.transpose()*x2;
-     start = get_time();
+     start = get_usec_timestamp();
      for(int i = 0; i<400000; i++)
             y.noalias() = c.transpose()*x2;
-     stop = get_time();
+     stop = get_usec_timestamp();
      std::cout << "transposed full: "  <<  ((double)(stop - start))/400000 << std::endl;
      
      y2 = Eigen::VectorXd::Random(Aic_R->rows());
@@ -100,12 +92,12 @@ int main(int argc, char *argv[])
             y.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x + Aic_R->transpose()*y2;
             //y += Aic_R->transpose()*y2;
      }
-     start = get_time();
+     start = get_usec_timestamp();
      for(int i = 0; i<400000; i++) {
             y.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x;
             //y += Aic_R->transpose()*y2;
      }
-     stop = get_time();
+     stop = get_usec_timestamp();
      std::cout << "transposed symmetric: "  <<  ((double)(stop - start))/400000 << std::endl;
 
 

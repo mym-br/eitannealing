@@ -61,6 +61,12 @@ set(eit_gui_SRCS
   src/gmsh/gmshgraphics.cpp
 )
 
+IF (WIN32)
+  set(eit_time_SRCS src/util/timestamp/win/timestamp.cpp)
+ELSE()
+    set(eit_time_SRCS src/util/timestamp/ux/timestamp.cpp)
+ENDIF()
+
 
 set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
 
@@ -73,6 +79,9 @@ set_property(TARGET eit_new_complex_engine PROPERTY CXX_STANDARD 17)
 add_library(eit_gui OBJECT ${eit_gui_SRCS})
 target_compile_options(eit_gui PRIVATE ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 set_property(TARGET eit_gui PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_library(eit_time OBJECT ${eit_time_SRCS})
+set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
 add_executable(eitmain src/main.cpp src/parameters/parametersparser.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
 target_link_libraries(eitmain  ${libs} ${ADDITIONAL_LIBRARIES})

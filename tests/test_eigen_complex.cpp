@@ -8,18 +8,9 @@
 #include "../src/observations_complex.h"
 #include "../src/intcoef.h"
 
-#include <sys/time.h>
-#include <sys/resource.h>
+#include "util/timestamp/timestamp.h"
 #include "solver_lb.h"
 #include <complex>
-
-unsigned long get_time()
-{
-    struct timeval t;
-    struct timezone tzp;
-    gettimeofday(&t, &tzp);
-    return t.tv_sec*1e6 + t.tv_usec;
-}
 
 struct __complex_wrapper_noconj : public std::complex<double> {
     using std::complex<double>::complex;
@@ -96,10 +87,10 @@ int main(int argc, char *argv[])
      
      for(int i = 0; i<100; i++)
         symmetric_complex_mult_and_assign(Aii, x, y);
-     start = get_time();
+     start = get_usec_timestamp();
      for(int i = 0; i<400000; i++)
             symmetric_complex_mult_and_assign(Aii, x, y);
-     stop = get_time();
+     stop = get_usec_timestamp();
      std::cout << "Eigen complex symmetric: "  <<  ((double)(stop - start))/400000 << std::endl;
      
      
@@ -107,12 +98,12 @@ int main(int argc, char *argv[])
         y_r.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x.real() - Aii_I->selfadjointView<Eigen::Lower>()*x.imag();
         y_i.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x.imag() + Aii_I->selfadjointView<Eigen::Lower>()*x.real();
      }
-     start = get_time();
+     start = get_usec_timestamp();
      for(int i = 0; i<400000; i++)  {
         y_r.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x.real() - Aii_I->selfadjointView<Eigen::Lower>()*x.imag();
         y_i.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x.imag() + Aii_I->selfadjointView<Eigen::Lower>()*x.real();
      }
-     stop = get_time();
+     stop = get_usec_timestamp();
      std::cout << "Split components symmetric: "  <<  ((double)(stop - start))/400000 << std::endl;
      
      

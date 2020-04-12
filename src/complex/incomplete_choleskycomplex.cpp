@@ -19,7 +19,7 @@ SparseIncompleteLLTComplex::SparseIncompleteLLTComplex(const matrixcomplex& matr
 /** Computes b = L^-T L^-1 b */
 bool SparseIncompleteLLTComplex::solveInPlace(Eigen::VectorXcd &b)  const
 {
-  const int size = m_matrix.rows();
+  const unsigned int size = (unsigned int)m_matrix.rows();
   assert(size==b.rows());
   m_matrix.triangularView<Eigen::Lower>().solveInPlace(b);
   m_matrix.triangularView<Eigen::Lower>().transpose().conjugate().solveInPlace(b);
@@ -29,7 +29,7 @@ bool SparseIncompleteLLTComplex::solveInPlace(Eigen::VectorXcd &b)  const
 
 bool SparseIncompleteLLTComplex::solveInPlace2(Eigen::VectorXcd &b) const
 {
-	const int size = m_matrix.rows();
+	const unsigned int size = (unsigned int)m_matrix.rows();
 	assert(size == b.rows());
 	CholMatrixTypeComplex m_matrixh = m_matrix.conjugate();
 	m_matrixh.triangularView<Eigen::Lower>().solveInPlace(b); // b <- w
@@ -43,7 +43,7 @@ bool SparseIncompleteLLTComplex::solveInPlace2(Eigen::VectorXcd &b) const
 /** Computes b = L^-T L^-1 b */
 bool SparseIncompleteLLTComplex::halfSolveInPlace(Eigen::VectorXcd &b)  const
 {
-  const int size = m_matrix.rows();
+  const unsigned int size = (unsigned int)m_matrix.rows();
   assert(size==b.rows());
   m_matrix.triangularView<Eigen::Lower>().solveInPlace(b);
 
@@ -53,7 +53,7 @@ bool SparseIncompleteLLTComplex::halfSolveInPlace(Eigen::VectorXcd &b)  const
 /** Computes b = L^-T L^-1 b */
 bool SparseIncompleteLLTComplex::halfSolveInPlaceT(Eigen::VectorXcd &b)  const
 {
-  const int size = m_matrix.rows();
+  const unsigned int size = (unsigned int)m_matrix.rows();
   assert(size==b.rows());
   m_matrix.triangularView<Eigen::Lower>().transpose().solveInPlace(b);
 
@@ -141,7 +141,7 @@ SparseIncompleteLLTComplex2::SparseIncompleteLLTComplex2(const CholMatrixTypeCom
 
 bool SparseIncompleteLLTComplex2::solveInPlace2(Eigen::VectorXcd &b) const
 {
-	const int size = m_matrix.rows();
+	const unsigned int size = (unsigned int)m_matrix.rows();
 	assert(size == b.rows());
 	CholMatrixTypeComplex m_matrixh = m_matrix.conjugate();
 	m_matrixh.triangularView<Eigen::Lower>().solveInPlace(b); // b <- w

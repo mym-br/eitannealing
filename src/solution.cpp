@@ -162,7 +162,7 @@ solution::solution(std::shared_ptr<problem> _input, observations<double> *_readi
 		stiffness(solution::getNewStiffness(sol,  _input)),
 		precond(new SparseIncompleteLLT(*stiffness)),
 		simulations(new CG_Solver *[_readings->getNObs()]),
-		fixedCoeffs(electrodesCoeffs.size()),
+		fixedCoeffs((unsigned long)electrodesCoeffs.size()),
 		solutionbase(_input, _readings),
 		intcoef(new intCoef(*_input))
 {

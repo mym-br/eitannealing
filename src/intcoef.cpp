@@ -25,7 +25,7 @@ intCoef::intCoef(problem &problem):
 			x[p.getNode2Coefficient(e.c)] += area / 3;
 		}
 	}
-	catch (const std::bad_cast& e) {
+	catch (const std::bad_cast&) {
 		// Cast failed for 3d case (temporary solution)
 		x.fill(0.0);
 	}

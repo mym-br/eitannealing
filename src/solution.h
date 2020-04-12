@@ -182,7 +182,7 @@ protected:
 	void initSimulations(const solution &base);
 	void initErrors();
 
-	int fixedCoeffs;
+	unsigned long fixedCoeffs;
 
 	double *getShufledSolution();
 	static double *getNewRandomSolution(std::shared_ptr<problem> input, std::vector<double> &electrodesCoeffs);

@@ -15,7 +15,7 @@
 
 class CG_Solver {
 	protected:
-		int it;
+		unsigned int it;
 		int lastRefresh;
 		bool refresh_at_next;
 		double rmod, rmod_1;
@@ -73,7 +73,7 @@ class CG_Solver {
 			this->refresh_at_next = true;
 		}
 
-		int getIteration() const {
+		unsigned int getIteration() const {
 			return this->it;
 		}
 

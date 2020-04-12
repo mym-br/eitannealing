@@ -8,17 +8,7 @@
 #include "../src/observations_complex.h"
 #include "../src/intcoef.h"
 
-#include <sys/time.h>
-#include <sys/resource.h>
 #include "solver_lb.h"
-unsigned long get_time()
-{
-    struct timeval t;
-    struct timezone tzp;
-    gettimeofday(&t, &tzp);
-    return t.tv_sec*1e6 + t.tv_usec;
-}
-
 
 int main(int argc, char *argv[])
  {

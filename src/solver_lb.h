@@ -52,7 +52,7 @@ template<class num_engine> class LB_Solver_A {
 			real alpha, beta;
 
             vector x0, x, w;
-            float fit;
+			real fit;
             void init(){
 			    JhatNorm2 = r.squaredNorm()+rc.squaredNorm();
 			    delta = sqrt(JhatNorm2);
@@ -275,7 +275,7 @@ template<class num_engine> class LB_Solver_EG_Estimate_A : public LB_Solver_A<nu
 	      //std::cout << "Alpha[1]:"<<AlphaVector[0]<<std::endl;
 	      this->dt = AlphaVector[0] - this->a;
 	      //std::cout << "dt[1]:"<<dt<<std::endl;
-	      for(int i=1;i<this->it;i++) {
+	      for(unsigned int i=1;i<this->it;i++) {
 	        this->dt = AlphaVector[i] - this->a - (BetaVector[i-1]*BetaVector[i-1])/this->dt;
 	        //std::cout << "dt[" << i+1 << "]:" << dt << std::endl;
 	      }
@@ -294,7 +294,7 @@ template<class num_engine> class LB_Solver_EG_Estimate_A : public LB_Solver_A<nu
 	      BetaVector.push_back(this->beta);
 	      U.reserve(2*n-1);
 	      U.insert(0,0) = this->phi;
-	      for(int i=1;i<n;i++) {
+	      for(unsigned int i=1;i<n;i++) {
 	        this->do_iteration();
 	        AlphaVector.push_back(this->alpha);
 	        BetaVector.push_back(this->beta);
@@ -318,7 +318,7 @@ template<class num_engine> class LB_Solver_EG_Estimate_A : public LB_Solver_A<nu
 	      //std::cout << "Alpha[1]:"<<AlphaVector[0]<<std::endl;
 	      this->dt = AlphaVector[0] - this->a;
 	      //std::cout << "dt[1]:"<<dt<<std::endl;
-	      for(int i=1;i<this->it;i++) {
+	      for(unsigned int i=1;i<this->it;i++) {
 	        this->dt = AlphaVector[i] - this->a - (BetaVector[i-1]*BetaVector[i-1])/this->dt;
 	        //std::cout << "dt[" << i+1 << "]:" << dt << std::endl;
 	      }

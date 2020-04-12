@@ -48,7 +48,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 	file.open(filename);
 
 	int n = electrodesCount; // TODO: read number of measurements from file
-	long valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
+	long valuesCount = (long)std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
 	nobs = valuesCount / electrodesCount;
 
 	file.clear();
@@ -113,7 +113,7 @@ inline void observations<std::complex<double>>::initObs(const char **filecurrent
 	file.open(filename);
 
 	int n = electrodesCount;
-	long valuesCount = std::count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n');
+	long valuesCount = (long)std::count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n');
 	nobs = valuesCount / n;
 
 	file.clear();

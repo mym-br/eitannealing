@@ -21,7 +21,7 @@ template <class scalar> class SparseIncompleteQR
         // FIXME: This map can be reused!
         std::vector<std::vector<std::pair<unsigned long, scalar > > > upperMap;
         MatricesStorageAdaptor(const basematrix &Aii_low, const basematrix &Aic):
-             ii(Aii_low), ic(Aic), square_size(Aii_low.cols()), upperMap(Aii_low.rows())  {}
+             ii(Aii_low), ic(Aic), square_size((unsigned long)Aii_low.cols()), upperMap(Aii_low.rows())  {}
         void iterateOverColumn(unsigned long j, std::function<void(unsigned long, scalar)> &&f) {
             // FIXME: This assumes that the columns will be iterated in order, so the current column has already
             //  an appropriate upper map
@@ -39,7 +39,7 @@ template <class scalar> class SparseIncompleteQR
                 f(it.index() + square_size, it.value());
             }
         }
-        unsigned long rows() const { return square_size+ic.rows(); }
+        unsigned long rows() const { return square_size+(unsigned long)ic.rows(); }
         unsigned long cols() const { return square_size; }
     };
 

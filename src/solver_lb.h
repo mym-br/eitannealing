@@ -358,14 +358,14 @@ struct eigen_double_engine {
 	}
 	
 	inline static void j_minus_a_x_phi(vector &dest_i, vector &dest_c, const matrix &ic, const symMatrix &cc, const vector &j, const vector &phi) {
-		dest_i = -ic.transpose()*phi;
+		dest_i.noalias() = -ic.transpose()*phi;
 		dest_c = j;
-		dest_c -= cc.selfadjointView<Eigen::Lower>()*phi;		
+		dest_c.noalias() -= cc.selfadjointView<Eigen::Lower>()*phi;		
 	}
 	
 	inline static void subtract_a_x(vector &dest_i, vector &dest_c, const symMatrix &ii,  const symMatrix &ic, const vector &x) {
-		dest_i -= ii.selfadjointView<Eigen::Lower>()*x;
-		dest_c -= ic*x;
+		dest_i.noalias() -= ii.selfadjointView<Eigen::Lower>()*x;
+		dest_c.noalias() -= ic*x;
 	}
 
 	inline static preconditioner *make_new_preconditioner(const symMatrix &A_ii, const matrix &A_ic) {

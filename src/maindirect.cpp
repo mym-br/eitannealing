@@ -13,12 +13,13 @@ int main(int argc, char *argv[])
 	//input->setGroundNode(params.ground);
 	input->initProblem(argv[1]);
 	observations<double> *readings = new observations<double>;
-	const char *curfile = argv[2];
-	readings->initObs(&curfile, NULL, input->getNodesCount(), input->getGenericElectrodesCount());
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
-
+	const char* curfile = argv[2];
+	int baseNode = argc > 3 ? std::atoi(argv[3]) : -1;
+	bool clockwisePositive = argc > 4 ? std::atoi(argv[4]) : true;
+	readings->initObs(&curfile, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), baseNode, input->getGroundNode() - input->getGenericElectrodesCount() + 1, input->getGroundNode(), clockwisePositive);
 
 	matrix *m1;
 	Eigen::VectorXd v(input->getNumCoefficients());

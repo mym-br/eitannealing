@@ -36,11 +36,11 @@ public:
 	_Scalar getCurrentVal(int i) { return currentVals[i]; }
 	int getCurrentsCount() { return (int)currentVals.size(); }
 
-	void initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode = -1, int baseIndex = -1) {};
+	void initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode = -1, int baseIndex = -1, int minIndex = -1, int maxIndex = -1, bool posDirection = true) {};
 };
 
 template<>
-inline void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode, int baseIndex) {
+inline void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode, int baseIndex, int minIndex, int maxIndex, bool posDirection) {
 	std::ifstream file;
 	std::ifstream filec;
 	bool readPotentials = (filename != NULL);
@@ -75,18 +75,31 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 		filec >> exit;
 		filec >> c;
 		entry--; exit--;	// zero-based
+		int entryIndex;
+		int exitIndex;
+		if (minIndex > 0 && maxIndex > 0) {
+			entryIndex = baseIndex + (posDirection ? entry : -entry);
+			exitIndex = baseIndex + (posDirection ? exit : -exit);
+			if (entryIndex > maxIndex) entryIndex = minIndex + (entryIndex - maxIndex); if (entryIndex < minIndex) entryIndex = maxIndex - (minIndex - entryIndex) + 1;
+			if (exitIndex > maxIndex) exitIndex = minIndex + (exitIndex - maxIndex); if (exitIndex < minIndex) exitIndex = maxIndex - (minIndex - exitIndex) + 1;
+		}
+		else {
+			entryIndex = baseIndex + entry;
+			exitIndex = baseIndex + exit;
+		}
+		if (groundNode < 0) groundNode = n;
 		currentVals[i] = c;
 		currents[i] = current;
 #if defined(ZEROELECSUM) || defined(BLOCKGND)
-		currents[i][baseIndex + entry] = 1; 
-		currents[i][baseIndex + exit] = -1;
+		currents[i][entryIndex] = 1;
+		currents[i][exitIndex] = -1;
 	#ifndef BLOCKGND
 		// Zero ground node current
 		if (groundNode > 0 && groundNode < nodesCount) currents[i][groundNode] = 0;
 	#endif
 #else
-		if (entry != n) currents[i][baseIndex + entry] = 1;
-		if (exit != n) currents[i][baseIndex + exit] = -1;
+		if (entryIndex != groundNode) currents[i][entryIndex] = 1;
+		if (exitIndex != groundNode) currents[i][exitIndex] = -1;
 #endif
 		// read tensions from file
 		if (!readPotentials) continue;
@@ -118,7 +131,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 };
 
 template<>
-inline void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode, int baseIndex) {
+inline void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode, int baseIndex, int minIndex, int maxIndex, bool posDirection) {
 	std::ifstream file;
 	std::ifstream filecin, filecout;
 

@@ -3,7 +3,7 @@
 #include "problem.h"
 #include "solution.h"
 
-EitDirectSolver::EitDirectSolver(const char* meshfilename, const  char* currentfilename) {
+EitDirectSolver::EitDirectSolver(const char* meshfilename, const  char* currentfilename, int firstElectrodeId, bool clockwisePositive) {
 	bool is2dProblem;
 	input = problem::createNewProblem(meshfilename, &is2dProblem);
 	input->initProblem(meshfilename, true);
@@ -11,7 +11,7 @@ EitDirectSolver::EitDirectSolver(const char* meshfilename, const  char* currentf
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
-	readings->initObs(&currentfilename, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), input->getGroundNode() - input->getGenericElectrodesCount() + 1);
+	readings->initObs(&meshfilename, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), firstElectrodeId, input->getGroundNode() - input->getGenericElectrodesCount() + 1, input->getGroundNode(), clockwisePositive);
 	m1 = NULL;
 }
 

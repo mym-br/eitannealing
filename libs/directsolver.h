@@ -8,7 +8,7 @@ class SparseIncompleteLLT;
 
 class EitDirectSolver {
 public:
-	EitDirectSolver(const char* meshfilename, const  char* currentfilename);
+	EitDirectSolver(const char* meshfilename, const  char* currentfilename, int firstElectrodeId, bool clockwisePositive);
 	int getCoeffCount();
 	int getCurrentPatternCount();
 	int getElectrodesCount();

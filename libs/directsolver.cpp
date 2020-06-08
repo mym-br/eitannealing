@@ -3,7 +3,7 @@
 #include "problem.h"
 #include "solution.h"
 
-EitDirectSolver::EitDirectSolver(const char* meshfilename, const  char* currentfilename, int firstElectrodeId, bool clockwisePositive) {
+EitDirectSolver::EitDirectSolver(const char* meshfilename, const  char* currentfilename) {
 	bool is2dProblem;
 	input = problem::createNewProblem(meshfilename, &is2dProblem);
 	input->initProblem(meshfilename, true);
@@ -11,7 +11,7 @@ EitDirectSolver::EitDirectSolver(const char* meshfilename, const  char* currentf
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
-	readings->initObs(&meshfilename, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), firstElectrodeId, input->getGroundNode() - input->getGenericElectrodesCount() + 1, input->getGroundNode(), clockwisePositive);
+	readings->initObs(&currentfilename, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), input->getGroundNode() - input->getGenericElectrodesCount() + 1);
 	m1 = NULL;
 }
 
@@ -30,7 +30,7 @@ void EitDirectSolver::setconds(double* cond, int n) {
 	if (n != input->getNumCoefficients()) { std::cout << "Wrong conductivities vector size " << n << " (should be " << input->getNumCoefficients() << ")" << std::endl; return; }
 	Eigen::VectorXd v(input->getNumCoefficients());
 	for (int i = 0; i < v.rows(); i++) v[input->getNode2Coefficient(i)] = cond[i];
-	if(m1) delete m1;
+	if (m1) delete m1;
 	input->assembleProblemMatrix(&v[0], &m1);
 	input->postAssembleProblemMatrix(&m1);
 	precond = std::shared_ptr< SparseIncompleteLLT>(new SparseIncompleteLLT(*m1));
@@ -43,7 +43,7 @@ double* EitDirectSolver::solve(int patterno) {
 	for (int i = 0; i < 100; i++) solver.do_iteration();
 	x = solver.getX();
 
-	double *potentials = new double[input->getGenericElectrodesCount()];
+	double* potentials = new double[input->getGenericElectrodesCount()];
 	int firstElectrodeIdx = input->getGroundNode() - input->getGenericElectrodesCount() + 1;
 	for (int i = 0; i < input->getGenericElectrodesCount(); i++) {
 		if (firstElectrodeIdx + i == input->getGroundNode()) potentials[i] = 0;

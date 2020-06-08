@@ -6,22 +6,21 @@
 #include "observations.h"
 #include <iostream>
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 	bool is2dProblem;
 	std::shared_ptr<problem> input = problem::createNewProblem(argv[1], &is2dProblem);
 	//input->setGroundNode(params.ground);
 	input->initProblem(argv[1]);
-	observations<double> *readings = new observations<double>;
+	observations<double>* readings = new observations<double>;
+	const char* curfile = argv[2];
+	readings->initObs(&curfile, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), input->getGroundNode() - input->getGenericElectrodesCount() + 1);
 	input->buildNodeCoefficients();
 	input->prepareSkeletonMatrix();
 	input->createCoef2KMatrix();
-	const char* curfile = argv[2];
-	int baseNode = argc > 3 ? std::atoi(argv[3]) : -1;
-	bool clockwisePositive = argc > 4 ? std::atoi(argv[4]) : true;
-	readings->initObs(&curfile, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), baseNode, input->getGroundNode() - input->getGenericElectrodesCount() + 1, input->getGroundNode(), clockwisePositive);
 
-	matrix *m1;
+
+	matrix* m1;
 	Eigen::VectorXd v(input->getNumCoefficients());
 	for (int i = 0; i < v.rows(); i++) v[i] = 0.3815;
 	input->assembleProblemMatrix(&v[0], &m1);

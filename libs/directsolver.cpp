@@ -26,6 +26,11 @@ int EitDirectSolver::getCurrentPatternCount() {
 int EitDirectSolver::getElectrodesCount() {
 	return input->getGenericElectrodesCount();
 }
+
+int EitDirectSolver::getGroundNode() {
+	return input->getGroundNode();
+}
+
 void EitDirectSolver::setconds(double* cond, int n) {
 	if (n != input->getNumCoefficients()) { std::cout << "Wrong conductivities vector size " << n << " (should be " << input->getNumCoefficients() << ")" << std::endl; return; }
 	Eigen::VectorXd v(input->getNumCoefficients());

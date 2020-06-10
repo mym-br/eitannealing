@@ -12,6 +12,7 @@ public:
 	int getCoeffCount();
 	int getCurrentPatternCount();
 	int getElectrodesCount();
+	int getGroundNode();
 	void setconds(double* cond, int n);
 	double* solve(int patterno);
 

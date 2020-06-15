@@ -3,7 +3,12 @@
 #include "problem.h"
 #include "solution.h"
 
-EitDirectSolver::EitDirectSolver(const char* meshfilename, const  char* currentfilename) {
+EitDirectSolver::EitDirectSolver(const char* meshfilename, const  char* currentfilename) : 
+	m_meshfilename(meshfilename), m_currentfilename(currentfilename) {
+	initialize(meshfilename, currentfilename);
+}
+
+void EitDirectSolver::initialize(const char* meshfilename, const  char* currentfilename) {
 	bool is2dProblem;
 	input = problem::createNewProblem(meshfilename, &is2dProblem);
 	input->initProblem(meshfilename, true);
@@ -13,6 +18,10 @@ EitDirectSolver::EitDirectSolver(const char* meshfilename, const  char* currentf
 	input->createCoef2KMatrix();
 	readings->initObs(&currentfilename, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), input->getGroundNode() - input->getGenericElectrodesCount() + 1);
 	m1 = NULL;
+}
+
+EitDirectSolver::EitDirectSolver(const EitDirectSolver& other) {
+	initialize(other.m_meshfilename, other.m_currentfilename);
 }
 
 int EitDirectSolver::getCoeffCount() {

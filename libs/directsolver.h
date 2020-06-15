@@ -9,6 +9,7 @@ class SparseIncompleteLLT;
 class EitDirectSolver {
 public:
 	EitDirectSolver(const char* meshfilename, const  char* currentfilename);
+	EitDirectSolver(const EitDirectSolver &other);
 	int getCoeffCount();
 	int getCurrentPatternCount();
 	int getElectrodesCount();
@@ -17,10 +18,13 @@ public:
 	double* solve(int patterno);
 
 private:
+	void initialize(const char* meshfilename, const  char* currentfilename);
+
 	std::shared_ptr<problem> input;
 	std::unique_ptr<observations<double>> readings;
 	matrix* m1;
 	std::shared_ptr<SparseIncompleteLLT> precond;
+	const char* m_meshfilename, * m_currentfilename;
 };
 
 #endif // DIRECTSOLVER_H

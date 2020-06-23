@@ -21,7 +21,13 @@ void EitDirectSolver::initialize(const char* meshfilename, const  char* currentf
 }
 
 EitDirectSolver::EitDirectSolver(const EitDirectSolver& other) {
+	m_meshfilename = other.m_meshfilename;
+	m_currentfilename = other.m_currentfilename;
 	initialize(other.m_meshfilename, other.m_currentfilename);
+}
+
+void EitDirectSolver::loadMesh(const char* meshfilename) {
+	initialize(meshfilename, m_currentfilename);
 }
 
 int EitDirectSolver::getCoeffCount() {

@@ -10,6 +10,7 @@ class EitDirectSolver {
 public:
 	EitDirectSolver(const char* meshfilename, const  char* currentfilename);
 	EitDirectSolver(const EitDirectSolver &other);
+	void loadMesh(const char* meshfilename);
 	int getCoeffCount();
 	int getCurrentPatternCount();
 	int getElectrodesCount();

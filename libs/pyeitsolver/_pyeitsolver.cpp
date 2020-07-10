@@ -75,7 +75,7 @@ std::vector<double> solveForwardProblem(std::vector<double> conds) {
     return potentials;
 }
 
-PYBIND11_MODULE(pyeitsolver, m) {
+PYBIND11_MODULE(_pyeitsolver, m) {
     m.doc() = "forward problem solver functions for eit problem"; // optional module docstring
 
     m.def("init", &init, "Initializes the solver with current and mesh data");

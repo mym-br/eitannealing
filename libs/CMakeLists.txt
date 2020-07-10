@@ -3,7 +3,7 @@ find_package(pybind11)
 if(pybind11_FOUND)
 	pybind11_add_module(_pyeitsolver pyeitsolver/_pyeitsolver.cpp $<TARGET_OBJECTS:eit_core>)
     install(FILES pyeitsolver/__init__.py pyeitsolver/pyeitsolver.py DESTINATION EitAnnealing/pyeitsolver)
-    install(FILES pyeitsolver/setup.py DESTINATION EitAnnealing)
+    install(FILES pyeitsolver/setup.py pyeitsolver/MANIFEST.in DESTINATION EitAnnealing)
     install(TARGETS _pyeitsolver DESTINATION EitAnnealing/pyeitsolver)
 endif()
 

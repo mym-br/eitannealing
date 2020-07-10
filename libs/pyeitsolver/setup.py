@@ -7,5 +7,6 @@ setup(
     author='Andre Sato',
     author_email='andresato@hotmail.com',
     packages=['pyeitsolver'],
+    include_package_data=True,
     install_requires=[]
 )

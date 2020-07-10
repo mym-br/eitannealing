@@ -1,1 +1,1 @@
-from ._pyeitsolver import *
+from .pyeitsolver import *

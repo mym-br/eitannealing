@@ -89,8 +89,8 @@ bool SparseIncompleteLLT::halfSolveInPlaceT(Eigen::VectorXd &b)  const
  * Here's the rationale:
  *  If every non-diagonal element of the stiffness matrix
  *  is negative, then it follows that every off-diagonal
- *  element of L is negative (and its diagonal is positive). 
- *  Then every element of L^(-1) is positive and it's
+ *  element of L is negative (and its diagonal is positive).
+ *  Then every element of L^(-1) is positive and its
  *  L infinity norm is the max w_i where L w = ones.
  * The problem is, for some problematic meshes (with obtuse
  *  angles) there are a few non-negative off-diagonal elements.

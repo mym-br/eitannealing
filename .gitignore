@@ -10,3 +10,4 @@
 /CMakeSettings.json
 /.settings/
 /.clangd
+/.cache

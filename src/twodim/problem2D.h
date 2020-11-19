@@ -44,8 +44,8 @@ protected:
 	};
 
 private:
-	void fillNodes();
-	void fillElementsGenericElectrode();
+	void fillNodes(int meshVer);
+	void fillElementsGenericElectrode(int meshVer);
 	void addToGenericElectrode(int n1, int n2, int n3);
 	void preparePerimeter();
 

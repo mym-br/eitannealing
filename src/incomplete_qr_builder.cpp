@@ -21,7 +21,7 @@ template<> double SparseIncompleteQRBuilder<typename std::complex<double> >::sqn
 template<> std::complex<double> SparseIncompleteQRBuilder<std::complex<double> >::inner(const std::complex<double> &x, const std::complex<double> &y) {
   return x*std::conj(y);
 }
-
+// FIXME: Can we cache results of l2 squared norm?
 template<> bool SparseIncompleteQRBuilder<std::complex<double> >::cmp_larger_abs_coef(
   const SparseIncompleteQRBuilder<std::complex<double> >::i_c &a,
   const SparseIncompleteQRBuilder<std::complex<double> >::i_c &b) {

@@ -5,6 +5,9 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
 find_package(Threads REQUIRED)
 find_package(CUDA 10 REQUIRED)
+if(${CUDA_VERSION_MAJOR} GREATER 10) # FIXME: Cuda support is rotting fast
+  message(SEND_ERROR "Cuda version greater than 10 is not supported")
+endif()
 find_package(GMSH REQUIRED)
 
 set(CMAKE_AUTOMOC ON)

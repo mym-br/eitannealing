@@ -1,6 +1,8 @@
 #ifndef CIRCULARBUFF_H_
 #define CIRCULARBUFF_H_
 
+#include <cstddef>
+
 template<class base, size_t len> class circularbuff
 {
 	base _val[len];

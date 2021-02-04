@@ -4,7 +4,7 @@ void problem3D::initProblem(const char *meshfilename, bool ignoreouterring) {
 	file.open(meshfilename);
 
 	fillNodes();
-	fillElementsGenericElectrode();
+	fillElementsGenericElectrode(ignoreouterring);
 	this->electrodeh = 0.0004f;
 	nodeCount = nodes.size();
 
@@ -81,7 +81,7 @@ void problem3D::addToGenericElectrode(triangularElement base, int eletrodeTag, s
 	// Search for base node!
 }
 
-void problem3D::fillElementsGenericElectrode() {
+void problem3D::fillElementsGenericElectrode(bool ignoreouterring) {
 	std::set<int> outerRingNodes;
 	std::set<int> innerNodes;
 	std::set<int> baseElectrodeNodes;
@@ -141,9 +141,10 @@ void problem3D::fillElementsGenericElectrode() {
 	// Outter ring coefficient
 	for (auto e : outerRingNodes) {
 		node2coefficient[e] = condIndex;
+		if (ignoreouterring) condIndex++;
 	}
 
-	if (!outerRingNodes.empty()) condIndex++;
+	if (!outerRingNodes.empty() && !ignoreouterring) condIndex++;
 
 	// Inner coefficients
 	for (auto i : innerNodes) {

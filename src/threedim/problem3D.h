@@ -67,7 +67,7 @@ class problem3D : public problem {
 private:
 	void fillNodes();
 	gmeshElement getNextElement();
-	void fillElementsGenericElectrode();
+	void fillElementsGenericElectrode(bool ignoreouterring);
 	void addToGenericElectrode(triangularElement base, int eletrodeTag, std::set<int> &baseNodes);
 	void preparePerimeter();
 

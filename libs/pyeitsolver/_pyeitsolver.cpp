@@ -103,11 +103,12 @@ std::vector<double> solveFullForwardProblem(std::vector<double> conds) {
 
         // Save results to appropriate index in the output vector
         for (int i = 0; i < input->getNumCoefficients(); i++) {
-            if (i == input->getGroundNode()) fullPotentials[patterno*input->getNumCoefficients() +i] = 0;  
-            else fullPotentials[patterno*input->getNumCoefficients() +i] = x[i] * readings->getCurrentVal(patterno);
+            if (i < input->getGroundNode()) fullPotentials[patterno*input->getNumCoefficients() +i] = x[i-] * readings->getCurrentVal(patterno);  
+            else if (i == input->getGroundNode()) fullPotentials[patterno*input->getNumCoefficients() +i] = 0;  
+            else fullPotentials[patterno*input->getNumCoefficients() +i] = x[i-1] * readings->getCurrentVal(patterno);
         }
     }
-
+    
     // Return potentials
     delete m1;
     return fullPotentials;

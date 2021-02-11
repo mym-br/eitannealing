@@ -10,3 +10,8 @@ def init(meshFilename, currentsFilename):
 
 def forwardSolve(conductivities):
     return _pyeitsolver.solveForwardProblem(conductivities)
+
+def fullForwardSolve(conductivities):
+    return _pyeitsolver.solveFullForwardProblem(conductivities)
+
+

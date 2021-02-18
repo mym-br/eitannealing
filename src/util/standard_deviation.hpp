@@ -25,4 +25,3 @@ template<class InputIterator> typename std::iterator_traits<InputIterator>::valu
 }
 
 #endif  // _STANDARD_DEVIATION_HPP
-

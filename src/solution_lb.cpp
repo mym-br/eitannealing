@@ -214,16 +214,16 @@ void solution_lb::initSimulations()
 	this->totalit = 0;
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[0].tail(32)),
-                        Eigen::VectorXd(o.getTensions()[0].tail(31)), *precond,  100, 0.0001);
+                        Aii, Aic, Acc, o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
+                        Eigen::VectorXd(o.getTensions()[0]), *precond,  100, (float)0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
 	for(i=1;i<o.getNObs();i++)
 	{
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[i].tail(31)),
-			Eigen::VectorXd(o.getTensions()[i].tail(31)), *precond, a);
+                        Aii, Aic, Acc, o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
+			Eigen::VectorXd(o.getTensions()[i]), *precond, a);
 		simulations[i]->do_iteration();
 		this->totalit += simulations[i]->getIteration();
 	}
@@ -237,18 +237,18 @@ void solution_lb::initSimulations(const solution_lb &base)
         const LB_Solver_EG_Estimate *baseEVSolver = dynamic_cast<const LB_Solver_EG_Estimate *>(base.simulations[0]);
         // 1st solution estimates also least eigenvalue
         LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[0].tail(31)),
-                        Eigen::VectorXd(o.getTensions()[0].tail(31)), *precond,
+                        Aii, Aic, Acc, o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
+                        Eigen::VectorXd(o.getTensions()[0]), *precond,
                         baseEVSolver->getX(),
-			baseEVSolver->getEvector(), 100, 0.0001);
+			baseEVSolver->getEvector(), 100, (float)0.0001);
         double a = solver->getLeastEvEst();
         simulations[0] = solver;
 	this->totalit += solver->getIteration();
         for(i=1;i<o.getNObs();i++)
         {
                 simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, Eigen::VectorXd(o.getCurrents()[i].tail(31)),
-                        Eigen::VectorXd(o.getTensions()[i].tail(31)), *precond, a,
+                        Aii, Aic, Acc, o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
+                        Eigen::VectorXd(o.getTensions()[i]), *precond, a,
 					       base.simulations[i]->getX());
 
                 simulations[i]->do_iteration();
@@ -293,7 +293,7 @@ double *solution_lb::copySolution(const double *sol, unsigned int n)
 {
 	double *res = new double[n];
 
-	for(int i=0;i<n;i++)
+	for(unsigned int i=0;i<n;i++)
 		res[i] = sol[i];
 
 	return res;
@@ -325,13 +325,13 @@ double *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) 
 		int ncoef = genint(p->getNumCoefficients()-(sizeof(base)/sizeof(float)))+(sizeof(base)/sizeof(float));
 #endif	// float minc, maxc;
 		float minc, maxc;
-                  maxc = maxcond;
-                  minc = mincond;
+                  maxc = (float)maxcond;
+                  minc = (float)mincond;
 
 		if(sh.shuffleConsts[ncoef]==0) {
 			res[ncoef] = minc+genreal()*(maxc-minc);
 		} else {
-			float val;
+			double val;
 			do {
 				val = res[ncoef];
 				double rnd = 0;
@@ -362,10 +362,10 @@ double *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) 
 			node1 = node2;;
 			node2 = aux;
 		}
-		float v1 = res[node1], v2 = res[node2];
-		float a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
+		double v1 = res[node1], v2 = res[node2];
+		double a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
 
-		float delta;
+		double delta;
 		do {
 			if(sh.swapshuffleconsts[ncoef]==0) {
 				delta = a*(genreal()*2 - 1);
@@ -413,7 +413,7 @@ void solution_lb::saturate()
 void solution_lb::ensureMinIt(unsigned int it)
 {
       static Eigen::VectorXd aux(p->getGenericElectrodesCount()-1);
-      for(int i = 0; i<o.getNObs();i++) {
+      for(unsigned int i = 0; i<o.getNObs();i++) {
             LB_Solver *sim = this->simulations[i];
             while(sim->getIteration()<it) {
                 simulations[i]->do_iteration();

@@ -15,7 +15,7 @@ set(eit_core_SRCS
   src/intcoef.cpp
   src/incomplete_cholesky.cpp
   src/incomplete_ldlt.cpp
-  #src/eigen3test.cpp
+  src/incomplete_qr_builder.cpp
   src/problem.cpp
   src/solution.cpp
   src/solutionbase.cpp
@@ -31,6 +31,11 @@ set(eit_core_SRCS
   src/complex/solvercomplex.cpp
   src/complex/solutioncomplex.cpp
   src/complex/gradientnormregularisationcomplex.cpp
+)
+
+set(eit_new_complex_engine_SRCS
+  src/solver_lb_complex.cpp
+  src/solution_lb_complex.cpp
 )
 
 set(eit_cuda_SRCS
@@ -56,24 +61,31 @@ set(eit_gui_SRCS
   src/gmsh/gmshgraphics.cpp
 )
 
-add_definitions(${Qt5Widgets_DEFINITIONS})
+
 set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
 
 add_library(eit_core OBJECT ${eit_core_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
-add_executable(eitmain src/main.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
+add_library(eit_new_complex_engine OBJECT ${eit_new_complex_engine_SRCS})
+set_property(TARGET eit_new_complex_engine PROPERTY CXX_STANDARD 17)
+
+add_library(eit_gui OBJECT ${eit_gui_SRCS})
+target_compile_options(eit_gui PRIVATE ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
+set_property(TARGET eit_gui PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_executable(eitmain src/main.cpp src/parameters/parametersparser.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
 target_link_libraries(eitmain  ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitmain PROPERTY CXX_STANDARD_REQUIRED ON)
 
-add_executable(eitwosteps src/maintwosteps.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
+add_executable(eitwosteps src/maintwosteps.cpp src/parameters/parametersparser.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
 target_link_libraries(eitwosteps  ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitwosteps PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitwosteps PROPERTY CXX_STANDARD_REQUIRED ON)
 
-add_executable(eitlb src/mainlb.cpp src/parameters/parametersparser.cpp ${eit_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
-target_link_libraries(eitlb  ${libs} ${ADDITIONAL_LIBRARIES})
+add_executable(eitlb src/mainlb.cpp src/parameters/parametersparser.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine>)
+target_link_libraries(eitlb ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitlb PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitlb PROPERTY CXX_STANDARD_REQUIRED ON)
 
@@ -82,7 +94,7 @@ target_link_libraries(eitdirect  ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitdirect PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitdirect PROPERTY CXX_STANDARD_REQUIRED ON)
 
-cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} ${eit_gui_SRCS} $<TARGET_OBJECTS:eit_core>)
+cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
 target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)

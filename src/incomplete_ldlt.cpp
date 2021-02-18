@@ -48,7 +48,7 @@ SparseIncompleteLDLT::SparseIncompleteLDLT(const matrix& matrix):
 /** Computes b = L^-T L^-1 b */
 bool SparseIncompleteLDLT::solveInPlace(Eigen::VectorXd &b)  const
 {
-  const int size = m_matrix.rows();
+  const matrix::Index size = m_matrix.rows();
   assert(size==b.rows());
   m_matrix.triangularView<Eigen::Lower|Eigen::UnitDiag>().solveInPlace(b);
   // Array in Eigen3 means coefficient-wise multiplication

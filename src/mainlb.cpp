@@ -24,6 +24,7 @@
 //#include "nodecoefficients.h"
 #include "solutioncomplex.h"
 #include "solution_lb.h"
+#include "solution_lb_complex.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
@@ -60,57 +61,6 @@ float kt;
 void workProc()
 {
 
-	/*float *sol = new float[65];
-	int i;
-	sol[0] = 1.0;
-	for(i=1;i<65;i++) {
-	sol[i] = 2.0;
-	}
-
-	sol[28] = 1.0;
-	sol[29] = 1.0;
-	sol[36] = 1.0;
-	sol[37] = 1.1;
-
-	solution newsol(sol);
-
-	for(i=0;i<numNodes*31;i++) {
-	newsol.improve();
-	std::cout << i << " - " << newsol.getDEstimate() << std::endl;
-	}*/
-
-	/*
-	float *sol = new float[65];
-	int i;
-	sol[0] = 1.0;
-	for(i=1;i<65;i++) {
-	sol[i] = 1.0;
-	}
-
-	obs::initObsProblem();
-	matrix *big = obs::buildObsProblemMatrix(sol);
-
-	SparseIncompleteLLT pbig(*big);
-	matrix *small;
-	assembleProblemMatrix(sol, &small);
-	SparseIncompleteLLT psmall(*small);
-
-	Eigen::VectorXd currentBig(obs::numNodes-1);
-	Eigen::VectorXd currentSmall(numNodes-1);
-
-	currentBig.fill(0);
-	currentSmall.fill(0);
-
-	/*
-	for(i=0;i<7;i++) {
-	currentBig[i] = -1;
-	currentSmall[i] = -1;
-	}
-
-	for(i=0;i<8;i++) {
-	currentBig[i+15] = 1;
-	currentSmall[i+15] = 1;
-	}*/
 
 
 
@@ -118,51 +68,23 @@ void workProc()
 	// Simulated annealing
 	double *solre = new double[input->getNumCoefficients()];
 	double *solim = new double[input->getNumCoefficients()];
-	std::unique_ptr<solutionbase<std::complex<double>>> currentComplex, nextComplex;
+	std::unique_ptr<solution_lb_complex> currentComplex, nextComplex;
 	std::unique_ptr<solution_lb> currentScalar, nextScalar;
 
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
 	std::unique_ptr<shuffler> sh;
+
+	shuffleData sdata_i;
+	std::unique_ptr<shuffler> sh_i;
+	bool shuffleR = true;
 	//sh = isComplexProblem ? std::unique_ptr<shuffler>(new shuffler(input, readingsComplex)) : new std::unique_ptr<shuffler>(shuffler(input, readingsScalar));
 	if (isComplexProblem) {
-		sh.reset(new shuffler(input, readingsComplex));
+		sh.reset(new shuffler(input, readingsScalar));
+		sh_i.reset(new shuffler(input, readingsScalar));
 		std::vector<std::complex<double>> electrodesCoeffs;
-		electrodesCoeffs.push_back(std::complex<double>(8063.9, 5.82505e-008));
-		electrodesCoeffs.push_back(std::complex<double>(7684.01, 2.64247e-008));
-		electrodesCoeffs.push_back(std::complex<double>(6543.7, 7.99271e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9286.28, 2.3217e-008));
-		electrodesCoeffs.push_back(std::complex<double>(4122.22, 6.75443e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9368.93, 4.48715e-008));
-		electrodesCoeffs.push_back(std::complex<double>(8894.94, 5.52865e-008));
-		electrodesCoeffs.push_back(std::complex<double>(1448.95, 7.93369e-008));
-		electrodesCoeffs.push_back(std::complex<double>(7445.41, 2.7454e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9393.67, 4.66246e-009));
-		electrodesCoeffs.push_back(std::complex<double>(9007.99, 4.6255e-008));
-		electrodesCoeffs.push_back(std::complex<double>(7695.65, 5.22615e-008));
-		electrodesCoeffs.push_back(std::complex<double>(8644.59, 3.46799e-008));
-		electrodesCoeffs.push_back(std::complex<double>(8428.48, 8.74252e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9367.94, 1.45588e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9303.94, 3.81534e-008));
-		electrodesCoeffs.push_back(std::complex<double>(7815.82, 9.14307e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9832.13, 7.96253e-008));
-		electrodesCoeffs.push_back(std::complex<double>(5466.56, 9.52926e-008));
-		electrodesCoeffs.push_back(std::complex<double>(8004.29, 9.38392e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9994.72, 5.12151e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9164.13, 7.21611e-009));
-		electrodesCoeffs.push_back(std::complex<double>(8979.89, 5.32692e-009));
-		electrodesCoeffs.push_back(std::complex<double>(7348.07, 9.7583e-008));
-		electrodesCoeffs.push_back(std::complex<double>(8796.92, 4.86889e-008));
-		electrodesCoeffs.push_back(std::complex<double>(8767.28, 7.96476e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9015.4, 4.61737e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9242.83, 8.51366e-008));
-		electrodesCoeffs.push_back(std::complex<double>(7116.48, 7.5862e-008));
-		electrodesCoeffs.push_back(std::complex<double>(1114.67, 7.72724e-008));
-		electrodesCoeffs.push_back(std::complex<double>(7003.08, 4.15017e-008));
-		electrodesCoeffs.push_back(std::complex<double>(9617.3, 5.9162e-008));
-		if (input->getCalibrationMode()) currentComplex.reset(new solutioncomplexcalibration(input, readingsComplex, electrodesCoeffs));
-		else currentComplex.reset(new solutioncomplex(input, readingsComplex, electrodesCoeffs));
+		currentComplex.reset(new solution_lb_complex(input, *readingsComplex));
 	}
 	else {
 		std::vector<double> electrodesCoeffs;
@@ -189,7 +111,7 @@ void workProc()
 		iterations = 0;
 		while (totalit<15000 && acceptit < 3000) {
 
-			isComplexProblem ? nextComplex.reset(currentComplex->shuffle(&sdata, *sh)) : nextScalar.reset(currentScalar->shuffle(&sdata, *sh));
+			isComplexProblem ? nextComplex.reset(currentComplex->shuffle(&sdata, *sh, &sdata_i, *sh_i, &shuffleR)) : nextScalar.reset(currentScalar->shuffle(&sdata, *sh));
 			//next.reset(current->shuffle(&sdata, sh));
 			bool decision;
 			decision = isComplexProblem ? currentComplex->compareWith(*nextComplex, kt, 1 - param) : currentScalar->compareWith(*nextScalar, kt, 1 - param);
@@ -197,14 +119,16 @@ void workProc()
 			if (decision) {
 				iterations += isComplexProblem ? currentComplex->getTotalIt() : currentScalar->getTotalIt();
 				solutions++;
-				sh->addShufflerFeedback(sdata, true);
+				if(shuffleR) sh->addShufflerFeedback(sdata, true);
+				else sh_i->addShufflerFeedback(sdata_i, true);
 				if (isComplexProblem) currentComplex = std::move(nextComplex); else currentScalar = std::move(nextScalar);
 				acceptit++;
 			}
 			else {
 				iterations += isComplexProblem ? nextComplex->getTotalIt() : nextScalar->getTotalIt();
 				solutions++;
-				sh->addShufflerFeedback(sdata, false);
+				if(shuffleR) sh->addShufflerFeedback(sdata, false);
+				else sh_i->addShufflerFeedback(sdata_i, false);
 			}
 			if (isComplexProblem) {
 				e += currentComplex->getDEstimate();
@@ -213,7 +137,7 @@ void workProc()
 			}
 			else {
 				e += currentScalar->getDEstimate();
-				r += currentScalar->getRegularisationValue();				
+				r += currentScalar->getRegularisationValue();
 				sqe += currentScalar->getDEstimate()*currentScalar->getDEstimate();
 			}
 
@@ -224,8 +148,8 @@ void workProc()
 				double w = 2 * M_PI * input->getCurrentFreq();
 				if (isComplexProblem) {
 					for (int kk = 0; kk < input->getNumCoefficients(); kk++) {
-						solre[kk] = currentComplex->getSolution()[kk].real();
-						solim[kk] = currentComplex->getSolution()[kk].imag() / w;
+						solre[kk] = currentComplex->getSolution_R()[kk];
+						solim[kk] = currentComplex->getSolution_I()[kk] / w;
 					}
 					viewre->setCurrentSolution(solre);
 					viewim->setCurrentSolution(solim);
@@ -410,7 +334,7 @@ int main(int argc, char *argv[])
 	QApplication app(argc, argv);
 	QApplication::setApplicationName("EIT Annealing Test");
 	QApplication::setApplicationVersion("0.1");
-	 
+
 
 	// --> Parse command line arguments
 	QCommandLineParser parser;

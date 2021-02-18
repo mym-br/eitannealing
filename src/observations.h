@@ -29,12 +29,12 @@ public:
 		delete[] tensions;
 		delete[] currents;
 	};
-	int getNObs() { return nobs; }
-	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getTensions() { return tensions; }
-	Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getCurrents() { return currents; }
-	const char* getMeshFilename() { return mesh_file.c_str(); }
-	_Scalar getCurrentVal(int i) { return currentVals[i]; }
-	int getCurrentsCount() { return (int)currentVals.size(); }
+	int getNObs() const { return nobs; }
+	const Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getTensions() const { return tensions; }
+	const Eigen::Matrix<_Scalar, Eigen::Dynamic, 1> *getCurrents() const { return currents; }
+	const char* getMeshFilename() const { return mesh_file.c_str(); }
+	_Scalar getCurrentVal(int i) const { return currentVals[i]; }
+	int getCurrentsCount() const { return (int)currentVals.size(); }
 
 	void initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode = -1) {};
 };
@@ -47,12 +47,8 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 	filec.open(*filecurrents);
 	file.open(filename);
 
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
 	int n = electrodesCount; // TODO: read number of measurements from file
-#else
-	int n = electrodesCount - 1; // TODO: read number of measurements from file
-#endif
-	int valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
+	long valuesCount = std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
 	nobs = valuesCount / electrodesCount;
 
 	file.clear();
@@ -60,11 +56,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 	tensions = new vectorx[nobs];
 	currents = new vectorx[nobs];
 	currentVals = vectorx(nobs);
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
 	vectorx current(nodesCount);
-#else
-	vectorx current(nodesCount-1);
-#endif
 	current.fill(0);
 	int baseIndex = (int)current.size() - n;
 	for (int i = 0; i<nobs; i++) {
@@ -76,17 +68,12 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 		entry--; exit--;	// zero-based
 		currentVals[i] = c;
 		currents[i] = current;
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
-		currents[i][baseIndex + entry] = 1; 
+		currents[i][baseIndex + entry] = 1;
 		currents[i][baseIndex + exit] = -1;
-	#ifndef BLOCKGND
+	#ifdef ZEROELECSUM
 		// Zero ground node current
 		if (groundNode > 0 && groundNode < nodesCount) currents[i][groundNode] = 0;
 	#endif
-#else
-		if (entry != n) currents[i][baseIndex + entry] = 1;
-		if (exit != n) currents[i][baseIndex + exit] = -1;
-#endif
 		// read tensions from file
 		tensions[i].resize(n);
 		Scalar val, avg;
@@ -104,10 +91,11 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 		}
 #else
 		// rebase tensions, as our last electrode is always the ground
-		file >> val;
-		for (int j = 0; j < n; j++) {
-			tensions[i][j] -= val / c;
+		val = tensions[i][n-1];
+		for (int j = 0; j < n-1; j++) {
+			tensions[i][j] -= val;
 		}
+		tensions[i][n-1] = 0.0f;
 #endif
 	}
 
@@ -125,7 +113,7 @@ inline void observations<std::complex<double>>::initObs(const char **filecurrent
 	file.open(filename);
 
 	int n = electrodesCount;
-	int valuesCount = std::count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n');
+	long valuesCount = std::count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n');
 	nobs = valuesCount / n;
 
 	file.clear();

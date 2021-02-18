@@ -27,18 +27,14 @@ void solution::improve()
 {
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
-	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
-#else
-	static Eigen::VectorXd aux(input->getGenericElectrodesCount() - 1);
-#endif
 
+	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
 	// Do another iteration on the critical solver
 	simulations[critical]->do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
 
-	aux = simulations[critical]->getX().tail(aux.size());
+	aux << simulations[critical]->getX().tail(input->getGenericElectrodesCount()-1), 0.0;
 #ifdef ZEROELECSUM
 	// Rebase tension for zero sum
 	zeroSumVector(aux);
@@ -196,7 +192,7 @@ void solution::initSimulations(const solution &base)
 	for(i=0;i<readings->getNObs();i++)
 	{
 		// Reuse previous solutions as initial values
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings), base.simulations[i]->getX(), *precond);
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings).head(input->getNodesCount()-1), base.simulations[i]->getX(), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -224,7 +220,8 @@ void solution::initSimulations()
 	this->totalit = 0;
 	for (i = 0; i<readings->getNObs(); i++)
 	{
-		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings), *precond);
+		// Current formulation takes all but the last current coefficient (ground node)
+		simulations[i] = new CG_Solver(*stiffness, input->getCurrentVector(i, readings).head(input->getNodesCount()-1), *precond);
 		// Run three iterations, then wait for 3 consecutive decreasing error estimates
 		//simulations[i]->do_iteration();
 		//simulations[i]->do_iteration();
@@ -265,15 +262,13 @@ void solution::initErrors()
 	int i;
 	// Just some scrap space to avoid dynamic allocations
 	//		WARNING: Obviously thread-unsafe!!!!
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
 	static Eigen::VectorXd aux(input->getGenericElectrodesCount());
-#else
-	static Eigen::VectorXd aux(input->getGenericElectrodesCount()-1);
-#endif
 	// Retrieve distance estimates, errors and boundaries
 	for (i = 0; i<readings->getNObs(); i++) {
 		// Compare with observation
-		aux = simulations[i]->getX().tail(aux.size());
+		// Notice that current solver implementation will return all nodes but the last
+		//	which is implicitly zero.
+		aux << simulations[i]->getX().tail(input->getGenericElectrodesCount()-1), 0.0;
 #ifdef ZEROELECSUM
 		// Rebase tension for zero sum
 		zeroSumVector(aux);

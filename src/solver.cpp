@@ -217,14 +217,9 @@ void CG_Solver::do_iteration() {
 
 	//std::cout << it << "=>" << r3 << " : " << r2 << " : " << r1 << "[" << rt1 << "]\n";
 
-	// FIXME: GET RID OF THOSE STUPID BUFFERS!!!!!!!!!!!!!!!!!!!!!
-	if(it<360) {
-		w[it-1] = wt[it-1] = -(r3*w[it-3]+r2*w[it-2]);
-		wt[it-1] /= rt1;
-		w[it-1] /= r1;
-	} else {
-		w[0] = it;
-	}
+    w[it-1] = wt[it-1] = -(r3*w[it-3]+r2*w[it-2]);
+    wt[it-1] /= rt1;
+    w[it-1] /= r1;
 
 	/* ########## LANCZOS
 	leta = vt.norm();

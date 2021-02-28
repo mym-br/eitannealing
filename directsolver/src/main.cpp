@@ -76,9 +76,9 @@ void saveDenseVectorMtx(const std::string filename, raw_vector &vec) {
 	myfile.close();
 }
 
-std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
-std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, CGSOLVERTYPE solverType);
-std::tuple<long, long> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
+std::tuple<long, long, int> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
+std::tuple<long, long, int> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, CGSOLVERTYPE solverType);
+std::tuple<long, long, int> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit);
 
 int main(int argc, char *argv[])
 {
@@ -183,18 +183,18 @@ int main(int argc, char *argv[])
 
 	baseoutputname = args::get(xfname);
 	raw_vector x(A.M);
-	auto[analysertime, executiontime] = runEigenCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
+	auto[analysertime, executiontime, iterations] = runEigenCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if(xfname) saveDenseVectorMtx(args::get(xfname) + "_serial.mtx", x);
-	auto[analysertimeCuda, executiontimeCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::DEFAULT);
+	auto[analysertimeCuda, executiontimeCuda, iterationsCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::DEFAULT);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cuda.mtx", x);
-	auto[analysertimeCCuda, executiontimeCCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::CONSOLIDATED);
+	auto[analysertimeCCuda, executiontimeCCuda, iterationsCCuda] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::CONSOLIDATED);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccuda.mtx", x);
 	#ifdef CGROUPS
-	auto[analysertimeCCudaCG, executiontimeCCudaCG] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::CONSOLIDATEDCG);
+	auto[analysertimeCCudaCG, executiontimeCCudaCG, iterationsCCudaCG] = runCudaCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS, CGSOLVERTYPE::CONSOLIDATEDCG);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_ccudacg.mtx", x);
 	#endif
 	#ifdef CUBLASCUSPARSE
-	auto[analysertimeCublas, executiontimeCublas] = runCusparseCublasCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
+	auto[analysertimeCublas, executiontimeCublas, iterationsCublas] = runCusparseCublasCGTest(A, b, x, res ? args::get(res) : -1, maxits ? args::get(maxits) : DEFAULTMAXITS);
 	if (xfname) saveDenseVectorMtx(args::get(xfname) + "_cusparse.mtx", x);
 	#endif
 
@@ -202,14 +202,14 @@ int main(int argc, char *argv[])
 		// Append execution times to compilation file args::get(resultsfname)
 		std::ofstream outfile(args::get(resultsfname), std::ios_base::app);
 		outfile << fileName << "\t" << A.N << "\t" << A.elements.size() 
-			<< "\t" << analysertime << "\t" << executiontime 
-			<< "\t" << analysertimeCuda  << "\t" << executiontimeCuda 
-			<< "\t" << analysertimeCCuda  << "\t" << executiontimeCCuda 
+			<< "\t" << analysertime << "\t" << executiontime << "\t" << iterations
+			<< "\t" << analysertimeCuda  << "\t" << executiontimeCuda << "\t" << iterationsCuda
+			<< "\t" << analysertimeCCuda  << "\t" << executiontimeCCuda << "\t" << iterationsCCuda
 			#ifdef CGROUPS
-			<< "\t" << analysertimeCCudaCG << "\t" << executiontimeCCudaCG
+			<< "\t" << analysertimeCCudaCG << "\t" << executiontimeCCudaCG<< "\t" << iterationsCCudaCG
 			#endif
 			#ifdef CUBLASCUSPARSE
-			<< "\t" << analysertimeCublas << "\t" << executiontimeCublas 
+			<< "\t" << analysertimeCublas << "\t" << executiontimeCublas << "\t" << iterationsCublas
 			#endif
 			<< std::endl;
 	}
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
+std::tuple<long, long, int> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
 	// Convert matrix data
 	std::vector<Eigen::Triplet<Scalar>> tripletList;
 	for (auto el : Araw) tripletList.push_back(Eigen::Triplet<Scalar>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
@@ -268,10 +268,10 @@ std::tuple<long, long> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, raw_ve
 #endif // CGTIMING
 	for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
 
-	return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
+	return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count(), totalIts);
 }
 
-std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, CGSOLVERTYPE solverType) {
+std::tuple<long, long, int> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, CGSOLVERTYPE solverType) {
 	// Convert to full matrix
 	std::vector<Eigen::Triplet<numType>> tripletList;
 	for (auto el : Araw) {
@@ -335,17 +335,17 @@ std::tuple<long, long> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vec
 		else std::cout << "Average " << solverLabel << " iteration time breakdown: " << cudaItTriangularTime << " (cpcg_tot_esc_add_sub_solver) " << cudaItSpmvTime << " (cpcg_tot_esc_add_mmv_inner) " << cudaItTime - cudaItTriangularTime - cudaItSpmvTime << " (remaining) " << cudaItTime << " (total)." << std::endl;
 #endif // CGTIMING
 		for (int i = 0; i < x.size(); i++) x[i] = xeig[i];
-		return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count());
+		return std::make_tuple(std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count(), std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count(), totalIts);
 	}
 	catch (const std::exception& e) { 
 		for (int i = 0; i < x.size(); i++) x[i] = 0;
 		std::cerr << "Failed to process " << solverLabel << " executor. Message: " << e.what() << std::endl;
-		return std::make_tuple(-1,-1);
+		return std::make_tuple(-1,-1,-1);
 	}
 }
 
 #ifdef CUBLASCUSPARSE
-std::tuple<long, long> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
+std::tuple<long, long, int> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
 	std::vector<int> unsorted_mmrow;
 	std::vector<int> unsorted_J;
 	std::vector<float> unsorted_val;

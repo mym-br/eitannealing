@@ -63,3 +63,5 @@ set_property(TARGET eitannealingtest PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET eitannealingtest PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(eitannealingtest ${libs} ${ADDITIONAL_LIBRARIES})
 target_compile_definitions(eitannealingtest PRIVATE CALCULATE_ERRORS)
+
+add_subdirectory(directsolver)

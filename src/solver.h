@@ -64,11 +64,11 @@ class CG_Solver {
 		
 
 
-		void init(double res = -1);
 						
 		void saveVals(const char* fname, double val, bool app = true);
 
 	public:
+		void init(double res = -1);
 	
 		void setrefresh() {
 			this->refresh_at_next = true;			
@@ -92,9 +92,9 @@ class CG_Solver {
 			} else return 0;
 		}
 
-		CG_Solver(matrix &A, Eigen::VectorXd &b, const SparseIncompleteLLT &precond, double res);
-		CG_Solver(matrix &A, Eigen::VectorXd &b, const SparseIncompleteLLT &precond);
-		CG_Solver(matrix &A, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &precond);
+		CG_Solver(matrix &A, Eigen::VectorXd &b, const SparseIncompleteLLT &precond, double res, bool init=true);
+		CG_Solver(matrix &A, Eigen::VectorXd &b, const SparseIncompleteLLT &precond, bool init=true);
+		CG_Solver(matrix &A, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &precond, bool init=true);
 		void do_iteration();
 		
 		const Eigen::VectorXd &getX() const {

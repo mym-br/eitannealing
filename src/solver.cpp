@@ -17,33 +17,33 @@ void checkedRegisterTimestamp(std::chrono::high_resolution_clock::time_point &t)
 #endif
 }
 
-CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b, const SparseIncompleteLLT &pre, double res) :
+CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b, const SparseIncompleteLLT &pre, double res, bool init) :
 	A(_A),
 	b(b),
 	x(Eigen::VectorXd::Zero(_A.rows())),
 	precond(pre),
 	totalItTime(0.0), totalTriangularTime(0.0), totalSpmvTime(0.0)
 {
-	this->init(res);
+	if(init) this->init(res);
 }
 
-CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b,  const SparseIncompleteLLT &pre):
+CG_Solver::CG_Solver(matrix &_A, Eigen::VectorXd &b,  const SparseIncompleteLLT &pre, bool init) :
 	A(_A),
 	b(b), 
 	x(Eigen::VectorXd::Zero(_A.rows())), 
 	precond(pre),
 	totalItTime(0.0), totalTriangularTime(0.0), totalSpmvTime(0.0)
 {
-	this->init();
+	if(init) this->init();
 }
 
-CG_Solver::CG_Solver(matrix &A_, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &pre):
+CG_Solver::CG_Solver(matrix &A_, Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &pre, bool init) :
 	A(A_), b(b), x(x0),
 	// Precond!
 	precond(pre),
 	totalItTime(0.0), totalTriangularTime(0.0), totalSpmvTime(0.0) 
 {
-	this->init();
+	if(init) this->init();
 }
 
 // Setup and calculate the 1st iteraction	

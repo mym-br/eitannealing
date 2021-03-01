@@ -16,9 +16,9 @@ enum CGSOLVERTYPE {DEFAULT, CONSOLIDATED, CONSOLIDATEDCG};
 
 class CGCUDA_Solver {
 	public:
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, double res, CGSOLVERTYPE solverType = DEFAULT);
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, CGSOLVERTYPE = DEFAULT);
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm, CGSOLVERTYPE = DEFAULT);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, double res, CGSOLVERTYPE solverType = DEFAULT, bool init=true);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, CGSOLVERTYPE = DEFAULT, bool init=true);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm, CGSOLVERTYPE = DEFAULT, bool init=true);
 		void do_iteration();
 		//std::vector<numType> getX();
 		Eigen::Matrix<numType, -1, 1, 0,-1,1> getX();
@@ -38,6 +38,7 @@ class CGCUDA_Solver {
 		// Debug
 		static Eigen::SparseMatrix<numType, 0, int> getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
 		static Eigen::Matrix<numType, -1, 1, 0, -1, 1> getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
+		void init(double res = -1);
 
 	private:
 		static void cblas_dscal(int n, numType alpha, numType *x, int inc);

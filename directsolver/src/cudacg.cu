@@ -142,7 +142,8 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
 #endif // CGTIMING
 
-	while (r1 > tol*tol && k <= max_iter)
+	float tolsqr = tol > 0 ? tol*tol : -1;
+	while (r1 > tolsqr && k <= max_iter)
 	{
 #ifdef CGTIMING
 		cudaEventRecord(startTotal);

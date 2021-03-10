@@ -73,9 +73,8 @@ public:
 	int getGenericElectrodesCoeffCount() { return (int)gelectrodes.size() + (int)gelectrodesNonBaseNodes.size(); };
 	problem2D(const char *meshfilename) : problem(meshfilename) {};
 	~problem2D(){};
-        // FIXME: add a better interface to this
-        const std::vector<node> getNodes() const { return nodes; }
-        const std::vector<triangularElement> getElements() const { return elements; }
+  const std::vector<node> &getNodes() const { return nodes; }
+  const std::vector<triangularElement> &getElements() const { return elements; }
 };
 
 #endif // PROBLEM2D_H_

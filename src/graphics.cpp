@@ -292,7 +292,7 @@ QVariant  solutionView::headerData (
 void solutionView::setCurrentSolution(const double *newsol)
 {
 	{
-		QMutexLocker(&this->solutionMutex);
+		QMutexLocker lock(&this->solutionMutex);
 		std::copy(newsol, newsol + this->rows, this->sol);
 	}
 	emit dataChanged(this->createIndex(0,0, this->sol), this->createIndex(0,this->rows));

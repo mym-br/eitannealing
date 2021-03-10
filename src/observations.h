@@ -8,10 +8,10 @@
 #define OBSERVATIONS_H_
 
 #include <iostream>
+#include <fstream>
 #include <iterator>
 #include <memory>
 #include <string>
-#include "problem.h"
 #include "basematrix.h"
 
 template <typename _Scalar>

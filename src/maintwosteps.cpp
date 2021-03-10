@@ -60,8 +60,6 @@ float kt;
 void workProc()
 {
 
-
-
 	// Simulated annealing
 	double *solre = new double[input->getNumCoefficients()];
 	double *solim = new double[input->getNumCoefficients()];
@@ -140,7 +138,6 @@ void workProc()
 			//next.reset(current->shuffle(&sdata, sh));
 			bool decision;
 			decision = isComplexProblem ? currentComplex->compareWith(*nextComplex, kt, 1 - param) : currentScalar->compareWith(*nextScalar, kt, 1 - param);
-			int curits = isComplexProblem ? currentComplex->getTotalIt() : currentScalar->getTotalIt();
 			if (decision) {
 				iterations += isComplexProblem ? currentComplex->getTotalIt() : currentScalar->getTotalIt();
 				solutions++;
@@ -395,5 +392,5 @@ int main(int argc, char *argv[])
 	delete viewre;
 	if (isComplexProblem) delete viewim;
 	delete currentspair;
-	return 0;
+	return retval;
 }

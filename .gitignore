@@ -11,3 +11,6 @@ CMakeSettings.json
 *.msh
 /eigen*
 *.mtx
+*.pyd
+/dist
+/*.egg-info

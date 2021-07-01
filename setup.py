@@ -36,4 +36,15 @@ if USE_CYTHON:
     from Cython.Build import cythonize
     extensions = cythonize(extensions)
 
-setup(ext_modules=extensions)
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+setup(name='pyeitsolver',
+      version='1.1',
+      author='Andre Sato',
+      author_email='andresato@hotmail.com',
+      description='Solver for the eit forward problem',
+      long_description=long_description,
+      long_description_content_type="text/markdown",
+      ext_modules=extensions,
+      zip_safe=False)

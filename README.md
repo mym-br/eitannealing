@@ -8,3 +8,11 @@
    ```bash
    $ python setup.py build_ext --inplace
    ```
+
+### Wheel generations
+
+After performing steps 1-2 of the compilation process, execute:
+
+```bash
+$ python -m build
+```

@@ -9,3 +9,5 @@ compile_commands.json
 CMakeSettings.json
 /.settings/
 *.msh
+/eigen*
+*.mtx

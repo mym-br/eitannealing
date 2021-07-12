@@ -14,3 +14,4 @@ CMakeSettings.json
 *.pyd
 /dist
 /*.egg-info
+pyeitsolver.cpp

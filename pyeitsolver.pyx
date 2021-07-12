@@ -8,7 +8,7 @@ cpdef init(meshFilename, currentsFilename):
         raise Exception('Input mesh file not found. The value was: {}'.format(meshFilename))
     if(pathlib.Path(currentsFilename).exists() == False):
         raise Exception('Input currents file not found. The value was: {}'.format(currentsFilename))
-    return cpyeitsolver.init(meshFilename, currentsFilename)
+    return cpyeitsolver.init(meshFilename.encode(), currentsFilename.encode())
 
 cpdef forwardSolve(conductivities):
     return cpyeitsolver.solveForwardProblem(conductivities)

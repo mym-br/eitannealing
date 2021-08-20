@@ -4,7 +4,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_mod
 find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
 find_package(Threads REQUIRED)
-find_package(CUDA 10 REQUIRED)
+find_package(CUDA 10)
+  message(WARNING "Cuda version greater than 10 is not supported. Cuda Target will be skipped.")
+  unset(CUDA_FOUND)
 find_package(GMSH REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
@@ -94,9 +96,11 @@ target_link_libraries(eitdirect  ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitdirect PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitdirect PROPERTY CXX_STANDARD_REQUIRED ON)
 
-cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
-target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} ${ADDITIONAL_LIBRARIES})
-set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
-set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+if(${CUDA_FOUND})
+    cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
+    target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} ${ADDITIONAL_LIBRARIES})
+    set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
+    set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+endif()
 
 add_subdirectory(tests)

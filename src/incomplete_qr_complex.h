@@ -81,12 +81,16 @@ class SparseIncompleteQRComplex
     void solveInPlaceC(Eigen::VectorXd &bR, Eigen::VectorXd &bI) const {
       int i = (int)(idiagonal.size() - 1);
       for(; i>=0; i--) {
+        double vr = bR[i];
+        double vi = bI[i];
         for(auto [j, x] : rows[i]) {
-          bR[i] -= bR[j]*x.real() - bI[j]*x.imag();
-          bI[i] -= bR[j]*x.imag() + bI[j]*x.real();
+          vr -= bR[j]*x.real() - bI[j]*x.imag();
+          vi -= bR[j]*x.imag() + bI[j]*x.real();
         }
-        bR[i] *= idiagonal[i];
-        bI[i] *= idiagonal[i];
+        vr *= idiagonal[i];
+        vi *= idiagonal[i];
+        bR[i] = vr;
+        bI[i] = vi;
       }
     };
 
@@ -94,13 +98,16 @@ class SparseIncompleteQRComplex
     void solveInPlaceCT(Eigen::VectorXd &bR, Eigen::VectorXd &bI) const {
 	  size_t n = idiagonal.size();
       for(unsigned int i = 0; i<n; i++) {
-
+        double vr = bR[i];
+        double vi = bI[i];
         for(auto [j, x] : cols[i]) {
-          bR[i] -= bR[j]*x.real() + bI[j]*x.imag();
-          bI[i] -= bI[j]*x.real() - bR[j]*x.imag();
+          vr -= bR[j]*x.real() + bI[j]*x.imag();
+          vi -= bI[j]*x.real() - bR[j]*x.imag();
         }
-        bR[i] *= idiagonal[i];
-        bI[i] *= idiagonal[i];
+        vr *= idiagonal[i];
+        vi *= idiagonal[i];
+        bR[i] = vr;
+        bI[i] = vi;
       }
     };
 };

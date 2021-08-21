@@ -7,7 +7,8 @@
 #include "../src/solver_lb.h"
 #include "../src/observations_complex.h"
 #include "../src/intcoef.h"
-
+#include "../src/incomplete_qr_complex2.h"
+#include "util/timestamp/timestamp.h"
 #include "solver_lb.h"
 
 int main(int argc, char *argv[])
@@ -62,20 +63,51 @@ int main(int argc, char *argv[])
      J_R(0) = 1.0;
      J_R(4) = -1.0;
 
+     std::unique_ptr<LB_Solver_Complex::Preconditioner> pre =
+        std::make_unique<LB_Solver_Complex::Preconditioner>(8, 10, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
 
+     std::unique_ptr<LB_Solver_Complex> solver =
+        std::make_unique<LB_Solver_Complex>(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, V_R, V_I, *pre, 0.002);
 
-     LB_Solver_Complex::Preconditioner *pre;
-     pre = new SparseIncompleteQRComplex(8, 10, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
-
-
-     LB_Solver_Complex *solver;
-     solver = new LB_Solver_Complex(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, V_R, V_I, *pre, 0.002);
-
-     for(int i=0; i<50;i++)
+     std::cout << "Iterations:\n";
+     for(int i=0; i<100;i++) {
          solver->do_iteration();
+         std::cout << i << ":" << solver->getMinErrorl2Estimate() << ":" << solver->getMaxErrorl2Estimate() << std::endl;
+     }
 
-     solver->do_iteration();
+     std::cout << "Benchmarking old vs new...\n";
+     matrixcomplex Aii = (Eigen::MatrixXcd(*Aii_R) + Complex(0,1)*Eigen::MatrixXcd(*Aii_I)).sparseView();
+     matrixcomplex Aic = (Eigen::MatrixXcd(*Aic_R) + Complex(0,1)*Eigen::MatrixXcd(*Aic_I)).sparseView();
+     std::unique_ptr<SparseIncompleteQRComplex2> pre2 = std::make_unique<SparseIncompleteQRComplex2>(8, 10, Aii, Aic);
 
+
+     Eigen::VectorXd dummy_Re(Eigen::VectorXd::Random(Aii_R->cols()));
+     Eigen::VectorXd dummy_Im(Eigen::VectorXd::Random(Aii_R->cols()));
+     long start, stop;
+     for(int i = 0; i<100; i++) {
+         pre->solveInPlaceC(dummy_Re, dummy_Im);
+         pre->solveInPlaceCT(dummy_Re, dummy_Im);
+     }
+     start = get_usec_timestamp();
+     for(int i = 0; i<400000; i++) {
+         pre->solveInPlaceC(dummy_Re, dummy_Im);
+         pre->solveInPlaceCT(dummy_Re, dummy_Im);
+     }
+     stop = get_usec_timestamp();
+     std::cout << "old: "  <<  ((double)(stop - start))/400000 << std::endl;
+
+     Eigen::VectorXcd dummy_C(Eigen::VectorXcd::Random(Aii_R->cols()));
+     for(int i = 0; i<100; i++) {
+         pre2->solveInPlace(dummy_C);
+         pre2->solveInPlaceT(dummy_C);
+     }
+     start = get_usec_timestamp();
+     for(int i = 0; i<400000; i++) {
+         pre2->solveInPlace(dummy_C);
+         pre2->solveInPlaceT(dummy_C);
+     }
+     stop = get_usec_timestamp();
+     std::cout << "new: "  <<  ((double)(stop - start))/400000 << std::endl;
 
      return 0;
  }

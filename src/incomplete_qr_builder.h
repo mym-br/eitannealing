@@ -115,6 +115,8 @@ template<class scalar> class SparseIncompleteQRBuilder
         buildRMatrix(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &a, unsigned long nr, unsigned long nq, diagonalInsertFunction &&insert_diagonal, upperElementsInsertFunction &&insert_upper) {
             buildRMatrixFromColStorage(columnMajorStorageAdaptor(a), nr, nq, insert_diagonal, insert_upper);
         }
+
+        typedef decltype(sqnorm) norm_type;
 };
 
 #endif  // INCOMPLETE_LQ_BUILDER_H_

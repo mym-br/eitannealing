@@ -7,8 +7,6 @@
 #include "../src/solver_lb.h"
 #include "../src/observations_complex.h"
 #include "../src/intcoef.h"
-#include "../src/incomplete_qr_complex2.h"
-#include "util/timestamp/timestamp.h"
 #include "solver_lb.h"
 
 int main(int argc, char *argv[])
@@ -74,40 +72,6 @@ int main(int argc, char *argv[])
          solver->do_iteration();
          std::cout << i << ":" << solver->getMinErrorl2Estimate() << ":" << solver->getMaxErrorl2Estimate() << std::endl;
      }
-
-     std::cout << "Benchmarking old vs new...\n";
-     matrixcomplex Aii = (Eigen::MatrixXcd(*Aii_R) + Complex(0,1)*Eigen::MatrixXcd(*Aii_I)).sparseView();
-     matrixcomplex Aic = (Eigen::MatrixXcd(*Aic_R) + Complex(0,1)*Eigen::MatrixXcd(*Aic_I)).sparseView();
-     std::unique_ptr<SparseIncompleteQRComplex2> pre2 = std::make_unique<SparseIncompleteQRComplex2>(8, 10, Aii, Aic);
-
-
-     Eigen::VectorXd dummy_Re(Eigen::VectorXd::Random(Aii_R->cols()));
-     Eigen::VectorXd dummy_Im(Eigen::VectorXd::Random(Aii_R->cols()));
-     long start, stop;
-     for(int i = 0; i<100; i++) {
-         pre->solveInPlaceC(dummy_Re, dummy_Im);
-         pre->solveInPlaceCT(dummy_Re, dummy_Im);
-     }
-     start = get_usec_timestamp();
-     for(int i = 0; i<400000; i++) {
-         pre->solveInPlaceC(dummy_Re, dummy_Im);
-         pre->solveInPlaceCT(dummy_Re, dummy_Im);
-     }
-     stop = get_usec_timestamp();
-     std::cout << "old: "  <<  ((double)(stop - start))/400000 << std::endl;
-
-     Eigen::VectorXcd dummy_C(Eigen::VectorXcd::Random(Aii_R->cols()));
-     for(int i = 0; i<100; i++) {
-         pre2->solveInPlace(dummy_C);
-         pre2->solveInPlaceT(dummy_C);
-     }
-     start = get_usec_timestamp();
-     for(int i = 0; i<400000; i++) {
-         pre2->solveInPlace(dummy_C);
-         pre2->solveInPlaceT(dummy_C);
-     }
-     stop = get_usec_timestamp();
-     std::cout << "new: "  <<  ((double)(stop - start))/400000 << std::endl;
 
      return 0;
  }

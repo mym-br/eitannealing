@@ -79,12 +79,12 @@ int main(int argc, char *argv[])
 
      for(int i = 0; i<100; i++) {
          pre2->solveInPlace(dummy_C);
-         pre2->solveInPlace(dummy_C);
+         pre2->solveInPlaceT(dummy_C);
      }
      start = get_usec_timestamp();
      for(int i = 0; i<400000; i++) {
          pre2->solveInPlace(dummy_C);
-         pre2->solveInPlace(dummy_C);
+         pre2->solveInPlaceT(dummy_C);
      }
      stop = get_usec_timestamp();
      std::cout << "new: "  <<  ((double)(stop - start))/400000 << std::endl;

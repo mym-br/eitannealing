@@ -5,16 +5,35 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
+// Conjugate on complex types
+template <class base, int iscomplex> struct transpconjimpl;
+
+template <class base> struct transpconjimpl<base, 1> {
+    static base get_res(base &&x) {
+        return std::conj(x);
+    }
+};
+
+template <class base> struct transpconjimpl<base, 0> {
+    static base get_res(base &&x) {
+        return x;
+    }
+};
+
+template <class base> base transpconj(base &&x) {
+    return transpconjimpl<base, Eigen::NumTraits<base>::IsComplex>::get_res(x);
+}
+
 template <class scalar> class SparseIncompleteQR
 {
   protected:
     typedef Eigen::SparseMatrix<scalar, Eigen::ColMajor> basematrix;
     typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> basevector;
-    // FIXME: NO! idiagonal is always real, even when scalar is complex!
-    Eigen::Matrix<double, Eigen::Dynamic, 1> idiagonal;
-    basematrix rmatrix;
-    std::vector<std::vector<std::pair<unsigned, scalar > > > cols;
+    typedef typename Eigen::NumTraits<scalar>::Real real;
+    // idiagonal is always real, even when scalar is complex!
+    Eigen::Matrix<real, Eigen::Dynamic, 1> idiagonal;
     std::vector<std::vector<std::pair<unsigned, scalar > > > rows;
+    std::vector<std::vector<std::pair<unsigned, scalar > > > trows;
 
     struct MatricesStorageAdaptor {
         
@@ -49,63 +68,74 @@ template <class scalar> class SparseIncompleteQR
   public:
 
     SparseIncompleteQR(unsigned long nr, unsigned long nq, const basematrix &Aii_low, const basematrix &Aic):
-        idiagonal(Aii_low.rows()), rmatrix(Aii_low.rows(), Aii_low.rows()), cols(Aii_low.cols()), rows(Aii_low.cols()) {
+        idiagonal(Aii_low.rows()), rows(Aii_low.cols()), trows(Aii_low.cols()) {
 
         SparseIncompleteQRBuilder<scalar> builder;
 
-        this->rmatrix.reserve(Aii_low.rows()*nr);
-
         builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(Aii_low, Aic), nr, nq,
-         [this](unsigned long j, double x) {
+         [this](unsigned long j, real x) {
             this->idiagonal(j) = x;
          },
          [this](unsigned long i, unsigned long j, scalar x) {
-             this->rmatrix.insert(i,j) = x;
-             this->cols[j].push_back(std::pair<long, scalar>(i, x));
+             this->trows[j].push_back(std::pair<long, scalar>(i, transpconj(x)));
              this->rows[i].push_back(std::pair<long, scalar>(j, x));
          });
-        rmatrix.makeCompressed();
         idiagonal = idiagonal.cwiseInverse();
-        for(int j = 1; j<rmatrix.outerSize(); j++) {
-            rmatrix.col(j) *= idiagonal(j);
-            for(auto &x : cols[j])
-                x.second *= idiagonal(j);
-        }
     }
 
     void solveInPlace(basevector &b) const {
         //FIXME: For some reason, triangularView::solveInPlace is slower than this?
-        for(auto j = cols.size()-1; j >0; j--) { // 1st column is empty
-            scalar coef = b[j];
-            for(auto [i, x] : cols[j]) {
-                b[i] -= coef*x;
-            }
-        }
-        //this->rmatrix.template triangularView<Eigen::UnitUpper>().solveInPlace(b);
-        b = b.cwiseProduct(this->idiagonal);
-        /*for(auto i = rows.size(); i > 0; i--) {
-            scalar tot = b[i-1];
-            for(auto [j, x] : rows[i-1]) {
+        for(int i = rows.size()-1; i >= 0; i--) {
+            scalar tot = b[i];
+            for(auto [j, x] : rows[i]) {
                 tot -= b[j]*x;
             }
-            b[i-1] = tot*idiagonal[i-1];
+            b[i] = tot*idiagonal[i];
         }
-        int i = (int)(idiagonal.size() - 1);
-        for(; i>=0; i--) {
-            scalar v = b[i];
-            for(auto [j, x] : rows[i]) {
-                v -= b[j]*x;
-            }
-            v *= idiagonal[i];
-            b[i] = v;
-        }*/
     }
 
      // conjugated transpose
     void solveInPlaceT(basevector &b) const {
-        b = b.cwiseProduct(idiagonal);
-        rmatrix.template triangularView<Eigen::UnitUpper>().transpose().solveInPlace(b);
+        for(int i = 0; i<trows.size()-1; i++) {
+            scalar tot = b[i];
+            for(auto [j, x] : trows[i]) {
+                tot -= b[j]*x;
+            }
+            b[i] = tot*idiagonal[i];
+        }
     }
 };
+
+// Specialization for complex. For some reason, code is much faster
+// by splitting the acumulator into real and imaginary components.
+// I'm not really sure why.
+template <> void SparseIncompleteQR<std::complex<double> >::solveInPlace(basevector &b) const {
+    int i = (int)(idiagonal.size() - 1);
+    for(; i>=0; i--) {
+        double vr = b[i].real();
+        double vi = b[i].imag();
+        for(auto [j, x] : rows[i]) {
+            vr -= b[j].real()*x.real() - b[j].imag()*x.imag();
+            vi -= b[j].real()*x.imag() + b[j].imag()*x.real();
+        }
+        vr *= idiagonal[i];
+        vi *= idiagonal[i];
+        b[i] = std::complex(vr, vi);
+    }
+}
+
+template <> void SparseIncompleteQR<std::complex<double> >::solveInPlaceT(basevector &b) const {
+    for(int i = 0; i<trows.size()-1; i++) {
+        double vr = b[i].real();
+        double vi = b[i].imag();
+        for(auto [j, x] : trows[i]) {
+            vr -= b[j].real()*x.real() - b[j].imag()*x.imag();
+            vi -= b[j].real()*x.imag() + b[j].imag()*x.real();
+        }
+        vr *= idiagonal[i];
+        vi *= idiagonal[i];
+        b[i] = std::complex(vr, vi);
+    }
+}
 
 #endif

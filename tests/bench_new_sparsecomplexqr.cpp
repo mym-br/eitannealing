@@ -57,11 +57,13 @@ int main(int argc, char *argv[])
      std::cout << "Residual (real): " << (test_Re - test_C.real()).squaredNorm() << std::endl;
      std::cout << "Residual (imag): " << (test_Im - test_C.imag()).squaredNorm() << std::endl;
 
-     std::cout << "Benchmarking old vs new...\n";
 
      Eigen::VectorXd dummy_Re(Eigen::VectorXd::Random(Aii_R->cols()));
      Eigen::VectorXd dummy_Im(Eigen::VectorXd::Random(Aii_R->cols()));
+     Eigen::VectorXcd dummy_C(Eigen::VectorXcd::Random(Aii_R->cols()));
      long start, stop;
+
+     std::cout << "Benchmarking old vs new...\n";
      for(int i = 0; i<100; i++) {
          pre->solveInPlaceC(dummy_Re, dummy_Im);
          pre->solveInPlaceCT(dummy_Re, dummy_Im);
@@ -69,20 +71,20 @@ int main(int argc, char *argv[])
      start = get_usec_timestamp();
      for(int i = 0; i<400000; i++) {
          pre->solveInPlaceC(dummy_Re, dummy_Im);
-         pre->solveInPlaceC(dummy_Re, dummy_Im);
+         pre->solveInPlaceCT(dummy_Re, dummy_Im);
      }
      stop = get_usec_timestamp();
      std::cout << "old: "  <<  ((double)(stop - start))/400000 << std::endl;
 
-     Eigen::VectorXcd dummy_C(Eigen::VectorXcd::Random(Aii_R->cols()));
+
      for(int i = 0; i<100; i++) {
          pre2->solveInPlace(dummy_C);
-         pre2->solveInPlaceT(dummy_C);
+         pre2->solveInPlace(dummy_C);
      }
      start = get_usec_timestamp();
      for(int i = 0; i<400000; i++) {
          pre2->solveInPlace(dummy_C);
-         pre2->solveInPlaceT(dummy_C);
+         pre2->solveInPlace(dummy_C);
      }
      stop = get_usec_timestamp();
      std::cout << "new: "  <<  ((double)(stop - start))/400000 << std::endl;

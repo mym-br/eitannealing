@@ -93,7 +93,7 @@ class SparseIncompleteQRComplex
         bR[i] = vr;
         bI[i] = vi;
       }
-    };
+    }
 
      // conjugated transpose
     void solveInPlaceCT(Eigen::VectorXd &bR, Eigen::VectorXd &bI) const {

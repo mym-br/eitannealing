@@ -21,8 +21,9 @@ class SparseIncompleteQRComplex
 {
   protected:
     std::vector<double> idiagonal;
-    std::vector<std::unordered_map<unsigned long, std::complex<double> > > rows;
-    std::vector<std::unordered_map<unsigned long, std::complex<double> > > cols;
+    std::vector<std::vector<std::pair<unsigned long, std::complex<double> > > > rows;
+    std::vector<std::vector<std::pair<unsigned long, std::complex<double> > > > cols;
+
 
     struct MatricesStorageAdaptor {
         const Eigen::SparseMatrix<double, Eigen::ColMajor> &iiR;
@@ -73,8 +74,8 @@ class SparseIncompleteQRComplex
       builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(iiUpper_R, iiUpper_I, Aic_R, Aic_I), nr, nq, [this](unsigned long j, double x) {
         this->idiagonal[j] = 1/x;
       }, [this](unsigned long i, unsigned long j, std::complex<double> x) {
-        this->rows[i][j] = x;
-        this->cols[j][i] = x;
+        this->rows[i].push_back(std::make_pair(j, x));
+        this->cols[j].push_back(std::make_pair(i, x));
       });
     }
 

@@ -5,25 +5,6 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
-// Conjugate on complex types
-template <class base, int iscomplex> struct transpconjimpl;
-
-template <class base> struct transpconjimpl<base, 1> {
-    static base get_res(base &&x) {
-        return std::conj(x);
-    }
-};
-
-template <class base> struct transpconjimpl<base, 0> {
-    static base get_res(base &&x) {
-        return x;
-    }
-};
-
-template <class base> base transpconj(base &&x) {
-    return transpconjimpl<base, Eigen::NumTraits<base>::IsComplex>::get_res(x);
-}
-
 template <class scalar> class SparseIncompleteQR
 {
   protected:
@@ -32,8 +13,7 @@ template <class scalar> class SparseIncompleteQR
     typedef typename Eigen::NumTraits<scalar>::Real real;
     // idiagonal is always real, even when scalar is complex!
     Eigen::Matrix<real, Eigen::Dynamic, 1> idiagonal;
-    std::vector<std::vector<std::pair<unsigned, scalar > > > rows;
-    std::vector<std::vector<std::pair<unsigned, scalar > > > trows;
+    basematrix rmatrix;
 
     struct MatricesStorageAdaptor {
         
@@ -68,7 +48,7 @@ template <class scalar> class SparseIncompleteQR
   public:
 
     SparseIncompleteQR(unsigned long nr, unsigned long nq, const basematrix &Aii_low, const basematrix &Aic):
-        idiagonal(Aii_low.rows()), rows(Aii_low.cols()), trows(Aii_low.cols()) {
+        idiagonal(Aii_low.rows()), rmatrix(Aii_low.rows(), Aii_low.rows()) {
 
         SparseIncompleteQRBuilder<scalar> builder;
 
@@ -77,65 +57,26 @@ template <class scalar> class SparseIncompleteQR
             this->idiagonal(j) = x;
          },
          [this](unsigned long i, unsigned long j, scalar x) {
-             this->trows[j].push_back(std::pair<long, scalar>(i, transpconj(x)));
-             this->rows[i].push_back(std::pair<long, scalar>(j, x));
+             this->rmatrix.insert(i,j) = x;
          });
-        idiagonal = idiagonal.cwiseInverse();
+         rmatrix.makeCompressed();
+         idiagonal = idiagonal.cwiseInverse();
+         for(int j = 1; j<rmatrix.outerSize(); j++) {
+             rmatrix.col(j) *= idiagonal(j);
+         }
     }
 
     void solveInPlace(basevector &b) const {
-        //FIXME: For some reason, triangularView::solveInPlace is slower than this?
-        for(int i = rows.size()-1; i >= 0; i--) {
-            scalar tot = b[i];
-            for(auto [j, x] : rows[i]) {
-                tot -= b[j]*x;
-            }
-            b[i] = tot*idiagonal[i];
-        }
+        //FIXME: On gcc without fast-math complex x complex product is very slow (Something to do with Inf checks)
+        rmatrix.template triangularView<Eigen::UnitUpper>().solveInPlace(b);
+        b = b.cwiseProduct(idiagonal);
     }
 
      // conjugated transpose
     void solveInPlaceT(basevector &b) const {
-        for(int i = 0; i<trows.size()-1; i++) {
-            scalar tot = b[i];
-            for(auto [j, x] : trows[i]) {
-                tot -= b[j]*x;
-            }
-            b[i] = tot*idiagonal[i];
-        }
+        b = b.cwiseProduct(idiagonal);
+        rmatrix.template triangularView<Eigen::UnitUpper>().transpose().solveInPlace(b);
     }
 };
-
-// Specialization for complex. For some reason, code is much faster
-// by splitting the acumulator into real and imaginary components.
-// I'm not really sure why.
-template <> void SparseIncompleteQR<std::complex<double> >::solveInPlace(basevector &b) const {
-    int i = (int)(idiagonal.size() - 1);
-    for(; i>=0; i--) {
-        double vr = b[i].real();
-        double vi = b[i].imag();
-        for(auto [j, x] : rows[i]) {
-            vr -= b[j].real()*x.real() - b[j].imag()*x.imag();
-            vi -= b[j].real()*x.imag() + b[j].imag()*x.real();
-        }
-        vr *= idiagonal[i];
-        vi *= idiagonal[i];
-        b[i] = std::complex(vr, vi);
-    }
-}
-
-template <> void SparseIncompleteQR<std::complex<double> >::solveInPlaceT(basevector &b) const {
-    for(int i = 0; i<trows.size()-1; i++) {
-        double vr = b[i].real();
-        double vi = b[i].imag();
-        for(auto [j, x] : trows[i]) {
-            vr -= b[j].real()*x.real() - b[j].imag()*x.imag();
-            vi -= b[j].real()*x.imag() + b[j].imag()*x.real();
-        }
-        vr *= idiagonal[i];
-        vi *= idiagonal[i];
-        b[i] = std::complex(vr, vi);
-    }
-}
 
 #endif

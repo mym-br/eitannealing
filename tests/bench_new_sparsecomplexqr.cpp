@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
      std::unique_ptr<LB_Solver_Complex::Preconditioner> pre =
         std::make_unique<LB_Solver_Complex::Preconditioner>(8, 10, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
 
+
      std::cout << "Comparison old vs new...\n";
      Eigen::VectorXd test_Re(Eigen::VectorXd::Ones(Aii_R->cols()));
      Eigen::VectorXd test_Im(Eigen::VectorXd::Ones(Aii_R->cols()));
@@ -63,7 +64,22 @@ int main(int argc, char *argv[])
      Eigen::VectorXcd dummy_C(Eigen::VectorXcd::Random(Aii_R->cols()));
      long start, stop;
 
-     std::cout << "Benchmarking old vs new...\n";
+     std::unique_ptr<SparseIncompleteQR<double> > pre_scalar = std::make_unique<SparseIncompleteQR<double> >(8, 10, *Aii_R, *Aic_R);
+     std::cout << "Benchmark new (scalar...)\n";
+     for(int i = 0; i<100; i++) {
+         pre_scalar->solveInPlace(dummy_Re);
+         pre_scalar->solveInPlaceT(dummy_Re);
+     }
+     start = get_usec_timestamp();
+     for(int i = 0; i<400000; i++) {
+         pre_scalar->solveInPlace(dummy_Re);
+         pre_scalar->solveInPlaceT(dummy_Re);
+     }
+     stop = get_usec_timestamp();
+     std::cout << "new (scalar): "  <<  ((double)(stop - start))/400000 << std::endl;
+
+
+     std::cout << "Benchmarking old vs new (complex)...\n";
      for(int i = 0; i<100; i++) {
          pre->solveInPlaceC(dummy_Re, dummy_Im);
          pre->solveInPlaceCT(dummy_Re, dummy_Im);

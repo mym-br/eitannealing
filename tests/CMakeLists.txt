@@ -33,3 +33,7 @@ set_property(TARGET test_lb_solver PROPERTY CXX_STANDARD_REQUIRED ON)
 add_executable(bench_new_sparsecomplexqr bench_new_sparsecomplexqr.cpp $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine> $<TARGET_OBJECTS:eit_time>)
 set_property(TARGET bench_new_sparsecomplexqr PROPERTY CXX_STANDARD 17)
 set_property(TARGET bench_new_sparsecomplexqr PROPERTY CXX_STANDARD_REQUIRED ON)
+
+add_executable(bench_lbsolver_scalar_qr_vs_llt bench_lbsolver_scalar_qr_vs_llt.cpp $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine> $<TARGET_OBJECTS:eit_time>)
+set_property(TARGET bench_lbsolver_scalar_qr_vs_llt PROPERTY CXX_STANDARD 17)
+set_property(TARGET bench_lbsolver_scalar_qr_vs_llt PROPERTY CXX_STANDARD_REQUIRED ON)

@@ -60,7 +60,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                 qrows.resize(m);
                 for(auto &x : this->qrows) {
                     x.clear();
-                    x.reserve(2*nq);  // That's actually somehow unpredictable, but 2*nq should be enought
+                    x.reserve(3*nq);  // That's actually somehow unpredictable, but 3*nq should be enought
                 }
                 for(unsigned long j = 0; j<n ; j++) {
                     // Calc the current L vector, product of i-th row of a
@@ -96,8 +96,8 @@ template<class scalar> class SparseIncompleteQRBuilder
                     // Now update q storage
                     for(auto [i, v] : selectedQ) {
                         scalar nv = v*inorm;
-                        qrows[i].push_back(std::pair(j, nv));
-                        qcols[j].push_back(std::pair(i, nv));
+                        qrows[i].emplace_back(std::move(std::pair(j, nv)));
+                        qcols[j].emplace_back(std::move(std::pair(i, nv)));
                     }
                 }
         };

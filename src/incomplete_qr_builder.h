@@ -119,4 +119,33 @@ template<class scalar> class SparseIncompleteQRBuilder
         typedef decltype(sqnorm) norm_type;
 };
 
+template<> inline double SparseIncompleteQRBuilder<double>::sqnorm(const double &x) {
+  return x*x;
+}
+
+template<> inline double SparseIncompleteQRBuilder<double>::inner(const double &x, const double &y) {
+  return x*y;
+}
+
+template<> inline bool SparseIncompleteQRBuilder<double>::cmp_larger_abs_coef(
+  const SparseIncompleteQRBuilder<double>::i_c &a,
+  const SparseIncompleteQRBuilder<double>::i_c &b) {
+  return std::abs(a.second) > std::abs(b.second);
+}
+
+template<> inline double SparseIncompleteQRBuilder<typename std::complex<double> >::sqnorm(const std::complex<double> &x) {
+  return std::norm(x);
+}
+
+template<> inline std::complex<double> SparseIncompleteQRBuilder<std::complex<double> >::inner(const std::complex<double> &x, const std::complex<double> &y) {
+  return x*std::conj(y);
+}
+// FIXME: Can we cache results of l2 squared norm?
+template<> inline bool SparseIncompleteQRBuilder<std::complex<double> >::cmp_larger_abs_coef(
+  const SparseIncompleteQRBuilder<std::complex<double> >::i_c &a,
+  const SparseIncompleteQRBuilder<std::complex<double> >::i_c &b) {
+  return std::norm(a.second) > std::norm(b.second);
+}
+
+
 #endif  // INCOMPLETE_LQ_BUILDER_H_

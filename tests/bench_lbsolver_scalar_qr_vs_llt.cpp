@@ -23,7 +23,6 @@ struct eigen_double_qr_engine {
         return builder;
     }
 
-
 	inline static void product_ii_ic_vector(vector &dest_i, vector &dest_c, const symMatrix &ii, const symMatrix &ic, const vector &b) {
 		dest_i.noalias() = ii.selfadjointView<Eigen::Lower>()*b;
 		dest_c.noalias() = ic*b;
@@ -46,7 +45,7 @@ struct eigen_double_qr_engine {
 	}
 
 	inline static preconditioner *make_new_preconditioner(const symMatrix &A_ii, const matrix &A_ic) {
-		return new preconditioner(8, 16, A_ii, A_ic, getQRBuilder());
+		return new preconditioner(8, 8, A_ii, A_ic, getQRBuilder());
 	}
 };
 
@@ -90,7 +89,7 @@ int main(int argc, char *argv[])
 
      std::cout << "Preparing solver (eigenvalue estimator)..." << std::flush;
      std::unique_ptr<LB_Solver_EG_Estimate> solver_e = std::make_unique<LB_Solver_EG_Estimate>(
-        Aii, Aic, Acc, Eigen::VectorXd(readingsScalar->getCurrents()[0].tail(input->getGenericElectrodesCount())), Eigen::VectorXd(readingsScalar->getTensions()[0]), *precond, 600, (float)0.0000001
+        Aii, Aic, Acc, Eigen::VectorXd(readingsScalar->getCurrents()[0].tail(input->getGenericElectrodesCount())), Eigen::VectorXd(readingsScalar->getTensions()[0]), *precond, 800, (float)0.00000001
      );
      std::cout << "Done\n" << std::flush;
 
@@ -98,6 +97,9 @@ int main(int argc, char *argv[])
      std::cout << "Solved performed " << solver_e->getIteration() << " iterations\n";
      std::cout << "Least eigenvalue estimation: " << a << "\n";
 
+     long start, stop;
+     std::unique_ptr<LB_Solver_A<eigen_double_qr_engine>::Preconditioner> precondqr;
+/*
      std::cout << "Preparing solver..." << std::flush;
      std::unique_ptr<LB_Solver> solver = std::make_unique<LB_Solver>(
         Aii, Aic, Acc, Eigen::VectorXd(readingsScalar->getCurrents()[0].tail(input->getGenericElectrodesCount())), Eigen::VectorXd(readingsScalar->getTensions()[0]), *precond, a
@@ -105,12 +107,11 @@ int main(int argc, char *argv[])
      std::cout << "Done\n" << std::flush;
 
      solver->do_iteration();
-     for(unsigned i = 0; i<100; i++) {
+     for(unsigned i = 0; i<300; i++) {
          std::cout << solver->getIteration() << ": (min): " << solver->getMinErrorl2Estimate() << " (max): " << solver->getMaxErrorl2Estimate() << std::endl;
          solver->do_iteration();
      }
 
-     std::unique_ptr<LB_Solver_A<eigen_double_qr_engine>::Preconditioner> precondqr;
      std::cout << "Preparing preconditioner (QR)..." << std::flush;
      precondqr.reset(LB_Solver_A<eigen_double_qr_engine>::makePreconditioner(*Aii, *Aic));
      std::cout << "Done\n" << std::flush;
@@ -122,34 +123,33 @@ int main(int argc, char *argv[])
      std::cout << "Done\n" << std::flush;
 
      solverqr->do_iteration();
-     for(unsigned i = 0; i<100; i++) {
+     for(unsigned i = 0; i<300; i++) {
          std::cout << solverqr->getIteration() << ": (min): " << solverqr->getMinErrorl2Estimate() << " (max): " << solverqr->getMaxErrorl2Estimate() << std::endl;
          solverqr->do_iteration();
      }
 
-     long start, stop;
      std::cout << "Benchmarking iteration costs..." << std::flush;
      std::cout << "LLT preconditioner...\n";
      for(int i = 0; i<100; i++) {
          solver->do_iteration();
      }
      start = get_usec_timestamp();
-     for(int i = 0; i<400000; i++) {
+     for(int i = 0; i<100000; i++) {
          solver->do_iteration();
      }
      stop = get_usec_timestamp();
-     std::cout << "LLT preconditioner: "  <<  ((double)(stop - start))/400000 << std::endl;
+     std::cout << "LLT preconditioner: "  <<  ((double)(stop - start))/100000 << std::endl;
 
      std::cout << "QR preconditioner...\n";
      for(int i = 0; i<100; i++) {
          solverqr->do_iteration();
      }
      start = get_usec_timestamp();
-     for(int i = 0; i<400000; i++) {
+     for(int i = 0; i<100000; i++) {
          solverqr->do_iteration();
      }
      stop = get_usec_timestamp();
-     std::cout << "QR preconditioner: "  <<  ((double)(stop - start))/400000 << std::endl;
+     std::cout << "QR preconditioner: "  <<  ((double)(stop - start))/100000 << std::endl;
 
      std::cout << "Benchmarking construction/destruction costs..." << std::flush;
      std::cout << "LLT preconditioner...\n";
@@ -157,22 +157,22 @@ int main(int argc, char *argv[])
          precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
      }
      start = get_usec_timestamp();
-     for(int i = 0; i<2000; i++) {
+     for(int i = 0; i<4000; i++) {
          precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
      }
      stop = get_usec_timestamp();
-     std::cout << "LLT preconditioner: "  <<  ((double)(stop - start))/2000 << std::endl;
+     std::cout << "LLT preconditioner: "  <<  ((double)(stop - start))/4000 << std::endl;
+*/
      std::cout << "QR preconditioner...\n";
      for(int i = 0; i<20; i++) {
          precondqr.reset(LB_Solver_A<eigen_double_qr_engine>::makePreconditioner(*Aii, *Aic));
      }
      start = get_usec_timestamp();
-     for(int i = 0; i<2000; i++) {
+     for(int i = 0; i<4000; i++) {
          precondqr.reset(LB_Solver_A<eigen_double_qr_engine>::makePreconditioner(*Aii, *Aic));
      }
      stop = get_usec_timestamp();
-     std::cout << "QR preconditioner: "  <<  ((double)(stop - start))/2000 << std::endl;
-
+     std::cout << "QR preconditioner: "  <<  ((double)(stop - start))/4000 << std::endl;
 
      return 0;
  }

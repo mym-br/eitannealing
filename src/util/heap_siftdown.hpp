@@ -33,4 +33,15 @@ template<class iterator, class compare> void heap_sift_top_down(iterator s, cons
     if((c1 < end) && cmp(*s, *c1)) std::iter_swap(s, c1);
 }
 
+template<class iterator, class compare> void make_heap_down(const iterator &start, const iterator &end, const compare &cmp)
+{
+    iterator last_parent(start);
+    typename std::iterator_traits<iterator>::difference_type length = std::distance(start, end);
+    std::advance(last_parent, length/2 - 1);
+    while(last_parent >= start) {
+        heap_sift_top_down(last_parent, end, cmp);
+        std::advance(last_parent, -1);
+    }
+}
+
 #endif  // _HEAP_SIFTDOWN_HPP

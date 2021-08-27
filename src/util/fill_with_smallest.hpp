@@ -24,7 +24,8 @@ void fillWithNSmallest(container1 &dest, const container2 &orig, unsigned long n
         oo++;
     }
     if(oo != orig.end()) { // There are remaining elements, get the n largest
-        std::make_heap(dest.begin(), dest.end(), cmp); // max heap
+        //std::make_heap(dest.begin(), dest.end(), cmp); // max heap
+        make_heap_down(dest.begin(), dest.end(), cmp); // max heap
         while(oo != orig.end()) {
             if(cmp(*oo, dest.front())) {
                 // Replace smallest element and fix the heap

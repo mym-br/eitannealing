@@ -17,10 +17,9 @@
 // container1 should be a storage class heap-friendly (is there anything else than vectors?)
 template <class container1, class container2, class comparator> 
 void fillWithNSmallest(container1 &dest, const container2 &orig, unsigned long n, const comparator &cmp) {
-    dest.clear();
     auto oo = orig.begin();
     while(dest.size() < n && oo != orig.end()) {
-        dest.push_back(*oo);
+        dest.emplace_back(*oo);
         oo++;
     }
     if(oo != orig.end()) { // There are remaining elements, get the n largest

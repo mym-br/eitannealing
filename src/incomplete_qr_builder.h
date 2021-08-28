@@ -62,6 +62,8 @@ template<class scalar> class SparseIncompleteQRBuilder
                     x.clear();
                     x.reserve(3*nq);  // That's actually somehow unpredictable, but 3*nq should be enought
                 }
+                selectedR.reserve(nr-1);
+                selectedQ.reserve(nq);
                 for(unsigned long j = 0; j<n ; j++) {
                     // Calc the current L vector, product of i-th row of a
                     //  and the previous q matrix
@@ -75,6 +77,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                     });
                     // Get nr-1 *largest* elements
                     //  -1 accounts for the diagonal
+                    selectedR.clear();
                     fillWithNSmallest(selectedR, buildingR, nr - 1, cmp_larger_abs_coef);
                     // Sort it according to index
                     std::sort(selectedR.begin(), selectedR.end(), [](const i_c &a, const i_c &b){return a.first<b.first;});
@@ -85,6 +88,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                             buildingQ[qj] -= rv*qv;
                     }
                     // Get ql largest elements, same procedure as for L above
+                    selectedQ.clear();
                     fillWithNSmallest(selectedQ, buildingQ, nq, cmp_larger_abs_coef);
                     // Renormalize
                     double qnorm2 = 0;

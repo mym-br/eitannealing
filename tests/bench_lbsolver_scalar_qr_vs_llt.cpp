@@ -45,7 +45,7 @@ struct eigen_double_qr_engine {
 	}
 
 	inline static preconditioner *make_new_preconditioner(const symMatrix &A_ii, const matrix &A_ic) {
-		return new preconditioner(8, 8, A_ii, A_ic, getQRBuilder());
+		return new preconditioner(8, 16, A_ii, A_ic, getQRBuilder());
 	}
 };
 
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 
      long start, stop;
      std::unique_ptr<LB_Solver_A<eigen_double_qr_engine>::Preconditioner> precondqr;
-/*
+
      std::cout << "Preparing solver..." << std::flush;
      std::unique_ptr<LB_Solver> solver = std::make_unique<LB_Solver>(
         Aii, Aic, Acc, Eigen::VectorXd(readingsScalar->getCurrents()[0].tail(input->getGenericElectrodesCount())), Eigen::VectorXd(readingsScalar->getTensions()[0]), *precond, a
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
      }
      stop = get_usec_timestamp();
      std::cout << "LLT preconditioner: "  <<  ((double)(stop - start))/4000 << std::endl;
-*/
+
      std::cout << "QR preconditioner...\n";
      for(int i = 0; i<20; i++) {
          precondqr.reset(LB_Solver_A<eigen_double_qr_engine>::makePreconditioner(*Aii, *Aic));

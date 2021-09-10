@@ -56,8 +56,8 @@ template <class scalar> class SparseIncompleteQR
         SparseIncompleteQRBuilder<scalar> builder;
 
         builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(Aii_low, Aic), nr, nq,
-         [this](unsigned long j, real x) {
-            this->idiagonal(j) = x;
+         [this](unsigned long j, real invx) {
+            this->idiagonal(j) = invx;
          },
          [this](unsigned long i, unsigned long j, scalar x) {
              this->rmatrix.insert(i,j) = x;
@@ -73,14 +73,13 @@ template <class scalar> class SparseIncompleteQR
         idiagonal(Aii_low.rows()), rmatrix(Aii_low.rows(), Aii_low.rows()) {
 
         builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(Aii_low, Aic), nr, nq,
-         [this](unsigned long j, real x) {
-            this->idiagonal(j) = x;
+         [this](unsigned long j, real invx) {
+            this->idiagonal(j) = invx;
          },
          [this](unsigned long i, unsigned long j, scalar x) {
              this->rmatrix.insert(i,j) = x;
          });
          rmatrix.makeCompressed();
-         idiagonal = idiagonal.cwiseInverse();
          for(int j = 1; j<rmatrix.outerSize(); j++) {
              rmatrix.col(j) *= idiagonal(j);
          }

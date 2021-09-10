@@ -45,6 +45,7 @@ template<class scalar> class SparseIncompleteQRBuilder
         //  iterateOverColumn(unsigned long i, std::function<void(unsigned long, scalar)> &f) const
         //    applies f to each nonzero element of a's i-th column, passing its row number and value.
         // Unsigned long rows() and unsigned long cols()
+        //  Attention: diagonalInsertFunction receives the *Reciprocal* diagonal value
         template <class columnMajorStorage, class diagonalInsertFunction, class upperElementsInsertFunction> void
         buildRMatrixFromColStorage(columnMajorStorage &&a, unsigned long nr, unsigned long nq, diagonalInsertFunction &&insert_diagonal, upperElementsInsertFunction &&insert_upper)
         {
@@ -96,7 +97,7 @@ template<class scalar> class SparseIncompleteQRBuilder
                     double qnorm = std::sqrt(qnorm2);
                     double inorm = 1/qnorm;
                     // Final element of R is the norm
-                    insert_diagonal(j, qnorm);
+                    insert_diagonal(j, inorm);
                     // Now update q storage
                     for(auto [i, v] : selectedQ) {
                         scalar nv = v*inorm;

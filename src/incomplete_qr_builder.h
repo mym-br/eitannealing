@@ -21,7 +21,7 @@
 template<class scalar> class SparseIncompleteQRBuilder
 {
     protected:
-
+        typedef typename Eigen::NumTraits<scalar>::Real real;
         typedef std::pair<unsigned long, scalar> i_c; // Pair index coefficient
 
         // Those persistent objects should provide storage for
@@ -34,7 +34,7 @@ template<class scalar> class SparseIncompleteQRBuilder
         std::vector<i_c> selectedR;
         std::vector<i_c> selectedQ;
 
-        static double sqnorm(const scalar &x);
+        static real sqnorm(const scalar &x);
         static scalar inner(const scalar &x, const scalar &y);
         static bool cmp_larger_abs_coef(const i_c &a, const i_c &b);
 
@@ -92,10 +92,10 @@ template<class scalar> class SparseIncompleteQRBuilder
                     selectedQ.clear();
                     fillWithNSmallest(selectedQ, buildingQ, nq, cmp_larger_abs_coef);
                     // Renormalize
-                    double qnorm2 = 0;
+                    real qnorm2 = 0;
                     for(auto [i, v] : selectedQ) qnorm2 += sqnorm(v);
-                    double qnorm = std::sqrt(qnorm2);
-                    double inorm = 1/qnorm;
+                    real qnorm = std::sqrt(qnorm2);
+                    real inorm = 1/qnorm;
                     // Final element of R is the norm
                     insert_diagonal(j, inorm);
                     // Now update q storage

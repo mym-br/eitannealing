@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
      std::cout << "new (scalar): "  <<  ((double)(stop - start))/400000 << std::endl;
 
 
-     std::cout << "Benchmarking old vs new (complex)...\n";
+     std::cout << "Benchmarking old vs new iteration cost (complex)...\n";
      for(int i = 0; i<100; i++) {
          pre->solveInPlaceC(dummy_Re, dummy_Im);
          pre->solveInPlaceCT(dummy_Re, dummy_Im);
@@ -104,6 +104,27 @@ int main(int argc, char *argv[])
      }
      stop = get_usec_timestamp();
      std::cout << "new: "  <<  ((double)(stop - start))/400000 << std::endl;
-
+     
+     
+     std::cout << "Benchmarking old vs new iteration construction cost (complex)...\n";
+     for(int i = 0; i<100; i++) {
+         pre = std::make_unique<LB_Solver_Complex::Preconditioner>(8, 16, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
+     }
+     start = get_usec_timestamp();
+     for(int i = 0; i<10000; i++) {
+         pre = std::make_unique<LB_Solver_Complex::Preconditioner>(8, 16, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
+     }
+     stop = get_usec_timestamp();
+     std::cout << "old: "  <<  ((double)(stop - start))/10000 << std::endl;
+     for(int i = 0; i<100; i++) {
+         pre2 = std::make_unique<SparseIncompleteQRComplex2>(8, 10, Aii, Aic);
+     }
+     start = get_usec_timestamp();
+     for(int i = 0; i<10000; i++) {
+         pre2 = std::make_unique<SparseIncompleteQRComplex2>(8, 10, Aii, Aic);
+     }
+     stop = get_usec_timestamp();
+     std::cout << "new: "  <<  ((double)(stop - start))/10000 << std::endl;
+     
      return 0;
  }

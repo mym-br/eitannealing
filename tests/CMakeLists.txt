@@ -38,6 +38,10 @@ add_executable(bench_lbsolver_scalar_qr_vs_llt bench_lbsolver_scalar_qr_vs_llt.c
 set_property(TARGET bench_lbsolver_scalar_qr_vs_llt PROPERTY CXX_STANDARD 17)
 set_property(TARGET bench_lbsolver_scalar_qr_vs_llt PROPERTY CXX_STANDARD_REQUIRED ON)
 
+add_executable(test_lb_least_eigenvalue test_lb_least_eigenvalue.cpp $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine> $<TARGET_OBJECTS:eit_time>)
+set_property(TARGET test_lb_least_eigenvalue PROPERTY CXX_STANDARD 17)
+set_property(TARGET test_lb_least_eigenvalue PROPERTY CXX_STANDARD_REQUIRED ON)
+
 add_executable(test_heap test_heap.cpp $<TARGET_OBJECTS:eit_time>)
 set_property(TARGET test_heap PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_heap PROPERTY CXX_STANDARD_REQUIRED ON)

@@ -58,10 +58,7 @@ template<class num_engine> class LB_Solver_A {
 			    delta = sqrt(JhatNorm2);
 			    p = r/delta; pc = rc/delta;
 
-			    // S = (ACi)T*p
-			    //s.noalias() = Aii*p;	// Aii^T = Aii
-			    //s.noalias() += Aic.transpose()*pc;
-					num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
+                num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
 			    precond.solveInPlaceT(s);
 				ATJhatNorm2 = s.squaredNorm();
 			    gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
@@ -77,15 +74,11 @@ template<class num_engine> class LB_Solver_A {
 
 				qaux = q;
 			    precond.solveInPlace(qaux); // q  <- q*C^-1
-			    //r.noalias() = Aii*qaux;
-			    //rc.noalias() = Aic*qaux;
-					num_engine::product_ii_ic_vector(r, rc, Aii, Aic, qaux);
+			    num_engine::product_ii_ic_vector(r, rc, Aii, Aic, qaux);
 				r -= gamma_ip*p; rc -= gamma_ip*pc;
 			    delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 				p = r/delta; pc = rc/delta;
-			    //s.noalias() = Aii*p; 	// Aii^T = Aii
-			    //s.noalias() += Aic.transpose()*pc;
-					num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
+			    num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
 				precond.solveInPlaceT(s);
 				s -= delta*q;
 			    // *** Gauss, as next value for gamma will be pertinent to iteration 2!
@@ -137,12 +130,7 @@ template<class num_engine> class LB_Solver_A {
 				{
 				    it = 0;
 				    // 0
-						//num_engine::j_minus_a_x_phi(r, rc, Aic, *_Acc, J, Phi);
-						num_engine::j_minus_a_x_phi(r, rc, Aic, *_Acc, J, Phi);
-						//r.noalias() = -_Aic->transpose()*Phi;
-						//rc = J;
-						//rc.noalias() -= _Acc->template selfadjointView<Eigen::Lower>()*Phi;
-
+                    num_engine::j_minus_a_x_phi(r, rc, Aic, *_Acc, J, Phi);
 				    init();
 				}
 
@@ -151,50 +139,39 @@ template<class num_engine> class LB_Solver_A {
 				{
 					it = 0;
 					// 0
-					//r.noalias() = -_Aic->transpose()*Phi;
-					//rc = J;
-					//rc.noalias() -= _Acc->template selfadjointView<Eigen::Lower>()*Phi;
 					num_engine::j_minus_a_x_phi(r, rc, Aic, *_Acc, J, Phi);
-					//std::cout << "Before:" << sqrt(r.squaredNorm()+rc.squaredNorm());
 					Eigen::VectorXd xaux(x0);
-					//precond.solveInPlace(xaux);
-					//r.noalias() -=  Aii.template selfadjointView<Eigen::Lower>()*xaux;
-					//rc.noalias() -= Aic*xaux;
 					num_engine::subtract_a_x(r, rc, Aii, Aic, x0);
-					//std::cout << "After:" << sqrt(r.squaredNorm()+rc.squaredNorm()) << std::endl;
-
-			    init();
+                    init();
 				}
+
+
 
         void do_iteration() {
 				    qaux = q;
 				    precond.solveInPlace(qaux); // q  <- q*C^-1
-						//r.noalias() = Aii*qaux;
-				    //rc.noalias() = Aic*qaux;
-						num_engine::product_ii_ic_vector(r, rc, Aii, Aic, qaux);
+                    num_engine::product_ii_ic_vector(r, rc, Aii, Aic, qaux);
 					r -= gamma_ip*p; rc -= gamma_ip*pc;
 				    delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 					p = r/delta; pc = rc/delta;
-				    //s.noalias() = Aii*p; 	// Aii^T = Aii
-				    //s.noalias() += Aic.transpose()*pc;
-						num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
+				    num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
 				    precond.solveInPlaceT(s);
 					s -= delta*q;
-				        // *** Gauss, as next value for gamma will be pertinent to next iteration!
-						psi_im = si*gamma_ip;
+                    // *** Gauss, as next value for gamma will be pertinent to next iteration!
+                    psi_im = si*gamma_ip;
 
-				                fit *= si;
-				                w = q - (psi_im/phi)*w;
-				                phi2 = c*c*gamma_ip*gamma_ip+delta*delta;
-						phi = sqrt(phi2);
-						c *= -gamma_ip/phi;
-						si = delta/phi;
-						pi_im = pi;
-						pi *= psi_im*psi_im/phi2;
-						g_im = g;
-						g+=pi;
-						// This is due to gauss-radau
-						alpha = gamma_ip*gamma_ip+delta*delta;
+                    fit *= si;
+                    w = q - (psi_im/phi)*w;
+                    phi2 = c*c*gamma_ip*gamma_ip+delta*delta;
+                    phi = sqrt(phi2);
+                    c *= -gamma_ip/phi;
+                    si = delta/phi;
+                    pi_im = pi;
+                    pi *= psi_im*psi_im/phi2;
+                    g_im = g;
+                    g+=pi;
+                    // This is due to gauss-radau
+                    alpha = gamma_ip*gamma_ip+delta*delta;
 
 				    gamma_ip = s.norm();
 					q = s/gamma_ip;
@@ -208,8 +185,6 @@ template<class num_engine> class LB_Solver_A {
 					gr = g_im + pi_im*(psi_im*psi_im/phi2t);
 
 				     x -= (c*fit/phi)*w;
-				     //std::cout << "x_1[" << it+1 << "]:" << x[0] << std::endl;
-				     //std::cout << "fit[" << it+1 << "]:" << fit << std::endl;
 				     it++;
 				}
 
@@ -224,6 +199,65 @@ template<class num_engine> class LB_Solver_A {
 		    		return num_engine::make_new_preconditioner(A_ii, A_ic);
 				}
 
+    private:
+        // This method only works if called *after* init and *before* any do_initialization!
+        std::pair<scalar, vector> estimate_smallest_eigenvalue(int n, float e, vector &&temp_eigenvector) {
+            Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
+            // Alpha and beta must be stored in order to recalculate dt
+            std::vector<double> AlphaVector;
+            std::vector<double> BetaVector;
+            AlphaVector.push_back(this->alpha);
+            BetaVector.push_back(this->beta);
+            U.reserve(2*n-1);
+            U.insert(0,0) = this->phi;
+            for(int i=1;i<n;i++) {
+                this->do_iteration();
+                AlphaVector.push_back(this->alpha);
+                BetaVector.push_back(this->beta);
+                U.insert(i-1,i) = this->psi_im;
+                U.insert(i,i) = this->phi;
+            }
+            U.makeCompressed();
+            // Now calc eigenvalue
+            scalar oev=0;
+            scalar ev = 1.0;
+            while(fabs(oev-ev)/ev > e) {
+                U.triangularView<Eigen::Upper>().transpose().solveInPlace(temp_eigenvector);
+                U.triangularView<Eigen::Upper>().solveInPlace(temp_eigenvector);
+                oev = ev;
+                ev = 1/temp_eigenvector.norm();
+                temp_eigenvector *= ev;
+            }
+            //this->a = ev;
+            // We need now to recalculate Dt...
+            this->dt = AlphaVector[0] - this->a;
+            for(unsigned int i=1;i<this->it;i++) {
+                this->dt = AlphaVector[i] - this->a - (BetaVector[i-1]*BetaVector[i-1])/this->dt;
+	        }
+            // Update Gauss-Radau values
+            this->do_iteration();
+            return std::make_pair(ev, std::move(temp_eigenvector));
+        }
+    public:
+        // Constructor with eigevalue estimation
+        LB_Solver_A(symMatrix *Aii, matrix *Aic, symMatrix *Acc, const vector &J, const vector &Phi, const Preconditioner &precond,
+                                int n, float e, scalar &res_smallest_eigenvalue, vector &res_eigenvector):
+                                LB_Solver_A<num_engine>(Aii, Aic, Acc, J, Phi, precond, 0)
+        {
+            auto res = estimate_smallest_eigenvalue(n, e, Eigen::VectorXd::Constant(n,1/sqrt(n)));
+            res_smallest_eigenvalue = res.first;
+            res_eigenvector = std::move(res.second);
+        }
+
+        // Constructor with eigevalue estimation reusing previous eigenvector estimate
+        LB_Solver_A(symMatrix *Aii, matrix *Aic, symMatrix *Acc, const vector &J, const vector &Phi, const Preconditioner &precond,
+                    const vector &x0, const vector &egHint, unsigned int n, float e, scalar &res_smallest_eigenvalue, vector &res_eigenvector):
+                    LB_Solver_A<num_engine>(Aii, Aic, Acc, J, Phi, precond, 0, x0)
+        {
+            auto res = estimate_smallest_eigenvalue(n, e, vector(egHint));
+            res_smallest_eigenvalue = res.first;
+            res_eigenvector = std::move(res.second);
+        }
 };
 
 template<class num_engine> class LB_Solver_EG_Estimate_A : public LB_Solver_A<num_engine>

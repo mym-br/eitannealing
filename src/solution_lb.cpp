@@ -208,22 +208,18 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o):
 
 void solution_lb::initSimulations()
 {
-
-	// Prepare solvers
+    // Prepare solvers
 	int i;
 	this->totalit = 0;
-        // 1st solution estimates also least eigenvalue
-        LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
-                        Eigen::VectorXd(o.getTensions()[0]), *precond,  100, (float)0.0001);
-        double a = solver->getLeastEvEst();
-        simulations[0] = solver;
-	this->totalit += solver->getIteration();
+    // 1st solution estimates also least eigenvalue
+    simulations[0] = new LB_Solver(Aii, Aic, Acc, o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
+                    Eigen::VectorXd(o.getTensions()[0]), *precond,  100, (float)0.0001, this->eigenvalue_estimate, this->eigenvector_estimate);
+    this->totalit += simulations[0]->getIteration();
 	for(i=1;i<o.getNObs();i++)
 	{
-                simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
-			Eigen::VectorXd(o.getTensions()[i]), *precond, a);
+        simulations[i] = new LB_Solver(
+            Aii, Aic, Acc, o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
+            Eigen::VectorXd(o.getTensions()[i]), *precond, this->eigenvalue_estimate);
 		simulations[i]->do_iteration();
 		this->totalit += simulations[i]->getIteration();
 	}
@@ -234,23 +230,17 @@ void solution_lb::initSimulations(const solution_lb &base)
         // Prepare solvers
         int i;
         this->totalit = 0;
-        const LB_Solver_EG_Estimate *baseEVSolver = dynamic_cast<const LB_Solver_EG_Estimate *>(base.simulations[0]);
         // 1st solution estimates also least eigenvalue
-        LB_Solver_EG_Estimate *solver = new LB_Solver_EG_Estimate(
-                        Aii, Aic, Acc, o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
+        simulations[0] = new LB_Solver(Aii, Aic, Acc, o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
                         Eigen::VectorXd(o.getTensions()[0]), *precond,
-                        baseEVSolver->getX(),
-			baseEVSolver->getEvector(), 100, (float)0.0001);
-        double a = solver->getLeastEvEst();
-        simulations[0] = solver;
-	this->totalit += solver->getIteration();
+                        base.simulations[0]->getX(), base.getLeastEigenvectorEstimation(), 100, (float)0.0001, this->eigenvalue_estimate, this->eigenvector_estimate);
+        this->totalit += simulations[0]->getIteration();
         for(i=1;i<o.getNObs();i++)
         {
                 simulations[i] = new LB_Solver(
                         Aii, Aic, Acc, o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
-                        Eigen::VectorXd(o.getTensions()[i]), *precond, a,
+                        Eigen::VectorXd(o.getTensions()[i]), *precond, this->eigenvalue_estimate,
 					       base.simulations[i]->getX());
-
                 simulations[i]->do_iteration();
                 this->totalit += simulations[i]->getIteration();
         }

@@ -52,6 +52,9 @@ class solution_lb {
 			Eigen::VectorXd err;
 			Eigen::VectorXd err_x_dist;
 
+            // Least eigenvector and eigenvalue estimations
+            double eigenvalue_estimate;
+            Eigen::VectorXd eigenvector_estimate;
 
 			double totalDist;
 			double minTotalDist;
@@ -122,7 +125,15 @@ class solution_lb {
 
 		double getRegularisationValue() const {
 			    return this->regularisation;
-			}
+        }
+
+        double getLeastEigenvalueEstimation() const {
+            return this->eigenvalue_estimate;
+        }
+
+        const Eigen::VectorXd &getLeastEigenvectorEstimation() const {
+            return this->eigenvector_estimate;
+        }
 
 		void saturate();
 

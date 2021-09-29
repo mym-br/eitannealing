@@ -63,7 +63,6 @@ template <class scalar> class SparseIncompleteQR
              this->rmatrix.insert(i,j) = x;
          });
          rmatrix.makeCompressed();
-         idiagonal = idiagonal.cwiseInverse();
          for(int j = 1; j<rmatrix.outerSize(); j++) {
              rmatrix.col(j) *= idiagonal(j);
          }

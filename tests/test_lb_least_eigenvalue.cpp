@@ -61,6 +61,15 @@ int main(int argc, char *argv[])
      std::cout << "Eigenvalue (old): " << solver_e->getLeastEvEst() << " (new): " << eigenvalue << std::endl;
      std::cout << "norm of old-new eigenvector: " << (eigenvector-solver_e->getEvector()).norm() << std::endl;
 
-
+     std::cout << "Testing emplace construction on a vector... ";
+     {
+        std::vector<LB_Solver> v;
+        v.reserve(100);
+        for(int i=0;i<100;i++) {
+            v.emplace_back(Aii, Aic, Acc, Eigen::VectorXd(readingsScalar->getCurrents()[0].tail(input->getGenericElectrodesCount())), Eigen::VectorXd(readingsScalar->getTensions()[0]), *precond, 600, (float)0.0000001, eigenvalue, eigenvector);
+        }
+        std::cout << "Created 100 instances on a vector... now deleting... ";
+     }
+     std::cout << "Done!\n";
      return 0;
  }

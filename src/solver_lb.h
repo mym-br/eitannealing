@@ -125,6 +125,16 @@ template<class num_engine> class LB_Solver_A {
 					return getErrorl2Estimate();
 				}
 
+        // std::vector requires a copy constructor for resizes.
+        //  This is just a non-working placeholder, call reserve() so resize is never used.
+        LB_Solver_A ( const LB_Solver_A &s):
+         Aii(s.Aii), Aic(s.Aic), precond(s.precond), lowerSafe(true), a(s.a), x0(vector::Zero(s.Aii.rows())){
+            std::cerr << "LB_Solver_A copy constructor inkoked. This should never happen (wrong container size?)\n";
+            std::exit(-1);
+        }
+
+        LB_Solver_A& operator=(LB_Solver_A const&) = delete;
+
         LB_Solver_A(symMatrix *_Aii, matrix *_Aic, symMatrix *_Acc, const vector &J, const vector &Phi, const Preconditioner &precond, real a):
 				    Aii(*_Aii), Aic(*_Aic), precond(precond), lowerSafe(true), a(a), x0(vector::Zero(_Aii->rows()))
 				{

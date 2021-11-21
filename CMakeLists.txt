@@ -11,7 +11,6 @@ if(${CUDA_VERSION_MAJOR} GREATER 10) # FIXME: Cuda support is rotting fast
 endif()
 find_package(GMSH REQUIRED)
 
-set(CMAKE_AUTOMOC ON)
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} src src/complex)
 
 set(eit_core_SRCS
@@ -82,6 +81,7 @@ set_property(TARGET eit_new_complex_engine PROPERTY CXX_STANDARD 17)
 add_library(eit_gui OBJECT ${eit_gui_SRCS})
 target_compile_options(eit_gui PRIVATE ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS})
 set_property(TARGET eit_gui PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET eit_gui PROPERTY AUTOMOC ON)
 
 add_library(eit_time OBJECT ${eit_time_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)

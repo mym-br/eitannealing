@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
      long start, stop;
 
      std::unique_ptr<SparseIncompleteQR<double> > pre_scalar = std::make_unique<SparseIncompleteQR<double> >(8, 10, *Aii_R, *Aic_R);
-     std::cout << "Benchmark new (scalar...)\n";
+     std::cout << "Benchmark new (real...)\n";
      for(int i = 0; i<100; i++) {
          pre_scalar->solveInPlace(dummy_Re);
          pre_scalar->solveInPlaceT(dummy_Re);
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
          pre_scalar->solveInPlaceT(dummy_Re);
      }
      stop = get_usec_timestamp();
-     std::cout << "new (scalar): "  <<  ((double)(stop - start))/400000 << std::endl;
+     std::cout << "new (real): "  <<  ((double)(stop - start))/400000 << std::endl;
 
 
      std::cout << "Benchmarking old vs new iteration cost (complex)...\n";
@@ -111,20 +111,20 @@ int main(int argc, char *argv[])
          pre = std::make_unique<LB_Solver_Complex::Preconditioner>(8, 16, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
      }
      start = get_usec_timestamp();
-     for(int i = 0; i<10000; i++) {
+     for(int i = 0; i<1000; i++) {
          pre = std::make_unique<LB_Solver_Complex::Preconditioner>(8, 16, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
      }
      stop = get_usec_timestamp();
-     std::cout << "old: "  <<  ((double)(stop - start))/10000 << std::endl;
+     std::cout << "old: "  <<  ((double)(stop - start))/1000 << std::endl;
      for(int i = 0; i<100; i++) {
-         pre2 = std::make_unique<SparseIncompleteQRComplex2>(8, 10, Aii, Aic);
+         pre2 = std::make_unique<SparseIncompleteQRComplex2>(8, 16, Aii, Aic);
      }
      start = get_usec_timestamp();
-     for(int i = 0; i<10000; i++) {
-         pre2 = std::make_unique<SparseIncompleteQRComplex2>(8, 10, Aii, Aic);
+     for(int i = 0; i<1000; i++) {
+         pre2 = std::make_unique<SparseIncompleteQRComplex2>(8, 16, Aii, Aic);
      }
      stop = get_usec_timestamp();
-     std::cout << "new: "  <<  ((double)(stop - start))/10000 << std::endl;
+     std::cout << "new: "  <<  ((double)(stop - start))/1000 << std::endl;
      
      return 0;
  }

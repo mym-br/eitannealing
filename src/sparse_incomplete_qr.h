@@ -25,7 +25,8 @@ template <class scalar> class SparseIncompleteQR
         std::vector<std::vector<std::pair<unsigned long, scalar > > > upperMap;
         MatricesStorageAdaptor(const basematrix &Aii_low, const basematrix &Aic):
              ii(Aii_low), ic(Aic), square_size((unsigned long)Aii_low.cols()), upperMap(Aii_low.rows())  {}
-        void iterateOverColumn(unsigned long j, std::function<void(unsigned long, scalar)> &&f) {
+        template<class functor>
+        void iterateOverColumn(unsigned long j, functor &&f) {
             // FIXME: This assumes that the columns will be iterated in order, so the current column has already
             //  an appropriate upper map
             // First iterate over upper elements

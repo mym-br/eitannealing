@@ -71,8 +71,8 @@ class SparseIncompleteQRComplex
 
       SparseIncompleteQRBuilder<std::complex<double> > builder;
 
-      builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(iiUpper_R, iiUpper_I, Aic_R, Aic_I), nr, nq, [this](unsigned long j, double x) {
-        this->idiagonal[j] = 1/x;
+      builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(iiUpper_R, iiUpper_I, Aic_R, Aic_I), nr, nq, [this](unsigned long j, double invx) {
+        this->idiagonal[j] = invx;
       }, [this](unsigned long i, unsigned long j, std::complex<double> x) {
         this->rows[i].push_back(std::make_pair(j, x));
         this->cols[j].push_back(std::make_pair(i, x));

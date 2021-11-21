@@ -52,24 +52,10 @@ template <class scalar> class SparseIncompleteQR
   public:
 
     SparseIncompleteQR(unsigned long nr, unsigned long nq, const basematrix &Aii_low, const basematrix &Aic):
-        idiagonal(Aii_low.rows()), rmatrix(Aii_low.rows(), Aii_low.rows()) {
+        SparseIncompleteQR(nr, nq, Aii_low, Aic, SparseIncompleteQRBuilder<scalar>()) {}
 
-        SparseIncompleteQRBuilder<scalar> builder;
-
-        builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(Aii_low, Aic), nr, nq,
-         [this](unsigned long j, real invx) {
-            this->idiagonal(j) = invx;
-         },
-         [this](unsigned long i, unsigned long j, scalar x) {
-             this->rmatrix.insert(i,j) = x;
-         });
-         rmatrix.makeCompressed();
-         for(int j = 1; j<rmatrix.outerSize(); j++) {
-             rmatrix.col(j) *= idiagonal(j);
-         }
-    }
-
-    SparseIncompleteQR(unsigned long nr, unsigned long nq, const basematrix &Aii_low, const basematrix &Aic,  SparseIncompleteQRBuilder<double> &builder):
+    template <class BuilderClass>
+    SparseIncompleteQR(unsigned long nr, unsigned long nq, const basematrix &Aii_low, const basematrix &Aic,  BuilderClass &&builder):
         idiagonal(Aii_low.rows()), rmatrix(Aii_low.rows(), Aii_low.rows()) {
 
         builder.buildRMatrixFromColStorage(MatricesStorageAdaptor(Aii_low, Aic), nr, nq,

@@ -37,24 +37,23 @@ class solution_lb;
 class solution_lb {
 	protected:
 
-
+                  using solver = LB_Solver;
 			double *sol;
-			matrix *Aii, *Acc;
-			matrix *Aic;
-			std::unique_ptr<LB_Solver::Preconditioner> precond;
-      std::shared_ptr<problem> p;
-      const observations<double> &o;
+			std::unique_ptr<solver::matrix> Aii, Aic, Acc;
+			std::unique_ptr<solver::Preconditioner> precond;
+                  std::shared_ptr<problem> p;
+                  const observations<double> &o;
 
-			LB_Solver **simulations;
+			std::vector<solver> simulations;
 			Eigen::VectorXd distance;
 			Eigen::VectorXd maxdist;
 			Eigen::VectorXd mindist;
 			Eigen::VectorXd err;
 			Eigen::VectorXd err_x_dist;
 
-            // Least eigenvector and eigenvalue estimations
-            double eigenvalue_estimate;
-            Eigen::VectorXd eigenvector_estimate;
+                  // Least eigenvector and eigenvalue estimations
+                  double eigenvalue_estimate;
+                  solver::vector eigenvector_estimate;
 
 			double totalDist;
 			double minTotalDist;
@@ -80,6 +79,8 @@ class solution_lb {
 
 			// shuffle constructor
 			solution_lb(double *sol, const solution_lb &base);
+
+                  void initMatrices();
 
 
 	public:

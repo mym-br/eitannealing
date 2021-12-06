@@ -79,13 +79,13 @@ const float base[] = {
 void solution_lb::improve()
 {
 	// Do another iteration on the critical solver
-	simulations[critical]->do_iteration();
+	simulations[critical].do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
 
-	distance[critical] = simulations[critical]->getErrorl2Estimate();
-	maxdist[critical] = simulations[critical]->getMaxErrorl2Estimate();
-	mindist[critical] = simulations[critical]->getMinErrorl2Estimate();
+	distance[critical] = simulations[critical].getErrorl2Estimate();
+	maxdist[critical] = simulations[critical].getMaxErrorl2Estimate();
+	mindist[critical] = simulations[critical].getMinErrorl2Estimate();
 	err[critical] = maxdist[critical]-mindist[critical];
 	err_x_dist[critical] = maxdist[critical]*err[critical];
 	totalDist = distance.norm()+regularisation;
@@ -152,20 +152,18 @@ bool solution_lb::compareWith(solution_lb &target, float kt, float prob)
 	return false;
 }
 
-
+// Construct from solution vector copy
 solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, const double *sigma):
                                 p(p), o(o),
 				sol(solution_lb::copySolution(sigma,p->getNumCoefficients())),
-				simulations(new LB_Solver *[o.getNObs()]),
 				distance(o.getNObs()),
 				maxdist(o.getNObs()),
 				mindist(o.getNObs()),
 				err(o.getNObs()),
 				err_x_dist(o.getNObs())
 {
-        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, *p);
-        precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
 
+      this->initMatrices();
 	this->initSimulations();
 	this->initErrors();
 }
@@ -174,16 +172,13 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, co
 solution_lb::solution_lb(double *sigma, const solution_lb &base):
                 p(base.p), o(base.o),
                 sol(sigma),
-                simulations(new LB_Solver *[o.getNObs()]),
                 distance(o.getNObs()),
                 maxdist(o.getNObs()),
                 mindist(o.getNObs()),
                 err(o.getNObs()),
                 err_x_dist(o.getNObs())
 {
-        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, *p);
-        precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
-
+        this->initMatrices();
         this->initSimulations(base);
         this->initErrors();
 }
@@ -193,17 +188,25 @@ solution_lb::solution_lb(double *sigma, const solution_lb &base):
 solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o):
                 p(p), o(o),
 		sol(solution_lb::getNewRandomSolution(p->getNumCoefficients())),
-		simulations(new LB_Solver *[o.getNObs()]),
 		distance(o.getNObs()),
 		maxdist(o.getNObs()),
 		mindist(o.getNObs()),
 		err(o.getNObs()),
 		err_x_dist(o.getNObs())
 {
-        assembleProblemMatrix_lb(sol, &Aii, &Aic, &Acc, *p);
-        precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
-	this->initSimulations();
+      this->initMatrices();
+      this->initSimulations();
 	this->initErrors();
+}
+
+void solution_lb::initMatrices()
+{
+      solver::matrix *_aii, *_aic, *_acc;
+      assembleProblemMatrix_lb(sol, &_aii, &_aic, &_acc, *p);
+      Aii.reset(_aii);
+      Aic.reset(_aic);
+      Acc.reset(_acc);
+      precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
 }
 
 void solution_lb::initSimulations()
@@ -211,17 +214,20 @@ void solution_lb::initSimulations()
     // Prepare solvers
 	int i;
 	this->totalit = 0;
+
+    // Reserve is required, as solver has no working move constructor
+    simulations.reserve(o.getNObs());
     // 1st solution estimates also least eigenvalue
-    simulations[0] = new LB_Solver(Aii, Aic, Acc, o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
+    simulations.emplace_back(Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
                     Eigen::VectorXd(o.getTensions()[0]), *precond,  100, (float)0.0001, this->eigenvalue_estimate, this->eigenvector_estimate);
-    this->totalit += simulations[0]->getIteration();
+    this->totalit += simulations[0].getIteration();
 	for(i=1;i<o.getNObs();i++)
 	{
-        simulations[i] = new LB_Solver(
-            Aii, Aic, Acc, o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
+        simulations.emplace_back(
+            Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
             Eigen::VectorXd(o.getTensions()[i]), *precond, this->eigenvalue_estimate);
-		simulations[i]->do_iteration();
-		this->totalit += simulations[i]->getIteration();
+		simulations[i].do_iteration();
+		this->totalit += simulations[i].getIteration();
 	}
 }
 
@@ -230,19 +236,22 @@ void solution_lb::initSimulations(const solution_lb &base)
         // Prepare solvers
         int i;
         this->totalit = 0;
+
+        // Reserve is required, as solver has no working move constructor
+        simulations.reserve(o.getNObs());
         // 1st solution estimates also least eigenvalue
-        simulations[0] = new LB_Solver(Aii, Aic, Acc, o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
+        simulations.emplace_back(Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
                         Eigen::VectorXd(o.getTensions()[0]), *precond,
-                        base.simulations[0]->getX(), base.getLeastEigenvectorEstimation(), 100, (float)0.0001, this->eigenvalue_estimate, this->eigenvector_estimate);
-        this->totalit += simulations[0]->getIteration();
+                        base.simulations[0].getX(), base.getLeastEigenvectorEstimation(), 100, (float)0.0001, this->eigenvalue_estimate, this->eigenvector_estimate);
+        this->totalit += simulations[0].getIteration();
         for(i=1;i<o.getNObs();i++)
         {
-                simulations[i] = new LB_Solver(
-                        Aii, Aic, Acc, o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
+                simulations.emplace_back(
+                        Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
                         Eigen::VectorXd(o.getTensions()[i]), *precond, this->eigenvalue_estimate,
-					       base.simulations[i]->getX());
-                simulations[i]->do_iteration();
-                this->totalit += simulations[i]->getIteration();
+					       base.simulations[i].getX());
+                simulations[i].do_iteration();
+                this->totalit += simulations[i].getIteration();
         }
 }
 
@@ -257,9 +266,9 @@ void solution_lb::initErrors()
 	for(i=0;i<o.getNObs();i++) {
 		// Compare with observation
 
-		distance[i] = simulations[i]->getErrorl2Estimate();
-		maxdist[i] = simulations[i]->getMaxErrorl2Estimate();
-		mindist[i] = simulations[i]->getMinErrorl2Estimate();
+		distance[i] = simulations[i].getErrorl2Estimate();
+		maxdist[i] = simulations[i].getMaxErrorl2Estimate();
+		mindist[i] = simulations[i].getMinErrorl2Estimate();
 		err[i] = maxdist[i]-mindist[i];
 		err_x_dist[i] = maxdist[i]*err[i];
 	}
@@ -404,14 +413,13 @@ void solution_lb::ensureMinIt(unsigned int it)
 {
       static Eigen::VectorXd aux(p->getGenericElectrodesCount()-1);
       for(unsigned int i = 0; i<o.getNObs();i++) {
-            LB_Solver *sim = this->simulations[i];
-            while(sim->getIteration()<it) {
-                simulations[i]->do_iteration();
+            while(simulations[i].getIteration()<it) {
+                simulations[i].do_iteration();
                 this->totalit++;
 
-                distance[i] = simulations[i]->getErrorl2Estimate();
-                maxdist[i] = simulations[i]->getMaxErrorl2Estimate();
-                mindist[i] = simulations[i]->getMinErrorl2Estimate();
+                distance[i] = simulations[i].getErrorl2Estimate();
+                maxdist[i] = simulations[i].getMaxErrorl2Estimate();
+                mindist[i] = simulations[i].getMinErrorl2Estimate();
                 err[i] = maxdist[i]-mindist[i];
                 err_x_dist[i] = maxdist[i]*err[i];
                 totalDist = distance.norm()+regularisation;
@@ -436,18 +444,10 @@ void solution_lb::ensureMinIt(unsigned int it)
 solution_lb::~solution_lb()
 {
 	delete[] sol;
-	delete Aii;
-	delete Aic;
-	delete Acc;
-	for(int i=0;i<o.getNObs();i++) {
-		delete simulations[i];
-	}
-	delete[] simulations;
 }
 #ifdef __GENERATE_LB_BENCHMARKS
 solution_lb::solution_lb(const float *sigma, char benchmarktag):
 				sol(solution_lb::copySolution(sigma)),
-				simulations(new LB_Solver *[o.getNObs()]),
 				distance(o.getNObs()),
 				maxdist(o.getNObs()),
 				mindist(o.getNObs()),

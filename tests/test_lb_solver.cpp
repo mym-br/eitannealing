@@ -82,13 +82,15 @@ int main(int argc, char *argv[])
      std::cout << "Done\n" << std::flush;
 
      std::cout << "Preparing solver (eigenvalue estimator)..." << std::flush;
-     std::unique_ptr<LB_Solver_EG_Estimate> solver_e;
-     solver_e.reset(new LB_Solver_EG_Estimate(
-        Aii, Aic, Acc, Eigen::VectorXd(readingsScalar->getCurrents()[0].tail(input->getGenericElectrodesCount())), Eigen::VectorXd(readingsScalar->getTensions()[0]), *precond, 600, (float)0.0000001
-     ));
+     double a;
+     LB_Solver::vector eigenvector;
+     std::unique_ptr<LB_Solver> solver_e =
+     std::make_unique<LB_Solver>(Aii, Aic, Acc,
+            Eigen::VectorXd(readingsScalar->getCurrents()[0].tail(input->getGenericElectrodesCount())),
+            Eigen::VectorXd(readingsScalar->getTensions()[0]), *precond, 600, (float)0.0000001,
+            a, eigenvector
+     );
      std::cout << "Done\n" << std::flush;
-
-     double a = solver_e->getLeastEvEst();
      std::cout << "Solved performed " << solver_e->getIteration() << " iterations\n";
      std::cout << "Least eigenvalue estimation: " << a << "\n";
 

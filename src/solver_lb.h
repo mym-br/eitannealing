@@ -210,7 +210,7 @@ template<class num_engine> class LB_Solver_A {
 				}
 
     private:
-        // This method only works if called *after* init and *before* any do_initialization!
+        // This method only works if called *after* init and *before* any do_iteration!
         std::pair<scalar, vector> estimate_smallest_eigenvalue(int n, float e, vector &&temp_eigenvector) {
             Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
             // Alpha and beta must be stored in order to recalculate dt
@@ -270,117 +270,6 @@ template<class num_engine> class LB_Solver_A {
         }
 };
 
-template<class num_engine> class LB_Solver_EG_Estimate_A : public LB_Solver_A<num_engine>
-{
-
-  typename LB_Solver_A<num_engine>::real ev;
-  typename LB_Solver_A<num_engine>::vector evec;
-
-  public:
-	using typename LB_Solver_A<num_engine>::real;
-	using typename LB_Solver_A<num_engine>::vector;
-	using typename LB_Solver_A<num_engine>::symMatrix;
-	using typename LB_Solver_A<num_engine>::matrix;
-	using typename LB_Solver_A<num_engine>::Preconditioner;
-
-
-    LB_Solver_EG_Estimate_A(symMatrix *Aii, matrix *Aic, symMatrix *Acc, const vector &J, const vector &Phi, const Preconditioner &precond, int n, float e):
-	        LB_Solver_A<num_engine>(Aii, Aic, Acc, J, Phi, precond, 0)
-	{
-	      Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
-	      // Alpha and beta must be stored in order to recalculate dt
-	      std::vector<double> AlphaVector;
-	      std::vector<double> BetaVector;
-	      AlphaVector.push_back(this->alpha);
-	      BetaVector.push_back(this->beta);
-	      U.reserve(2*n-1);
-	      U.insert(0,0) = this->phi;
-	      for(int i=1;i<n;i++) {
-	        this->do_iteration();
-	        AlphaVector.push_back(this->alpha);
-	        BetaVector.push_back(this->beta);
-	        U.insert(i-1,i) = this->psi_im;
-	        U.insert(i,i) = this->phi;
-	      }
-	      U.makeCompressed();
-	      // Now calc eigenvalue
-	      double oev=0;
-	      ev = 1.0;
-	      evec = Eigen::VectorXd::Constant(n,1/sqrt(n));
-	      while(fabs(oev-ev)/ev > e) {
-	        U.triangularView<Eigen::Upper>().transpose().solveInPlace(evec);
-	        U.triangularView<Eigen::Upper>().solveInPlace(evec);
-	        oev = ev;
-	        ev = 1/evec.norm();
-	        evec *= ev;
-	      }
-	      this->a = ev;
-	      // We need now to recalculate Dt...
-	      //std::cout << "Alpha[1]:"<<AlphaVector[0]<<std::endl;
-	      this->dt = AlphaVector[0] - this->a;
-	      //std::cout << "dt[1]:"<<dt<<std::endl;
-	      for(unsigned int i=1;i<this->it;i++) {
-	        this->dt = AlphaVector[i] - this->a - (BetaVector[i-1]*BetaVector[i-1])/this->dt;
-	        //std::cout << "dt[" << i+1 << "]:" << dt << std::endl;
-	      }
-	      // Update Gauss-Radau values
-	      this->do_iteration();
-	}
-
-    LB_Solver_EG_Estimate_A(symMatrix *Aii, matrix *Aic, symMatrix *Acc, const vector &J, const vector &Phi, const Preconditioner &precond, const vector &x0, const vector &egHint, unsigned int n, float e):
-	 LB_Solver_A<num_engine>(Aii, Aic, Acc, J, Phi, precond, 0, x0)
-	{
-	      Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
-	      // Alpha and beta must be stored in order to recalculate dt
-	      std::vector<double> AlphaVector;
-	      std::vector<double> BetaVector;
-	      AlphaVector.push_back(this->alpha);
-	      BetaVector.push_back(this->beta);
-	      U.reserve(2*n-1);
-	      U.insert(0,0) = this->phi;
-	      for(unsigned int i=1;i<n;i++) {
-	        this->do_iteration();
-	        AlphaVector.push_back(this->alpha);
-	        BetaVector.push_back(this->beta);
-	        U.insert(i-1,i) = this->psi_im;
-	        U.insert(i,i) = this->phi;
-	      }
-	      U.makeCompressed();
-	      // Now calc eigenvalue
-	      double oev=0;
-	      ev = 1.0;
-	      evec = egHint;
-	      while(fabs(oev-ev)/ev > e) {
-	        U.triangularView<Eigen::Upper>().transpose().solveInPlace(evec);
-	        U.triangularView<Eigen::Upper>().solveInPlace(evec);
-	        oev = ev;
-	        ev = 1/evec.norm();
-	        evec *= ev;
-	      }
-	      this->a = ev;
-	      // We need now to recalculate Dt...
-	      //std::cout << "Alpha[1]:"<<AlphaVector[0]<<std::endl;
-	      this->dt = AlphaVector[0] - this->a;
-	      //std::cout << "dt[1]:"<<dt<<std::endl;
-	      for(unsigned int i=1;i<this->it;i++) {
-	        this->dt = AlphaVector[i] - this->a - (BetaVector[i-1]*BetaVector[i-1])/this->dt;
-	        //std::cout << "dt[" << i+1 << "]:" << dt << std::endl;
-	      }
-	      // Update Gauss-Radau values
-	      this->do_iteration();
-
-	}
-
-    real getLeastEvEst() const {
-      return this->ev;
-    }
-
-    vector getEvector() const {
-      return this->evec;
-    }
-};
-
-
 void assembleProblemMatrix_lb(double *cond, matrix **Kii, matrix **Kic, matrix **Kcc, problem &p);
 
 struct eigen_double_engine {
@@ -418,7 +307,7 @@ struct eigen_double_engine {
 };
 
 typedef LB_Solver_A<eigen_double_engine> LB_Solver;
-typedef LB_Solver_EG_Estimate_A<eigen_double_engine> LB_Solver_EG_Estimate;
+//typedef LB_Solver_EG_Estimate_A<eigen_double_engine> LB_Solver_EG_Estimate;
 
 
 #endif  // SOLVER_LB_H_

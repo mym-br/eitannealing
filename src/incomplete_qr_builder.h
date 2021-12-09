@@ -36,7 +36,7 @@ template<class scalar> class SparseIncompleteQRBuilder
 
         static real sqnorm(const scalar &x);
         static scalar inner(const scalar &x, const scalar &y);
-        static bool cmp_larger_abs_coef(const i_c &a, const i_c &b);
+        static inline bool cmp_larger_abs_coef(const i_c &a, const i_c &b);
 
     public:
         SparseIncompleteQRBuilder(){};

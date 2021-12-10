@@ -170,11 +170,11 @@ int main(int argc, char *argv[])
          precondqr.reset(LB_Solver_A<eigen_double_qr_engine>::makePreconditioner(*Aii, *Aic));
      }
      start = get_usec_timestamp();
-     for(int i = 0; i<40000; i++) {
+     for(int i = 0; i<5000; i++) {
          precondqr.reset(LB_Solver_A<eigen_double_qr_engine>::makePreconditioner(*Aii, *Aic));
      }
      stop = get_usec_timestamp();
-     std::cout << "QR preconditioner: "  <<  ((double)(stop - start))/40000 << std::endl;
+     std::cout << "QR preconditioner: "  <<  ((double)(stop - start))/5000 << std::endl;
 
      return 0;
  }

@@ -20,7 +20,7 @@ template<class iterator, class compare> void heap_sift_top_down(iterator s, cons
     c2++;
     if(c1 >= end) return;
     while(end > c2) {
-        iterator t = cmp(*c2,*c1)?c1:c2;
+        iterator t = c1 + cmp(*c1, *c2);
         if(cmp(*s,*t)) {
             std::iter_swap(s, t);
             s = t;

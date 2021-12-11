@@ -69,7 +69,7 @@ template<class iterator, class compare> void make_heap_down2(const iterator &sta
 
 int main()
 {
-    /*std::mt19937 gen32;
+    std::mt19937 gen32;
 
 
     std::vector<int> origin;
@@ -153,6 +153,6 @@ int main()
         return -1;
     }
 
-*/
+
     return 0;
 }

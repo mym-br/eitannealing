@@ -62,30 +62,30 @@ int main(int argc, char *argv[])
      for(int i = 0; i<100; i++)
             y.noalias() = c*x;
      start = get_usec_timestamp();
-     for(int i = 0; i<400000; i++)
+     for(int i = 0; i<800000; i++)
             y.noalias() = c*x;
      stop = get_usec_timestamp();
-     std::cout << "full: "  <<  ((double)(stop - start))/400000 << std::endl;
+     std::cout << "full: "  <<  ((double)(stop - start))/800000 << std::endl;
 
      for(int i = 0; i<100; i++) {
             y.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x;
             y2.noalias() = (*Aic_R)*x;
      }
      start = get_usec_timestamp();
-     for(int i = 0; i<400000; i++) {
+     for(int i = 0; i<800000; i++) {
             y.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x;
             y2.noalias() = (*Aic_R)*x;
      }
      stop = get_usec_timestamp();
-     std::cout << "symmetric: "  <<  ((double)(stop - start))/400000 << std::endl;
+     std::cout << "symmetric: "  <<  ((double)(stop - start))/800000 << std::endl;
      
      for(int i = 0; i<100; i++)
             y.noalias() = c.transpose()*x2;
      start = get_usec_timestamp();
-     for(int i = 0; i<400000; i++)
+     for(int i = 0; i<800000; i++)
             y.noalias() = c.transpose()*x2;
      stop = get_usec_timestamp();
-     std::cout << "transposed full: "  <<  ((double)(stop - start))/400000 << std::endl;
+     std::cout << "transposed full: "  <<  ((double)(stop - start))/800000 << std::endl;
      
      y2 = Eigen::VectorXd::Random(Aic_R->rows());
      for(int i = 0; i<100; i++) {
@@ -93,12 +93,12 @@ int main(int argc, char *argv[])
             //y += Aic_R->transpose()*y2;
      }
      start = get_usec_timestamp();
-     for(int i = 0; i<400000; i++) {
+     for(int i = 0; i<800000; i++) {
             y.noalias() = Aii_R->selfadjointView<Eigen::Lower>()*x;
             //y += Aic_R->transpose()*y2;
      }
      stop = get_usec_timestamp();
-     std::cout << "transposed symmetric: "  <<  ((double)(stop - start))/400000 << std::endl;
+     std::cout << "transposed symmetric: "  <<  ((double)(stop - start))/800000 << std::endl;
 
 
     

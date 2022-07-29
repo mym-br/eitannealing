@@ -215,7 +215,7 @@ void solution_lb::initSimulations()
 	int i;
 	this->totalit = 0;
 
-    // Reserve is required, as solver has no working move constructor
+    // Reserve so we don't need to move solvers around
     simulations.reserve(o.getNObs());
     // 1st solution estimates also least eigenvalue
     simulations.emplace_back(Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
@@ -237,7 +237,7 @@ void solution_lb::initSimulations(const solution_lb &base)
         int i;
         this->totalit = 0;
 
-        // Reserve is required, as solver has no working move constructor
+        // Reserve so we don't need to move solvers around
         simulations.reserve(o.getNObs());
         // 1st solution estimates also least eigenvalue
         simulations.emplace_back(Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[0].tail(p->getGenericElectrodesCount()),

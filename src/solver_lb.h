@@ -125,6 +125,7 @@ template<class num_engine> class LB_Solver_A {
 					return getErrorl2Estimate();
 				}
 
+	  /*
         // std::vector requires a copy constructor for resizes.
         //  This is just a non-working placeholder, call reserve() so resize is never used.
         /*LB_Solver_A ( const LB_Solver_A &s):
@@ -133,14 +134,16 @@ template<class num_engine> class LB_Solver_A {
             std::exit(-1);
         }
 
-        LB_Solver_A& operator=(LB_Solver_A const&) = delete; */
+        LB_Solver_A& operator=(LB_Solver_A const&) = delete;*/
 
-        LB_Solver_A(symMatrix *_Aii, matrix *_Aic, symMatrix *_Acc, const vector &J, const vector &Phi, const Preconditioner &precond, real a):
+        // Specialized constructor for unknown initial guess.
+	  //	Uses zero as an initial guess and skips the first subtraction on r
+	  LB_Solver_A(symMatrix *_Aii, matrix *_Aic, symMatrix *_Acc, const vector &J, const vector &Phi, const Preconditioner &precond, real a):
 				    Aii(*_Aii), Aic(*_Aic), precond(precond), lowerSafe(true), a(a), x0(vector::Zero(_Aii->rows()))
 				{
 				    it = 0;
 				    // 0
-                    num_engine::j_minus_a_x_phi(r, rc, Aic, *_Acc, J, Phi);
+				    num_engine::j_minus_a_x_phi(r, rc, Aic, *_Acc, J, Phi);
 				    init();
 				}
 
@@ -152,7 +155,7 @@ template<class num_engine> class LB_Solver_A {
 					num_engine::j_minus_a_x_phi(r, rc, Aic, *_Acc, J, Phi);
 					Eigen::VectorXd xaux(x0);
 					num_engine::subtract_a_x(r, rc, Aii, Aic, x0);
-                    init();
+					init();
 				}
 
 
@@ -250,7 +253,7 @@ template<class num_engine> class LB_Solver_A {
         }
     public:
         // Constructor with eigevalue estimation
-        LB_Solver_A(symMatrix *Aii, matrix *Aic, symMatrix *Acc, const vector &J, const vector &Phi, const Preconditioner &precond,
+	  LB_Solver_A(symMatrix *Aii, matrix *Aic, symMatrix *Acc, const vector &J, const vector &Phi, const Preconditioner &precond,
                                 int n, float e, scalar &res_smallest_eigenvalue, vector &res_eigenvector):
                                 LB_Solver_A<num_engine>(Aii, Aic, Acc, J, Phi, precond, 0)
         {

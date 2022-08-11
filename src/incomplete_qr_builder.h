@@ -10,13 +10,21 @@
 
 #include <utility>
 #include <vector>
-#include <unordered_map>
 #include <algorithm>
 #include <complex>
 #include "util/fill_with_smallest.hpp"
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include "util/eigen_sizestype_adaptor.hpp"
+
+// ABSL Flat hash seems to be faster than std::unordered_map
+#ifdef USE_ABSL_FLAT_HASH
+#include <absl/container/flat_hash_map.h>
+#define INCOMPLETEQRBUILDER_MAP absl::flat_hash_map
+#else
+#include <unordered_map>
+#define INCOMPLETEQRBUILDER_MAP std::unordered_map
+#endif
 
 template<class scalar> class SparseIncompleteQRBuilder
 {
@@ -29,8 +37,8 @@ template<class scalar> class SparseIncompleteQRBuilder
         // won't incur into memory allocation
         std::vector<std::vector<i_c> > qrows;
         std::vector<std::vector<i_c> > qcols;
-        std::unordered_map<unsigned long, scalar> buildingR;
-        std::unordered_map<unsigned long, scalar> buildingQ;
+        INCOMPLETEQRBUILDER_MAP<unsigned long, scalar> buildingR;
+        INCOMPLETEQRBUILDER_MAP<unsigned long, scalar> buildingQ;
         std::vector<i_c> selectedR;
         std::vector<i_c> selectedQ;
 

@@ -4,14 +4,23 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_mod
 find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
 find_package(Threads REQUIRED)
+find_package(absl COMPONENTS container)
 find_package(CUDA 10)
-if(${CUDA_VERSION_MAJOR} GREATER 10) # FIXME: Cuda support is rotting fast
-  message(WARNING "Cuda version greater than 10 is not supported. Cuda Target will be skipped.")
-  unset(CUDA_FOUND)
+if(CUDA_FOUND)
+  if(${CUDA_VERSION_MAJOR} GREATER 10) # FIXME: Cuda support is rotting fast
+    message(WARNING "Cuda version greater than 10 is not supported. Cuda Target will be skipped.")
+    unset(CUDA_FOUND)
+  endif()
 endif()
 find_package(GMSH REQUIRED)
 
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} src src/complex)
+
+if(absl_FOUND)
+  message("Using absl flat_hash_map")
+  add_compile_definitions(USE_ABSL_FLAT_HASH)
+  set(corelibs absl::flat_hash_map)
+endif()
 
 set(eit_core_SRCS
   src/gradientnormregularisation.cpp
@@ -69,8 +78,8 @@ ELSE()
     set(eit_time_SRCS src/util/timestamp/ux/timestamp.cpp)
 ENDIF()
 
-
-set(libs ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
+set(corelibs ${corelibs})
+set(libs ${corelibs} ${Qt5Widgets_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${GMSH_LIBRARIES})
 
 add_library(eit_core OBJECT ${eit_core_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
@@ -87,7 +96,7 @@ add_library(eit_time OBJECT ${eit_time_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
 add_executable(eitmain src/main.cpp src/parameters/parametersparser.cpp $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
-target_link_libraries(eitmain  ${libs} ${ADDITIONAL_LIBRARIES})
+target_link_libraries(eitmain  ${libs} ${ADDITIONAL_LIBRARIES} )
 set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitmain PROPERTY CXX_STANDARD_REQUIRED ON)
 
@@ -105,6 +114,7 @@ add_executable(eitdirect src/maindirect.cpp $<TARGET_OBJECTS:eit_core>)
 target_link_libraries(eitdirect  ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitdirect PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitdirect PROPERTY CXX_STANDARD_REQUIRED ON)
+
 
 if(${CUDA_FOUND})
     cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)

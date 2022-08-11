@@ -72,7 +72,7 @@ template <class scalar> class SparseIncompleteQR
     }
 
     void solveInPlace(basevector &b) const {
-        //FIXME: On gcc without fast-math complex x complex product is very slow (Something to do with Inf checks)
+        //FIXME: On gcc without fast-math or -cx-limited-range complex x complex product is very slow (Something to do with Inf checks)
         rmatrix.template triangularView<Eigen::UnitUpper>().solveInPlace(b);
         b = b.cwiseProduct(idiagonal);
     }

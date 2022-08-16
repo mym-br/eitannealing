@@ -20,10 +20,10 @@
 // ABSL Flat hash seems to be faster than std::unordered_map
 #ifdef USE_ABSL_FLAT_HASH
 #include <absl/container/flat_hash_map.h>
-#define INCOMPLETEQRBUILDER_MAP absl::flat_hash_map
+template<class i, class v> using SparseIncompleteQRBuilder_map = absl::flat_hash_map<i, v>;
 #else
 #include <unordered_map>
-#define INCOMPLETEQRBUILDER_MAP std::unordered_map
+template<class i, class v> using SparseIncompleteQRBuilder_map = std::unordered_map<i, v>;
 #endif
 
 template<class scalar> class SparseIncompleteQRBuilder
@@ -37,8 +37,8 @@ template<class scalar> class SparseIncompleteQRBuilder
         // won't incur into memory allocation
         std::vector<std::vector<i_c> > qrows;
         std::vector<std::vector<i_c> > qcols;
-        INCOMPLETEQRBUILDER_MAP<unsigned long, scalar> buildingR;
-        INCOMPLETEQRBUILDER_MAP<unsigned long, scalar> buildingQ;
+        SparseIncompleteQRBuilder_map<unsigned long, scalar> buildingR;
+        SparseIncompleteQRBuilder_map<unsigned long, scalar> buildingQ;
         std::vector<i_c> selectedR;
         std::vector<i_c> selectedQ;
 

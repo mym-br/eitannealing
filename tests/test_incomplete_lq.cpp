@@ -61,7 +61,7 @@ int test1(void) {
   RMatrix.reserve(make_sizestype_adaptor([](unsigned long i){return (i+1)>4?4:(i+1);}));
 
   builder.buildRMatrix(a, 3, 3, [&RMatrix](unsigned long j, double x) {
-    RMatrix.insert(j,j) = x;
+    RMatrix.insert(j,j) = 1/x;
   }, [&RMatrix](unsigned long i, unsigned long j, double x) {
     RMatrix.insert(i,j) = x;
   });
@@ -85,7 +85,7 @@ int test2(void) {
   RMatrix.reserve(make_sizestype_adaptor([](unsigned long i){return (i+1)>4?4:(i+1);}));
 
   builder.buildRMatrix(a, 4, 5, [&RMatrix](unsigned long j, double x) {
-    RMatrix.insert(j,j) = x;
+    RMatrix.insert(j,j) = 1/x;
   }, [&RMatrix](unsigned long i, unsigned long j, std::complex<double> x) {
     RMatrix.insert(i,j) = x;
   });
@@ -125,7 +125,7 @@ int test3(void) {
     Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> RMatrix(4, 4);
     RMatrix.reserve(make_sizestype_adaptor([](unsigned long i){return (i+1)>4?4:(i+1);}));
     builder.buildRMatrix(a, 4, 4, [&RMatrix](unsigned long j, double x) {
-      RMatrix.insert(j,j) = x;
+      RMatrix.insert(j,j) = 1/x;
     }, [&RMatrix](unsigned long i, unsigned long j, std::complex<double> x) {
       RMatrix.insert(i,j) = x;
     });
@@ -159,11 +159,24 @@ int test3(void) {
 
 int main(int argc, char **argv) {
   int r;
+  std::cout << "Test 1... ";
   r = test1();
-  if(r) return r;
+  if(r) {
+    std::cout << "Failed!\n";
+    return r;
+  }
+  std::cout << "Succeeded.\nTest 2... ";
   r = test2();
-  if(r) return r;
+  if(r) {
+    std::cout << "Failed!\n";
+    return r;
+  }
+  std::cout << "Succeeded.\nTest 3... ";
   r = test3();
-  if(r) return r;
+  if(r) {
+    std::cout << "Failed!\n";
+    return r;
+  }
+  std::cout << "Succeeded.\n";
   return 0;
 }

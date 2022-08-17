@@ -35,78 +35,86 @@ template<class scalar> struct scalar_ops;
 
 template<> struct scalar_ops<double> {
     typedef std::pair<unsigned long, double> i_c;
-    typedef std::vector<i_c> coefficient_vector;
     typedef typename Eigen::NumTraits<double>::Real real;
-
-    static inline void prepare_selected_coefficients(coefficient_vector &selected, const SparseIncompleteQRBuilder_map<unsigned long, double> &building, unsigned n) {
-        selected.clear();
-        fillWithNSmallest(selected, building, n, cmp_larger_abs_coef);
-    }
 
     static inline double inner(const double &a, const double &b) {
       return a*b;
     }
 
-    static inline bool cmp_larger_abs_coef(const i_c &a, const i_c &b) {
-        return std::abs(a.second) > std::abs(b.second);
-    }
+    class coefficient_vector {
+          std::vector<i_c> vector;
+    public:
+        void reserve(unsigned n) {
+            vector.reserve(n);
+        }
 
-    static inline real inv_total_coefficients_norm(const coefficient_vector &coefficients) {
-        real qnorm2 = 0;
-        for(auto [i, v] : coefficients) qnorm2 += v*v;
-        real qnorm = std::sqrt(qnorm2);
-        return 1/qnorm;
-    }
+        inline void fill_with_selected_coeficients(const SparseIncompleteQRBuilder_map<unsigned long, double> &building, unsigned n) {
+            vector.clear();
+            fillWithNSmallest(vector, building, n, [](const i_c &a, const i_c &b){return std::abs(a.second) > std::abs(b.second);});
+        }
 
-    static inline void sort_by_index(coefficient_vector &coefficients) {
-        std::sort(coefficients.begin(), coefficients.end(), [](const i_c &a, const i_c &b){return a.first<b.first;});
-    }
+        inline real inv_total_coefficients_norm() {
+            real qnorm2 = 0;
+            for(auto [i, v] : vector) qnorm2 += v*v;
+            real qnorm = std::sqrt(qnorm2);
+            return 1/qnorm;
+        }
 
-    template <class func> static inline void iterate_over_coefficients(const coefficient_vector &coef, func f) {
-        for(auto [ri, rv] : coef) f(ri, rv);
-    }
+        inline void sort_by_index() {
+            std::sort(vector.begin(), vector.end(), [](const i_c &a, const i_c &b){return a.first<b.first;});
+        }
+        template <class func> inline void iterate_over_coefficients(func f) {
+            for(auto [ri, rv] : vector) f(ri, rv);
+        }
+    };
 };
 
 template<> struct scalar_ops<std::complex<double> > {
     typedef std::pair<unsigned long, std::complex<double> > i_c;
     typedef typename Eigen::NumTraits<double>::Real real;
-    struct coefficient_with_cached_norm {
-        unsigned long i;
-        std::complex<double> v;
-        real n2;  // cached squared norm
 
-        // Construct from index/value pair
-        coefficient_with_cached_norm(const std::pair<unsigned long, std::complex<double> > &x):
-          i(x.first), v(x.second), n2(std::norm(x.second)) {}
+    static inline std::complex<double> inner(const std::complex<double> &a, const std::complex<double> &b) {
+        return a*std::conj(b);
+    }
+
+    class coefficient_vector {
+          struct coefficient_with_cached_norm {
+              unsigned long i;
+              std::complex<double> v;
+              real n2;  // cached squared norm
+
+              // Construct from index/value pair
+              coefficient_with_cached_norm(const std::pair<unsigned long, std::complex<double> > &x):
+                i(x.first), v(x.second), n2(std::norm(x.second)) {}
+          };
+
+          std::vector<coefficient_with_cached_norm> vector;
+    public:
+        void reserve(unsigned n) {
+            vector.reserve(n);
+        }
+
+        inline void fill_with_selected_coeficients(const SparseIncompleteQRBuilder_map<unsigned long, std::complex<double>> &building, unsigned n) {
+            vector.clear();
+            fillWithNSmallest(vector, building, n, [](const coefficient_with_cached_norm &a, const coefficient_with_cached_norm &b) {
+                return a.n2 > b.n2;
+            });
+        }
+
+        inline real inv_total_coefficients_norm() {
+            real qnorm2 = 0;
+            for(auto [i, v, n2] : vector) qnorm2 += n2;
+            real qnorm = std::sqrt(qnorm2);
+            return 1/qnorm;
+        }
+
+        inline void sort_by_index() {
+            std::sort(vector.begin(), vector.end(), [](const coefficient_with_cached_norm &a, const coefficient_with_cached_norm &b){return a.i<b.i;});
+        }
+        template <class func> inline void iterate_over_coefficients(func f) {
+            for(auto [ri, rv, n2] : vector) f(ri, rv);
+        }
     };
-
-    typedef std::vector<coefficient_with_cached_norm> coefficient_vector;
-
-    static inline void prepare_selected_coefficients(coefficient_vector &selected, const SparseIncompleteQRBuilder_map<unsigned long, std::complex<double> > &building, unsigned n) {
-        selected.clear();
-        fillWithNSmallest(selected, building, n, [](const coefficient_with_cached_norm &a, const coefficient_with_cached_norm &b) {
-            return a.n2 > b.n2;
-        });
-    }
-
-    static inline std::complex<double> inner(const std::complex<double> &x, const std::complex<double> &y) {
-        return x*std::conj(y);
-    }
-
-    static inline real inv_total_coefficients_norm(const coefficient_vector &coefficients) {
-        real qnorm2 = 0;
-        for(auto [i, v, n2] : coefficients) qnorm2 += n2;
-        real qnorm = std::sqrt(qnorm2);
-        return 1/qnorm;
-    }
-
-    static inline void sort_by_index(coefficient_vector &coefficients) {
-        std::sort(coefficients.begin(), coefficients.end(), [](const coefficient_with_cached_norm &a, const coefficient_with_cached_norm &b){return a.i<b.i;});
-    }
-
-    template <class func> static inline void iterate_over_coefficients(const coefficient_vector &coef, func f) {
-        for(auto [ri, rv, n2] : coef) f(ri, rv);
-    }
 };
 
 
@@ -172,23 +180,23 @@ template<class scalar> class SparseIncompleteQRBuilder
                     });
                     // Get nr-1 *largest* elements
                     //  -1 accounts for the diagonal
-                    ops::prepare_selected_coefficients(selectedR, buildingR, nr-1);
+                    selectedR.fill_with_selected_coeficients(buildingR, nr-1);
                     // Sort it according to index
-                    ops::sort_by_index(selectedR);
+                    selectedR.sort_by_index();
                     // Now fill R matrix column and finalize Q calculation
-                    ops::iterate_over_coefficients(selectedR, [&](unsigned long ri, scalar rv) {
+                    selectedR.iterate_over_coefficients([&](unsigned long ri, scalar rv) {
                          insert_upper(ri, j, rv);
                          for(auto [qj, qv] : qcols[ri])
                               buildingQ[qj] -= rv*qv;
                     });
                     // Get ql largest elements, same procedure as for L above
-                    ops::prepare_selected_coefficients(selectedQ, buildingQ, nq);
+                    selectedQ.fill_with_selected_coeficients(buildingQ, nq);
                     // Renormalize
-                    real inorm = ops::inv_total_coefficients_norm(selectedQ);
+                    real inorm = selectedQ.inv_total_coefficients_norm();
                     // Final element of R is the norm
                     insert_diagonal(j, inorm);
                     // Now update q storage
-                    ops::iterate_over_coefficients(selectedQ, [&](unsigned long i, scalar v) {
+                    selectedQ.iterate_over_coefficients([&](unsigned long i, scalar v) {
                         scalar nv = v*inorm;
                         qrows[i].emplace_back(j, nv);
                         qcols[j].emplace_back(i, nv);

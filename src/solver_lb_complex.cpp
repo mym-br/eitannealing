@@ -50,7 +50,7 @@ void LB_Solver_Complex::init()
 
     precond.solveInPlaceCT(s_R, s_I);
 
-    std::cout << s_R << "\n\n" << s_I << "\n";
+    //std::cout << s_R << "\n\n" << s_I << "\n";
 
     ATJhatNorm2 = s_R.squaredNorm();
     ATJhatNorm2 += s_I.squaredNorm();

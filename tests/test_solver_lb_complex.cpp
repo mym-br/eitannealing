@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
      J_R(4) = -1.0;
 
      std::unique_ptr<LB_Solver_Complex::Preconditioner> pre =
-        std::make_unique<LB_Solver_Complex::Preconditioner>(8, 10, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
+        std::make_unique<LB_Solver_Complex::Preconditioner>(8, 16, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
 
      std::unique_ptr<LB_Solver_Complex> solver =
         std::make_unique<LB_Solver_Complex>(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, V_R, V_I, *pre, 0.002);

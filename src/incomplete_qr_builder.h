@@ -206,7 +206,7 @@ template<class scalar> class SparseIncompleteQRBuilder
         struct columnMajorStorageAdaptor {
             const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m;
             columnMajorStorageAdaptor(const Eigen::SparseMatrix<scalar, Eigen::ColMajor> &m):m(m){}
-            void iterateOverColumn(unsigned long j, std::function<void(unsigned long, scalar)> &&f) const {
+            template <class func> void iterateOverColumn(unsigned long j, func &&f) const {
                 for(typename Eigen::SparseMatrix<scalar>::InnerIterator it(m, j); it; ++it)
                     f(it.index(), it.value());
             }

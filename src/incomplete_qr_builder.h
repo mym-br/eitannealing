@@ -12,6 +12,7 @@
 #include <vector>
 #include <algorithm>
 #include <complex>
+#include <numeric>
 #include "util/fill_with_smallest.hpp"
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
@@ -164,8 +165,8 @@ template<class scalar> class SparseIncompleteQRBuilder
                     selectedQ.clear();
                     fillWithNSmallest(selectedQ, buildingQ, nq, [](const auto &a, const auto &b){return a.norm_greater_than(b);});
                     // Renormalize
-                    real qnorm2 = 0;
-                    for(auto c : selectedQ) qnorm2 += c.sqnorm();
+                    real qnorm2 = std::transform_reduce(selectedQ.begin(), selectedQ.end(), (real)0, std::plus{},
+                                                        [](const auto &c) { return c.sqnorm(); });
                     real inorm = 1/std::sqrt(qnorm2);
                     // Final element of R is the norm
                     insert_diagonal(j, inorm);

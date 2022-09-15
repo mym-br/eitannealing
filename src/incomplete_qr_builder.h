@@ -57,59 +57,6 @@ template<> struct scalar_ops<double> {
             return std::abs(val) > std::abs(other.val);
         }
     };
-
-    /*class coefficient_vector {
-          std::vector<i_c> vector;
-    public:
-        void reserve(unsigned n) {
-            vector.reserve(n);
-        }
-
-        inline void fill_with_selected_coeficients(const SparseIncompleteQRBuilder_map<unsigned long, double> &building, unsigned n) {
-            vector.clear();
-            fillWithNSmallest(vector, building, n, [](const i_c &a, const i_c &b){return std::abs(a.second) > std::abs(b.second);});
-        }
-
-        inline real inv_total_coefficients_norm() {
-            real qnorm2 = 0;
-            for(auto [i, v] : vector) qnorm2 += v*v;
-            real qnorm = std::sqrt(qnorm2);
-            return 1/qnorm;
-        }
-
-        inline void sort_by_index() {
-            std::sort(vector.begin(), vector.end(), [](const i_c &a, const i_c &b){return a.first<b.first;});
-        }
-        template <class func> inline void iterate_over_coefficients(func f) {
-            for(auto [ri, rv] : vector) f(ri, rv);
-        }
-    };*/
-    class coefficient_vector {
-          std::vector<coefficient> vector;
-    public:
-        void reserve(unsigned n) {
-            vector.reserve(n);
-        }
-
-        inline void fill_with_selected_coeficients(const SparseIncompleteQRBuilder_map<unsigned long, scalar> &building, unsigned n) {
-            vector.clear();
-            fillWithNSmallest(vector, building, n, [](const coefficient &a, const coefficient &b){return a.norm_greater_than(b);});
-        }
-
-        inline real inv_total_coefficients_norm() {
-            real qnorm2 = 0;
-            for(auto c : vector) qnorm2 += c.sqnorm();
-            real qnorm = std::sqrt(qnorm2);
-            return 1/qnorm;
-        }
-
-        inline void sort_by_index() {
-            std::sort(vector.begin(), vector.end(), [](const coefficient &a, const coefficient &b){return a.index()<b.index();});
-        }
-        template <class func> inline void iterate_over_coefficients(func f) {
-            for(auto c : vector) f(c.index(), c.value());
-        }
-    };
 };
 
 template<> struct scalar_ops<std::complex<double> > {
@@ -125,7 +72,7 @@ template<> struct scalar_ops<std::complex<double> > {
     protected:
         unsigned long i;
         std::complex<double> val;
-        real n2;
+        real n2;    // Cached squared norm
     public:
         coefficient(const std::pair<unsigned long, scalar> &p):
             i(p.first), val(p.second), n2(std::norm(p.second)) {}
@@ -135,71 +82,6 @@ template<> struct scalar_ops<std::complex<double> > {
         real sqnorm() const { return n2; }
         bool norm_greater_than(const coefficient &other) const {
             return n2 > other.n2;
-        }
-    };
-
-    /*class coefficient_vector {
-          struct coefficient_with_cached_norm {
-              unsigned long i;
-              std::complex<double> v;
-              real n2;  // cached squared norm
-
-              // Construct from index/value pair
-              coefficient_with_cached_norm(const std::pair<unsigned long, std::complex<double> > &x):
-                i(x.first), v(x.second), n2(std::norm(x.second)) {}
-          };
-
-          std::vector<coefficient_with_cached_norm> vector;
-    public:
-        void reserve(unsigned n) {
-            vector.reserve(n);
-        }
-
-        inline void fill_with_selected_coeficients(const SparseIncompleteQRBuilder_map<unsigned long, std::complex<double>> &building, unsigned n) {
-            vector.clear();
-            fillWithNSmallest(vector, building, n, [](const coefficient_with_cached_norm &a, const coefficient_with_cached_norm &b) {
-                return a.n2 > b.n2;
-            });
-        }
-
-        inline real inv_total_coefficients_norm() {
-            real qnorm2 = 0;
-            for(auto [i, v, n2] : vector) qnorm2 += n2;
-            real qnorm = std::sqrt(qnorm2);
-            return 1/qnorm;
-        }
-
-        inline void sort_by_index() {
-            std::sort(vector.begin(), vector.end(), [](const coefficient_with_cached_norm &a, const coefficient_with_cached_norm &b){return a.i<b.i;});
-        }
-        template <class func> inline void iterate_over_coefficients(func f) {
-            for(auto [ri, rv, n2] : vector) f(ri, rv);
-        }
-    };*/
-    class coefficient_vector {
-          std::vector<coefficient> vector;
-    public:
-        void reserve(unsigned n) {
-            vector.reserve(n);
-        }
-
-        inline void fill_with_selected_coeficients(const SparseIncompleteQRBuilder_map<unsigned long, scalar> &building, unsigned n) {
-            vector.clear();
-            fillWithNSmallest(vector, building, n, [](const coefficient &a, const coefficient &b){return a.norm_greater_than(b);});
-        }
-
-        inline real inv_total_coefficients_norm() {
-            real qnorm2 = 0;
-            for(auto c : vector) qnorm2 += c.sqnorm();
-            real qnorm = std::sqrt(qnorm2);
-            return 1/qnorm;
-        }
-
-        inline void sort_by_index() {
-            std::sort(vector.begin(), vector.end(), [](const coefficient &a, const coefficient &b){return a.index()<b.index();});
-        }
-        template <class func> inline void iterate_over_coefficients(func f) {
-            for(auto c : vector) f(c.index(), c.value());
         }
     };
 };
@@ -212,7 +94,8 @@ template<class scalar> class SparseIncompleteQRBuilder
         typedef scalar_ops<scalar> ops;
         typedef typename ops::real real;
         typedef typename ops::i_c i_c; // Pair index coefficient
-        typedef typename ops::coefficient_vector selected_coefficients_vector;
+        typedef std::vector<typename ops::coefficient> selected_coefficients_vector;
+
         typedef SparseIncompleteQRBuilder_map<unsigned long, scalar> building_coefficients_map;
 
         // Those persistent objects should provide storage for
@@ -267,27 +150,31 @@ template<class scalar> class SparseIncompleteQRBuilder
                     });
                     // Get nr-1 *largest* elements
                     //  -1 accounts for the diagonal
-                    selectedR.fill_with_selected_coeficients(buildingR, nr-1);
+                    selectedR.clear();
+                    fillWithNSmallest(selectedR, buildingR, nr-1, [](const auto &a, const auto &b){return a.norm_greater_than(b);});
                     // Sort it according to index
-                    selectedR.sort_by_index();
+                    std::sort(selectedR.begin(), selectedR.end(), [](const auto &a, const auto &b){return a.index()<b.index();});
                     // Now fill R matrix column and finalize Q calculation
-                    selectedR.iterate_over_coefficients([&](unsigned long ri, scalar rv) {
-                         insert_upper(ri, j, rv);
-                         for(auto [qj, qv] : qcols[ri])
-                              buildingQ[qj] -= rv*qv;
-                    });
+                    for(auto c : selectedR) {
+                        insert_upper(c.index(), j, c.value());
+                        for(auto [qj, qv] : qcols[c.index()])
+                            buildingQ[qj] -= c.value()*qv;
+                    }
                     // Get ql largest elements, same procedure as for L above
-                    selectedQ.fill_with_selected_coeficients(buildingQ, nq);
+                    selectedQ.clear();
+                    fillWithNSmallest(selectedQ, buildingQ, nq, [](const auto &a, const auto &b){return a.norm_greater_than(b);});
                     // Renormalize
-                    real inorm = selectedQ.inv_total_coefficients_norm();
+                    real qnorm2 = 0;
+                    for(auto c : selectedQ) qnorm2 += c.sqnorm();
+                    real inorm = 1/std::sqrt(qnorm2);
                     // Final element of R is the norm
                     insert_diagonal(j, inorm);
                     // Now update q storage
-                    selectedQ.iterate_over_coefficients([&](unsigned long i, scalar v) {
-                        scalar nv = v*inorm;
-                        qrows[i].emplace_back(j, nv);
-                        qcols[j].emplace_back(i, nv);
-                    });
+                    for(auto c : selectedQ) {
+                        scalar nv = c.value()*inorm;
+                        qrows[c.index()].emplace_back(j, nv);
+                        qcols[j].emplace_back(c.index(), nv);
+                    }
                 }
         };
         struct columnMajorStorageAdaptor {

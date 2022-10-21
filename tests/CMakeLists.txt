@@ -62,3 +62,8 @@ add_executable(bench_build_qr bench_build_qr.cpp $<TARGET_OBJECTS:eit_core> $<TA
 set_property(TARGET bench_build_qr PROPERTY CXX_STANDARD 17)
 set_property(TARGET bench_build_qr PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(bench_build_qr ${corelibs})
+
+add_executable(test_solver_lb_complex2 test_solver_lb_complex2.cpp $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine>)
+set_property(TARGET test_solver_lb_complex2 PROPERTY CXX_STANDARD 17)
+set_property(TARGET test_solver_lb_complex2 PROPERTY CXX_STANDARD_REQUIRED ON)
+target_link_libraries(test_solver_lb_complex2 ${corelibs})

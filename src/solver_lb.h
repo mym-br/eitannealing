@@ -135,7 +135,7 @@ template<class num_engine> class LB_Solver_A {
         }
 
         LB_Solver_A& operator=(LB_Solver_A const&) = delete;*/
-
+// FIXME: Why pointers on the constructors???
         // Specialized constructor for unknown initial guess.
 	  //	Uses zero as an initial guess and skips the first subtraction on r
 	  LB_Solver_A(symMatrix *_Aii, matrix *_Aic, symMatrix *_Acc, const vector &J, const vector &Phi, const Preconditioner &precond, real a):

@@ -145,6 +145,14 @@ int main(int argc, char *argv[])
      std::cout << "Residual (real): " << (y.real() - (Aii_R->selfadjointView<Eigen::Lower>()*x.real() + Aii_I->selfadjointView<Eigen::Lower>()*x.imag())).squaredNorm() << std::endl;
      std::cout << "Residual (imag): " << (y.imag() - (Aii_R->selfadjointView<Eigen::Lower>()*x.imag() - Aii_I->selfadjointView<Eigen::Lower>()*x.real())).squaredNorm() << std::endl;
 
+     for(int i = 0; i<100; i++)
+        symmetric_conjugated_complex_mult_and_assign(Aii, x, y);
+     start = get_usec_timestamp();
+     for(int i = 0; i<4000; i++)
+            symmetric_conjugated_complex_mult_and_assign(Aii, x, y);
+     stop = get_usec_timestamp();
+     std::cout << "Eigen complex conjugated symmetric: "  <<  ((double)(stop - start))/4000 << std::endl;
+
      
      
      

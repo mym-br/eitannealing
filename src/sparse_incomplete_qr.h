@@ -80,7 +80,7 @@ template <class scalar> class SparseIncompleteQR
      // conjugated transpose
     void solveInPlaceT(basevector &b) const {
         b = b.cwiseProduct(idiagonal);
-        rmatrix.template triangularView<Eigen::UnitUpper>().transpose().solveInPlace(b);
+        rmatrix.template triangularView<Eigen::UnitUpper>().adjoint().solveInPlace(b);
     }
 };
 

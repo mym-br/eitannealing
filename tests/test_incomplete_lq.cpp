@@ -15,7 +15,7 @@ std::complex<double> simpleKh3[] = {
   {-2.0, 0.0}, {0.0, 0.0}, {6.0, 0.0}, {-1.0, 0.0},
   {0.0, 0.0}, {-2.0, 0.0}, {-1.0, 0.0}, {6.0, 1.0},
   {-3.0, 0.0}, {-3.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
-  {0.0, 0.0}, {0.0, 0.0}, {-3.0, 0.0}, {-3.0, -1.0},
+  {0.0, 0.0}, {0.0, 0.0}, {-3.0, 0.0}, {-3.0, -1.0}
 };
 
 
@@ -106,7 +106,7 @@ int test3(void) {
     matrixcomplex Kic(Kh.block(4,0,2,4));
     matrix Kii_R(Kii.real()), Kii_I(Kii.imag()), Kic_R(Kic.real()), Kic_I(Kic.imag());
 
-    std::cout << "Khat:" << Kh << std::endl;
+    std::cout << "Khat:\n" << Kh << std::endl;
 
     SparseIncompleteQRComplex2 precond2(4, 4, Kii, Kic);
     vectorxcomplex b(vectorxcomplex::Ones(4));
@@ -131,26 +131,29 @@ int test3(void) {
     });
     RMatrix.makeCompressed();
 
+    std::cout << "Builder Matrix:\n" << RMatrix << "\n";
+
     b = vectorx::Ones(4);
 
     RMatrix.triangularView<Eigen::Upper>().solveInPlace(b);
 
-    std::cout << "Builder:\n" << b_R << std::endl << b_I << std::endl;
+    std::cout << "Builder:\n" << b_R << "\n_\n" << b_I << std::endl;
+
 
     b = vectorx::Ones(4);
     precond2.solveInPlaceT(b);
-    std::cout << "QRComplex2 Transposed:\n" << b.real() << std::endl << b.imag() << std::endl;
+    std::cout << "QRComplex2 Transposed:\n" << b.real() << "\n_\n" << b.imag() << std::endl;
 
     b_R = vectorx::Ones(4);
     b_I = vectorx::Zero(4);
     precond.solveInPlaceCT(b_R, b_I);
 
-    std::cout << "QRComplex Transposed:\n" << b_R << std::endl << b_I << std::endl;
+    std::cout << "QRComplex Transposed:\n" << b_R << "\n_\n" << b_I << std::endl;
 
     b = vectorx::Ones(4);
     RMatrix.triangularView<Eigen::Upper>().transpose().solveInPlace(b);
 
-    std::cout << "Builder Transposed:\n" << b_R << std::endl << b_I << std::endl;
+    std::cout << "Builder Transposed:\n" << b.real() << "\n_\n" << b.imag() << std::endl;
 
 
 

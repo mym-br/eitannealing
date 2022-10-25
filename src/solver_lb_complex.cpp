@@ -37,8 +37,12 @@ void LB_Solver_Complex::init()
 {
     JhatNorm2 = r_R.squaredNorm()+r_I.squaredNorm()+rc_R.squaredNorm()+rc_I.squaredNorm();
     delta = sqrt(JhatNorm2);
+
+
     p_R = r_R/delta; p_I = r_I/delta;
     pc_R = rc_R/delta; pc_I = rc_I/delta;
+
+
     // S = (ACi)T*p
     s_R.noalias() = Aii_R*p_R;
     s_R.noalias() += Aii_I*p_I;
@@ -49,8 +53,6 @@ void LB_Solver_Complex::init()
     s_I.noalias() -= Aic_I.transpose()*pc_R;
 
     precond.solveInPlaceCT(s_R, s_I);
-
-    //std::cout << s_R << "\n\n" << s_I << "\n";
 
     ATJhatNorm2 = s_R.squaredNorm();
     ATJhatNorm2 += s_I.squaredNorm();

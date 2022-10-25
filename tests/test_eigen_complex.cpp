@@ -12,15 +12,15 @@
 #include "solver_lb.h"
 #include <complex>
 
-struct __complex_wrapper_allwaysconj;
+struct __complex_wrapper_alwaysconj;
 
 struct __complex_wrapper_noconj : public std::complex<double> {
     using std::complex<double>::complex;
 
-    inline __complex_wrapper_noconj operator *(__complex_wrapper_allwaysconj other) const;
+    inline __complex_wrapper_noconj operator *(__complex_wrapper_alwaysconj other) const;
 };
 
-struct __complex_wrapper_allwaysconj : public std::complex<double> {
+struct __complex_wrapper_alwaysconj : public std::complex<double> {
     using std::complex<double>::complex;
 
     __complex_wrapper_noconj operator *(__complex_wrapper_noconj other) const {
@@ -28,13 +28,13 @@ struct __complex_wrapper_allwaysconj : public std::complex<double> {
     }
 };
 
-inline __complex_wrapper_noconj __complex_wrapper_noconj::operator *(__complex_wrapper_allwaysconj other) const {
+inline __complex_wrapper_noconj __complex_wrapper_noconj::operator *(__complex_wrapper_alwaysconj other) const {
     return other*(*this);
 }
 
 
 template<>
-struct Eigen::ScalarBinaryOpTraits<__complex_wrapper_allwaysconj, __complex_wrapper_noconj, Eigen::internal::scalar_product_op<__complex_wrapper_allwaysconj, __complex_wrapper_noconj> > {
+struct Eigen::ScalarBinaryOpTraits<__complex_wrapper_alwaysconj, __complex_wrapper_noconj, Eigen::internal::scalar_product_op<__complex_wrapper_alwaysconj, __complex_wrapper_noconj> > {
     typedef __complex_wrapper_noconj ReturnType;
 };
 
@@ -46,11 +46,9 @@ inline void symmetric_complex_mult_and_assign(const matrixcomplex &m, const vect
     rr->noalias() = mm->selfadjointView<Eigen::Lower>()*(*xx);
 }
 
-inline void symmetric_conjugated_complex_mult_and_assign(const matrixcomplex &m, const vectorxcomplex &x, vectorxcomplex &res)
+inline void symmetric_conjtranspose_complex_mult_and_assign(const matrixcomplex &m, const vectorxcomplex &x, vectorxcomplex &res)
 {
-    //const matrixcomplex mt = m.conjugate();
-
-    const Eigen::SparseMatrix<__complex_wrapper_allwaysconj, Eigen::ColMajor> *mm  = (const Eigen::SparseMatrix<__complex_wrapper_allwaysconj, Eigen::ColMajor> *)&m;
+    const Eigen::SparseMatrix<__complex_wrapper_alwaysconj, Eigen::ColMajor> *mm  = (const Eigen::SparseMatrix<__complex_wrapper_alwaysconj, Eigen::ColMajor> *)&m;
     const Eigen::Matrix<__complex_wrapper_noconj, Eigen::Dynamic, 1> *xx  = (const Eigen::Matrix<__complex_wrapper_noconj, Eigen::Dynamic, 1> *)&x;
     Eigen::Matrix<__complex_wrapper_noconj, Eigen::Dynamic, 1> *rr  = (Eigen::Matrix<__complex_wrapper_noconj, Eigen::Dynamic, 1> *)&res;
     rr->noalias() = mm->selfadjointView<Eigen::Lower>()*(*xx);
@@ -105,7 +103,7 @@ int main(int argc, char *argv[])
      }
      c.finalize();
      
-     Eigen::VectorXcd  x(Eigen::VectorXd::Random(c.cols())*Complex(1,1)), y, y2, x2(Eigen::VectorXcd::Random(c.rows()));
+     Eigen::VectorXcd  x(Eigen::VectorXd::Random(c.cols())*Complex(1,0)+Eigen::VectorXd::Random(c.cols())*Complex(0,1)), y, y2, x2(Eigen::VectorXcd::Random(c.rows()));
      
      symmetric_complex_mult_and_assign(Aii, x, y);
      
@@ -120,10 +118,10 @@ int main(int argc, char *argv[])
      for(int i = 0; i<100; i++)
         symmetric_complex_mult_and_assign(Aii, x, y);
      start = get_usec_timestamp();
-     for(int i = 0; i<4000; i++)
+     for(int i = 0; i<40000; i++)
             symmetric_complex_mult_and_assign(Aii, x, y);
      stop = get_usec_timestamp();
-     std::cout << "Eigen complex symmetric: "  <<  ((double)(stop - start))/4000 << std::endl;
+     std::cout << "Eigen complex symmetric: "  <<  ((double)(stop - start))/40000 << std::endl;
      
      
      for(int i = 0; i<100; i++) {
@@ -140,18 +138,18 @@ int main(int argc, char *argv[])
 
      std::cout << "Conjugated product:\n";
 
-     symmetric_conjugated_complex_mult_and_assign(Aii, x, y);
+     symmetric_conjtranspose_complex_mult_and_assign(Aii, x, y);
 
      std::cout << "Residual (real): " << (y.real() - (Aii_R->selfadjointView<Eigen::Lower>()*x.real() + Aii_I->selfadjointView<Eigen::Lower>()*x.imag())).squaredNorm() << std::endl;
      std::cout << "Residual (imag): " << (y.imag() - (Aii_R->selfadjointView<Eigen::Lower>()*x.imag() - Aii_I->selfadjointView<Eigen::Lower>()*x.real())).squaredNorm() << std::endl;
 
      for(int i = 0; i<100; i++)
-        symmetric_conjugated_complex_mult_and_assign(Aii, x, y);
+        symmetric_conjtranspose_complex_mult_and_assign(Aii, x, y);
      start = get_usec_timestamp();
-     for(int i = 0; i<4000; i++)
-            symmetric_conjugated_complex_mult_and_assign(Aii, x, y);
+     for(int i = 0; i<40000; i++)
+            symmetric_conjtranspose_complex_mult_and_assign(Aii, x, y);
      stop = get_usec_timestamp();
-     std::cout << "Eigen complex conjugated symmetric: "  <<  ((double)(stop - start))/4000 << std::endl;
+     std::cout << "Eigen complex conjugated symmetric: "  <<  ((double)(stop - start))/40000 << std::endl;
 
      
      

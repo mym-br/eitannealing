@@ -57,11 +57,10 @@ template<class num_engine> class LB_Solver_A {
 			    JhatNorm2 = r.squaredNorm()+rc.squaredNorm();
 			    delta = sqrt(JhatNorm2);
 			    p = r/delta; pc = rc/delta;
-
-                num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
-			    precond.solveInPlaceT(s);
+                num_engine::conjtranspose_product_ii_ic_vector(s, Aii, Aic, p, pc);
+				precond.solveInPlaceT(s);
 				ATJhatNorm2 = s.squaredNorm();
-			    gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
+				gamma_ip = sqrt(ATJhatNorm2); // gamma of *NEXT* iteration is obtained here!
 			    ATJhatNorm2*=JhatNorm2;
 
 			    q = s/gamma_ip;              // uses gamma of *NEXT* iteration
@@ -78,7 +77,7 @@ template<class num_engine> class LB_Solver_A {
 				r -= gamma_ip*p; rc -= gamma_ip*pc;
 			    delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 				p = r/delta; pc = rc/delta;
-			    num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
+			    num_engine::conjtranspose_product_ii_ic_vector(s, Aii, Aic, p, pc);
 				precond.solveInPlaceT(s);
 				s -= delta*q;
 			    // *** Gauss, as next value for gamma will be pertinent to iteration 2!
@@ -167,7 +166,7 @@ template<class num_engine> class LB_Solver_A {
 					r -= gamma_ip*p; rc -= gamma_ip*pc;
 				    delta = sqrt(r.squaredNorm()+rc.squaredNorm());
 					p = r/delta; pc = rc/delta;
-				    num_engine::transposed_product_ii_ic_vector(s, Aii, Aic, p, pc);
+				    num_engine::conjtranspose_product_ii_ic_vector(s, Aii, Aic, p, pc);
 				    precond.solveInPlaceT(s);
 					s -= delta*q;
                     // *** Gauss, as next value for gamma will be pertinent to next iteration!
@@ -288,7 +287,7 @@ struct eigen_double_engine {
 		dest_c.noalias() = ic*b;
 	}
 
-	inline static void transposed_product_ii_ic_vector(vector &dest, const symMatrix &ii, const symMatrix &ic, const vector &b_i, const vector &b_c) {
+	inline static void conjtranspose_product_ii_ic_vector(vector &dest, const symMatrix &ii, const symMatrix &ic, const vector &b_i, const vector &b_c) {
 		dest.noalias() = ii.selfadjointView<Eigen::Lower>()*b_i;
 		dest.noalias() += ic.transpose()*b_c;
 	}

@@ -76,6 +76,55 @@ int main(int argc, char *argv[])
      std::unique_ptr<eigen_complexdouble_engine::preconditioner> pre2(
         eigen_complexdouble_engine::make_new_preconditioner(Aii, Aic));
 
+     Eigen::VectorXd r_R = -Aic_R->transpose()*V_R + Aic_I->transpose()*V_I;
+     Eigen::VectorXd r_I = -Aic_R->transpose()*V_I - Aic_I->transpose()*V_R;
+
+
+
+     Eigen::VectorXd rc_R = J_R - Acc_R->selfadjointView<Eigen::Lower>()*V_R + Acc_I->selfadjointView<Eigen::Lower>()*V_I;
+     Eigen::VectorXd rc_I = J_I - Acc_R->selfadjointView<Eigen::Lower>()*V_I - Acc_I->selfadjointView<Eigen::Lower>()*V_R;
+
+     double JhatNorm2 = r_R.squaredNorm()+r_I.squaredNorm()+rc_R.squaredNorm()+rc_I.squaredNorm();
+     double delta = sqrt(JhatNorm2);
+
+     Eigen::VectorXd p_R = r_R/delta;
+     Eigen::VectorXd p_I = r_I/delta;
+     Eigen::VectorXd pc_R = rc_R/delta;
+     Eigen::VectorXd pc_I = rc_I/delta;
+
+
+     Eigen::VectorXd s_R = Aii_R->selfadjointView<Eigen::Lower>()*p_R + Aii_I->selfadjointView<Eigen::Lower>()*p_I;
+     Eigen::VectorXd s_I = Aii_R->selfadjointView<Eigen::Lower>()*p_I - Aii_I->selfadjointView<Eigen::Lower>()*p_R;
+     s_R.noalias() += Aic_R->transpose()*pc_R;
+     s_R.noalias() += Aic_I->transpose()*pc_I;
+     s_I.noalias() += Aic_R->transpose()*pc_I;
+     s_I.noalias() -= Aic_I->transpose()*pc_R;
+
+
+     eigen_complexdouble_engine::vector r, rc;
+     eigen_complexdouble_engine::j_minus_a_x_phi(r, rc, Aic, Acc, J, V);
+     double JhatNorm2_2 = r.squaredNorm()+rc.squaredNorm();
+     double delta_2 = sqrt(JhatNorm2_2);
+     eigen_complexdouble_engine::vector p = r/delta_2;
+     eigen_complexdouble_engine::vector pc = rc/delta_2;
+
+     eigen_complexdouble_engine::vector s;
+
+     eigen_complexdouble_engine::symmetric_conjtranspose_complex_mult_and_assign(Aii, p, s);
+     s.noalias() += Aic.adjoint()*pc;
+
+     //std::cout << s - s_R - s_I*Complex(0,1) << std::endl;
+     pre->solveInPlaceCT(s_R, s_I);
+     pre2->solveInPlaceT(s);
+
+
+     //std::cout << s - s_R - s_I*Complex(0,1) << std::endl;
+
+     //std::cout << Aic.transpose() - Aic.adjoint();
+     //std::cout << "Ext:\n";
+     //std::cout << s_R << "\n";
+     //std::cout << "Int:\n";
+
      std::unique_ptr<LB_Solver_Complex> solver =
         std::make_unique<LB_Solver_Complex>(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, V_R, V_I, *pre, 0.002);
 
@@ -84,17 +133,17 @@ int main(int argc, char *argv[])
 
      Eigen::VectorXd X_R, X_I;
      solver->getX(X_R, X_I);
-     std::cout << X_R << "\n";
+     //std::cout << X_R << "\n";
 
-     std::cout << solver2->getX() << "\n";
+     //std::cout << solver2->getX() << "\n";
 
-     /*std::cout << "Iterations:\n";
+     std::cout << "Iterations:\n";
      for(int i=0; i<100;i++) {
          solver->do_iteration();
          solver2->do_iteration();
          std::cout << i << ":" << solver->getMinErrorl2Estimate() << ":" << solver->getMaxErrorl2Estimate() << std::endl;
          std::cout << i << ":" << solver2->getMinErrorl2Estimate() << ":" << solver2->getMaxErrorl2Estimate() << std::endl;
-     }*/
+     }
 
      return 0;
  }

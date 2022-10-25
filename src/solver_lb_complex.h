@@ -19,7 +19,7 @@ class LB_Solver_Complex {
 	protected:
         int it;
 
-				matrix::ConstSelfAdjointViewReturnType<Eigen::Lower>::Type Aii_R, Aii_I;
+		matrix::ConstSelfAdjointViewReturnType<Eigen::Lower>::Type Aii_R, Aii_I;
         const matrix &Aic_R, &Aic_I;
         const Preconditioner       &precond;
 

@@ -22,7 +22,7 @@ struct eigen_double_qr_engine {
 		dest_c.noalias() = ic*b;
 	}
 
-	inline static void transposed_product_ii_ic_vector(vector &dest, const symMatrix &ii, const symMatrix &ic, const vector &b_i, const vector &b_c) {
+	inline static void conjtranspose_product_ii_ic_vector(vector &dest, const symMatrix &ii, const symMatrix &ic, const vector &b_i, const vector &b_c) {
 		dest.noalias() = ii.selfadjointView<Eigen::Lower>()*b_i;
 		dest.noalias() += ic.transpose()*b_c;
 	}

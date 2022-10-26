@@ -14,6 +14,7 @@ class solution_lb;
 #include "solver_lb.h"
 #include "problem.h"
 #include <memory>
+#include <vector>
 
 
 /*
@@ -38,7 +39,7 @@ class solution_lb {
 	protected:
 
                   using solver = LB_Solver;
-			double *sol;
+			std::vector<double> sol;
 			std::unique_ptr<solver::matrix> Aii, Aic, Acc;
 			std::unique_ptr<solver::Preconditioner> precond;
                   std::shared_ptr<problem> p;
@@ -70,22 +71,19 @@ class solution_lb {
 			void initSimulations(const solution_lb &base);
 			void initErrors();
 
-			double *getShufledSolution();
-			static double *getNewRandomSolution(int size);
-			static double *copySolution(const double *sol, unsigned int size);
+			static std::vector<double> getNewRandomSolution(int size);
 
-			double *getShuffledSolution(shuffleData *data, const shuffler &sh) const;
-
+			std::vector<double> getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
 			// shuffle constructor
-			solution_lb(double *sol, const solution_lb &base);
+			solution_lb(std::vector<double> &&sol, const solution_lb &base);
 
-                  void initMatrices();
+			void initMatrices();
 
 
 	public:
 
-		solution_lb(std::shared_ptr<problem> p, observations<double> &o, const double *sol);
+		solution_lb(std::shared_ptr<problem> p, observations<double> &o, std::vector<double> &&sol);
 		solution_lb(std::shared_ptr<problem> p, observations<double> &o);	// New random solution
 		bool compareWith(solution_lb &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
@@ -104,7 +102,7 @@ class solution_lb {
 			return minTotalDist;
 		}
 
-		double *getSolution() {
+		const std::vector<double> &getSolution() {
 			return this->sol;
 		}
 
@@ -141,8 +139,6 @@ class solution_lb {
 		void ensureMinIt(unsigned int it);
 
 		//void ensureMaxE2(double e2);
-
-		~solution_lb();
 
 
 #ifdef __GENERATE_LB_BENCHMARKS

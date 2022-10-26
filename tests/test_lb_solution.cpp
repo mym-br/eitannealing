@@ -31,15 +31,15 @@ int main(int argc, char *argv[])
      std::cout << "Done\n" << std::flush;
      
      std::cout << "Preparing dummy solution..." << std::flush;
-     double *sol = new double[input->getNumCoefficients()];
-     for(int i=0;i<input->getNumCoefficients();i++) sol[i]=(mincond+maxcond)/2;
+     std::vector<double> sol;
+     for(int i=0;i<input->getNumCoefficients();i++) sol.push_back((mincond+maxcond)/2);
      std::cout << "Done\n" << std::flush;
      init_genrand64(1);
      std::unique_ptr<solution_lb> current, next;
      shuffleData sdata;
      std::unique_ptr<shuffler> sh;
      std::cout << "Evaluating initial solution..." << std::flush;     
-     current.reset(new solution_lb(input, *readingsScalar, sol));
+     current.reset(new solution_lb(input, *readingsScalar, std::vector<double>(sol)));
      current->saturate();
      std::cout << "Done\n" << std::flush;
      std::cout << "Initial values: " << current->getDMin() << " (min) " << current->getDMax() << " (max)\n";

@@ -153,9 +153,9 @@ bool solution_lb::compareWith(solution_lb &target, float kt, float prob)
 }
 
 // Construct from solution vector copy
-solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, const double *sigma):
+solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, std::vector<double> &&sol):
                                 p(p), o(o),
-				sol(solution_lb::copySolution(sigma,p->getNumCoefficients())),
+				sol(std::move(sol)),
 				distance(o.getNObs()),
 				maxdist(o.getNObs()),
 				mindist(o.getNObs()),
@@ -163,15 +163,15 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, co
 				err_x_dist(o.getNObs())
 {
 
-      this->initMatrices();
+    this->initMatrices();
 	this->initSimulations();
 	this->initErrors();
 }
 
 // New randomly modified solution
-solution_lb::solution_lb(double *sigma, const solution_lb &base):
+solution_lb::solution_lb(std::vector<double> &&sol, const solution_lb &base):
                 p(base.p), o(base.o),
-                sol(sigma),
+                sol(std::move(sol)),
                 distance(o.getNObs()),
                 maxdist(o.getNObs()),
                 mindist(o.getNObs()),
@@ -202,7 +202,7 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o):
 void solution_lb::initMatrices()
 {
       solver::matrix *_aii, *_aic, *_acc;
-      assembleProblemMatrix_lb(sol, &_aii, &_aic, &_acc, *p);
+      assembleProblemMatrix_lb(sol.data(), &_aii, &_aic, &_acc, *p);
       Aii.reset(_aii);
       Aic.reset(_aic);
       Acc.reset(_acc);
@@ -260,8 +260,8 @@ void solution_lb::initErrors()
 {
 	int i;
 	// Calc regularisation value
-  double electrodevariance = population_variance(this->sol, this->sol+this->p->getGenericElectrodesCount());
-	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol)*0.010+electrodevariance*20;
+  double electrodevariance = population_variance(this->sol.begin(), this->sol.begin()+this->p->getGenericElectrodesCount());
+	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol.data())*0.010+electrodevariance*20;
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<o.getNObs();i++) {
 		// Compare with observation
@@ -287,34 +287,24 @@ void solution_lb::initErrors()
 	critErr = err[critical];
 }
 
-
-double *solution_lb::copySolution(const double *sol, unsigned int n)
+std::vector<double> solution_lb::getNewRandomSolution(int size)
 {
-	double *res = new double[n];
-
-	for(unsigned int i=0;i<n;i++)
-		res[i] = sol[i];
-
-	return res;
-}
-
-double *solution_lb::getNewRandomSolution(int size)
-{
-	double *res = new double[size];
+	std::vector<double> res;
+	res.reserve(size);
 	int i = 0;
 #ifdef USE_PREVIOUS_DATA
         for(;i<sizeof(base)/sizeof(*base);i++)
-            res[i] = base[i];
+            res.push_back(base[i]);
 #endif /* USE_PREVIOUS_DATA */
 	for(;i<size;i++)
-		res[i] = mincond+genreal()*(maxcond-mincond);
+		res.push_back(mincond+genreal()*(maxcond-mincond));
 
 	return res;
 }
 
-double *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) const
+std::vector<double> solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) const
 {
-	double *res = solution_lb::copySolution(sol, p->getNumCoefficients());
+	std::vector<double> res(sol);
 	// head or tails
 	if(genint(2)) { // Normal
 #ifndef USE_PREVIOUS_DATA
@@ -391,14 +381,13 @@ double *solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) 
 
 solution_lb *solution_lb::shuffle(shuffleData *data, const shuffler &sh) const
 {
-	double* sigma = getShuffledSolution(data, sh);
 	solution_lb *res;
 	try {
-		res = new solution_lb(sigma, *this);
+		res = new solution_lb(getShuffledSolution(data, sh), *this);
 	} catch(...) {
 
 		for(int i=0;i<65;i++)
-			std::cout << i << ":" << sigma[i] << std::endl;
+			std::cout << i << ":" << res->sol[i] << std::endl;
 		exit(0);
 	}
 	return res;
@@ -440,11 +429,6 @@ void solution_lb::ensureMinIt(unsigned int it)
       }
 }
 
-
-solution_lb::~solution_lb()
-{
-	delete[] sol;
-}
 #ifdef __GENERATE_LB_BENCHMARKS
 solution_lb::solution_lb(const float *sigma, char benchmarktag):
 				sol(solution_lb::copySolution(sigma)),

@@ -154,7 +154,7 @@ void workProc()
 					viewre->setCurrentSolution(solre);
 					viewim->setCurrentSolution(solim);
 				}
-				else viewre->setCurrentSolution(currentScalar->getSolution());
+				else viewre->setCurrentSolution(currentScalar->getSolution().data());
 			}
 		}
 		double eav = e / solutions;

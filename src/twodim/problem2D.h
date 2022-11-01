@@ -68,9 +68,9 @@ public:
 	void initProblem(const char *meshfilename);
 	void setCalibrationMode(bool individualcoeffs = false);
 	void buildNodeCoefficients();
-	int getGenericElectrodesCount() { return (int)gelectrodes.size(); }
-	int getInnerAdjacencyCount() { return (int)innerAdjacency.size(); }
-	int getGenericElectrodesCoeffCount() { return (int)gelectrodes.size() + (int)gelectrodesNonBaseNodes.size(); };
+	int getGenericElectrodesCount() const { return (int)gelectrodes.size(); }
+	int getInnerAdjacencyCount() const { return (int)innerAdjacency.size(); }
+	int getGenericElectrodesCoeffCount() const { return (int)gelectrodes.size() + (int)gelectrodesNonBaseNodes.size(); };
 	problem2D(const char *meshfilename) : problem(meshfilename) {};
 	~problem2D(){};
   const std::vector<node> &getNodes() const { return nodes; }

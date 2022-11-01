@@ -60,22 +60,22 @@ public:
 	virtual void initProblem(const char *meshfilename) = 0;
 	virtual void setCalibrationMode(bool individualcoeffs = false) = 0;
 	virtual void buildNodeCoefficients() = 0;
-	virtual int getGenericElectrodesCount() = 0;
-	virtual int getGenericElectrodesCoeffCount() = 0;
-	virtual int getNodesCount() { return nodeCount; }
-	virtual int getInnerAdjacencyCount() = 0;
+	virtual int getGenericElectrodesCount() const = 0;
+	virtual int getGenericElectrodesCoeffCount() const = 0;
+	virtual int getNodesCount() const { return nodeCount; }
+	virtual int getInnerAdjacencyCount() const = 0;
 
 	// Getters and setters
-	int getNumCoefficients() { return numcoefficients; }
+	int getNumCoefficients() const { return numcoefficients; }
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
 	int getNode2Coefficient(int id) { return node2coefficient[id]; }
-	const char* getMeshFilename() { return filename; }
+	const char* getMeshFilename() const { return filename; }
 	void setGroundNode(int nodeid) { this->groundNode = nodeid; }
-	int getGroundNode() { return this->groundNode; }
+	int getGroundNode() const { return this->groundNode; }
 	void setCurrentFreq(double _currentFreq) { this->currentFreq = _currentFreq; }
-	double getCurrentFreq() { return this->currentFreq; }
+	double getCurrentFreq() const { return this->currentFreq; }
 	void setCapacitance(double _capacitance) { this->capacitance = _capacitance; isCapacitive = true; }
-	int getCalibrationMode() { return this->calibrationMode; }
+	int getCalibrationMode() const { return this->calibrationMode; }
 	std::pair<int, int> getAdjacency(int index) { return this->innerAdjacency[index]; }
 
 	// Contructor and destructors

@@ -68,6 +68,7 @@ public:
 	// Getters and setters
 	int getNumCoefficients() const { return numcoefficients; }
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
+	const nodeCoefficients * const *getNodeCoefficients() const { return nodeCoef; }
 	int getNode2Coefficient(int id) { return node2coefficient[id]; }
 	const char* getMeshFilename() const { return filename; }
 	void setGroundNode(int nodeid) { this->groundNode = nodeid; }
@@ -142,7 +143,7 @@ public:
 		Eigen::SparseMatrix<_Scalar, Eigen::ColMajor> *m = new Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>(skeleton->rows(), skeleton->cols());
 		m->reserve(skeleton->nonZeros());
 		// Now byte-copy outer and inner vectors from skeleton
-		memcpy(m->outerIndexPtr(), skeleton->outerIndexPtr(), (m->rows() + 1)*sizeof(typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::StorageIndex));
+		memcpy(m->outerIndexPtr(), skeleton->outerIndexPtr(), (skeleton->outerSize() + 1)*sizeof(typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::StorageIndex));
 		memcpy(m->innerIndexPtr(), skeleton->innerIndexPtr(), m->nonZeros()*sizeof(typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::StorageIndex));
 
 		// Final coefficient vector is the Sparse x Dense product of coef2KMatrix times coefficients

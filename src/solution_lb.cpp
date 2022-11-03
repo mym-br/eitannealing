@@ -154,7 +154,7 @@ bool solution_lb::compareWith(solution_lb &target, float kt, float prob)
 
 // Construct from solution vector copy
 solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, std::vector<double> &&sol):
-                                p(p), o(o),
+				p(p), matrixBuilder(new realMatrixBuilder(*p)), o(o),
 				sol(std::move(sol)),
 				distance(o.getNObs()),
 				maxdist(o.getNObs()),
@@ -170,7 +170,7 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, st
 
 // New randomly modified solution
 solution_lb::solution_lb(std::vector<double> &&sol, const solution_lb &base):
-                p(base.p), o(base.o),
+                p(base.p), matrixBuilder(base.matrixBuilder), o(base.o),
                 sol(std::move(sol)),
                 distance(o.getNObs()),
                 maxdist(o.getNObs()),
@@ -186,7 +186,7 @@ solution_lb::solution_lb(std::vector<double> &&sol, const solution_lb &base):
 
 // New random solution
 solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o):
-                p(p), o(o),
+                p(p), matrixBuilder(new realMatrixBuilder(*p)), o(o),
 		sol(solution_lb::getNewRandomSolution(p->getNumCoefficients())),
 		distance(o.getNObs()),
 		maxdist(o.getNObs()),
@@ -201,11 +201,9 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o):
 
 void solution_lb::initMatrices()
 {
-      solver::matrix *_aii, *_aic, *_acc;
-      assembleProblemMatrix_lb(sol.data(), &_aii, &_aic, &_acc, *p);
-      Aii.reset(_aii);
-      Aic.reset(_aic);
-      Acc.reset(_acc);
+      Aii = matrixBuilder->buildAiiMatrix(sol);
+	  Aic = matrixBuilder->buildAicMatrix(sol);
+	  Acc = matrixBuilder->buildAccMatrix(sol);
       precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
 }
 

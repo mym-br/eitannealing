@@ -13,6 +13,7 @@ class solution_lb;
 #include "solution.h"
 #include "solver_lb.h"
 #include "problem.h"
+#include "lbmatrixbuilder.h"
 #include <memory>
 #include <vector>
 
@@ -38,12 +39,15 @@ class solution_lb;
 class solution_lb {
 	protected:
 
-                  using solver = LB_Solver;
+			using solver = LB_Solver;
 			std::vector<double> sol;
 			std::unique_ptr<solver::matrix> Aii, Aic, Acc;
 			std::unique_ptr<solver::Preconditioner> precond;
-                  std::shared_ptr<problem> p;
-                  const observations<double> &o;
+			std::shared_ptr<problem> p;
+			typedef LBMatrixBuilder<eigen_double_engine::scalar, eigen_double_engine::symMatrix, eigen_double_engine::matrix> realMatrixBuilder;
+			std::shared_ptr<realMatrixBuilder> matrixBuilder;
+
+			const observations<double> &o;
 
 			std::vector<solver> simulations;
 			Eigen::VectorXd distance;

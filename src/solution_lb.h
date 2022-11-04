@@ -8,12 +8,11 @@
 #ifndef SOLUTION_LB_H_
 #define SOLUTION_LB_H_
 
-class solution_lb;
-
 #include "solution.h"
 #include "solver_lb.h"
 #include "problem.h"
 #include "lbmatrixbuilder.h"
+#include "observations.h"
 #include <memory>
 #include <vector>
 
@@ -36,18 +35,16 @@ class solution_lb;
  */
 
 
-class solution_lb {
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler> class solution_lb_gen {
 	protected:
 
-			using solver = LB_Solver;
-			std::vector<double> sol;
-			std::unique_ptr<solver::matrix> Aii, Aic, Acc;
-			std::unique_ptr<solver::Preconditioner> precond;
+			std::vector<admittance> sol;
+			std::unique_ptr<typename solver::matrix> Aii, Aic, Acc;
+			std::unique_ptr<typename solver::Preconditioner> precond;
 			std::shared_ptr<problem> p;
-			typedef LBMatrixBuilder<eigen_double_engine::scalar, eigen_double_engine::symMatrix, eigen_double_engine::matrix> realMatrixBuilder;
-			std::shared_ptr<realMatrixBuilder> matrixBuilder;
+			std::shared_ptr<matBuilder> matrixBuilder;
 
-			const observations<double> &o;
+			const observations &o;
 
 			std::vector<solver> simulations;
 			Eigen::VectorXd distance;
@@ -56,9 +53,9 @@ class solution_lb {
 			Eigen::VectorXd err;
 			Eigen::VectorXd err_x_dist;
 
-                  // Least eigenvector and eigenvalue estimations
-                  double eigenvalue_estimate;
-                  solver::vector eigenvector_estimate;
+			// Least eigenvector and eigenvalue estimations
+			double eigenvalue_estimate;
+			typename solver::vector eigenvector_estimate;
 
 			double totalDist;
 			double minTotalDist;
@@ -72,27 +69,27 @@ class solution_lb {
 
 
 			void initSimulations();
-			void initSimulations(const solution_lb &base);
+			void initSimulations(const solution_lb_gen &base);
 			void initErrors();
 
-			static std::vector<double> getNewRandomSolution(int size);
+			std::vector<admittance> getNewRandomSolution(int size);
 
-			std::vector<double> getShuffledSolution(shuffleData *data, const shuffler &sh) const;
+			std::vector<admittance> getShuffledSolution(shuffleData *data, const shuffler &sh) const;
 
 			// shuffle constructor
-			solution_lb(std::vector<double> &&sol, const solution_lb &base);
+			solution_lb_gen(std::vector<admittance> &&sol, const solution_lb_gen &base);
 
 			void initMatrices();
 
 
 	public:
 
-		solution_lb(std::shared_ptr<problem> p, observations<double> &o, std::vector<double> &&sol);
-		solution_lb(std::shared_ptr<problem> p, observations<double> &o);	// New random solution
-		bool compareWith(solution_lb &target, float kt, float prob);
+		solution_lb_gen(std::shared_ptr<problem> p, const observations &o, std::vector<admittance> &&sol);
+		solution_lb_gen(std::shared_ptr<problem> p, const observations &o);	// New random solution
+		bool compareWith(solution_lb_gen &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
 		//bool compareWithMaxE2(solution &target, float kt, double e2);
-		solution_lb *shuffle(shuffleData *data, const shuffler &sh) const;
+		solution_lb_gen *shuffle(shuffleData *data, const shuffler &sh) const;
 
 		void improve();
 
@@ -106,7 +103,7 @@ class solution_lb {
 			return minTotalDist;
 		}
 
-		const std::vector<double> &getSolution() {
+		const std::vector<admittance> &getSolution() {
 			return this->sol;
 		}
 
@@ -143,31 +140,10 @@ class solution_lb {
 		void ensureMinIt(unsigned int it);
 
 		//void ensureMaxE2(double e2);
-
-
-#ifdef __GENERATE_LB_BENCHMARKS
-		solution_lb(const float *sol, char benchmarktag);
-#endif	// __GENERATE_LB_BENCHMARKS
 };
 
-
-class solution_lb_benchmarked : public solution_lb
-{
-public:
-  struct benchmark_entry {
-      unsigned int timestamp;
-      double e_low;
-      double e_high;
-    } *vector;
-    int i;
-    int n;
-
-    solution_lb_benchmarked(const float *sigma, benchmark_entry *bench, int n);
-
-    void performBenchmark();
-
-protected:
-  static int getTimestamp();
-};
+typedef observations<double> realobservations;
+typedef LBMatrixBuilder<eigen_double_engine::scalar, eigen_double_engine::symMatrix, eigen_double_engine::matrix> realMatrixBuilder;
+typedef solution_lb_gen<LB_Solver, double, realobservations, realMatrixBuilder, shuffleData, shuffler> solution_lb;
 
 #endif /* SOLUTION_H_ */

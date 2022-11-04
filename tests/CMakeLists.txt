@@ -72,4 +72,3 @@ add_executable(test_new_lb_matrix_builder test_new_lb_matrix_builder.cpp $<TARGE
 set_property(TARGET test_new_lb_matrix_builder PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_new_lb_matrix_builder PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_new_lb_matrix_builder ${corelibs})
-

@@ -34,7 +34,7 @@ set(eit_core_SRCS
   src/mt19937-64/mt19937-64.c
   src/threedim/initproblem3D.cpp
   src/solver_lb.cpp
-  src/solution_lb.cpp
+  src/solution_lb_real.cpp
   src/threedim/nodecoeficients3D.cpp
   src/twodim/initproblem2D.cpp
   src/twodim/nodecoeficients2D.cpp

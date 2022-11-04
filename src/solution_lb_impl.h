@@ -7,7 +7,6 @@
 
 #include "solution_lb.h"
 #include "random.h"
-#include "observations.h"
 #include <iostream>
 #include "gradientnormregularisation.h"
 #include "util/standard_deviation.hpp"
@@ -75,8 +74,8 @@ const float base[] = {
 };
 
 #endif /* USE_PREVIOUS_DATA */
-
-void solution_lb::improve()
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::improve()
 {
 	// Do another iteration on the critical solver
 	simulations[critical].do_iteration();
@@ -103,7 +102,9 @@ void solution_lb::improve()
 	critErr = err[critical];
 }
 
-bool solution_lb::compareWith(solution_lb &target, float kt, float prob)
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+bool solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::
+	compareWith(solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler>  &target, float kt, float prob)
 {
 	double delta, expdelta;
 	// Ensure errors are within required margin
@@ -153,7 +154,8 @@ bool solution_lb::compareWith(solution_lb &target, float kt, float prob)
 }
 
 // Construct from solution vector copy
-solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, std::vector<double> &&sol):
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::solution_lb_gen(std::shared_ptr<problem> p, const observations &o, std::vector<admittance> &&sol):
 				p(p), matrixBuilder(new realMatrixBuilder(*p)), o(o),
 				sol(std::move(sol)),
 				distance(o.getNObs()),
@@ -169,7 +171,9 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o, st
 }
 
 // New randomly modified solution
-solution_lb::solution_lb(std::vector<double> &&sol, const solution_lb &base):
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::
+	solution_lb_gen(std::vector<admittance> &&sol, const solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler>  &base):
                 p(base.p), matrixBuilder(base.matrixBuilder), o(base.o),
                 sol(std::move(sol)),
                 distance(o.getNObs()),
@@ -185,9 +189,11 @@ solution_lb::solution_lb(std::vector<double> &&sol, const solution_lb &base):
 
 
 // New random solution
-solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o):
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::
+	solution_lb_gen(std::shared_ptr<problem> p, const observations &o):
                 p(p), matrixBuilder(new realMatrixBuilder(*p)), o(o),
-		sol(solution_lb::getNewRandomSolution(p->getNumCoefficients())),
+		sol(solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::getNewRandomSolution(p->getNumCoefficients())),
 		distance(o.getNObs()),
 		maxdist(o.getNObs()),
 		mindist(o.getNObs()),
@@ -199,7 +205,8 @@ solution_lb::solution_lb(std::shared_ptr<problem> p, observations<double> &o):
 	this->initErrors();
 }
 
-void solution_lb::initMatrices()
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::initMatrices()
 {
       Aii = matrixBuilder->buildAiiMatrix(sol);
 	  Aic = matrixBuilder->buildAicMatrix(sol);
@@ -207,7 +214,8 @@ void solution_lb::initMatrices()
       precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
 }
 
-void solution_lb::initSimulations()
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::initSimulations()
 {
     // Prepare solvers
 	int i;
@@ -229,7 +237,9 @@ void solution_lb::initSimulations()
 	}
 }
 
-void solution_lb::initSimulations(const solution_lb &base)
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::
+	initSimulations(const solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler>  &base)
 {
         // Prepare solvers
         int i;
@@ -253,8 +263,8 @@ void solution_lb::initSimulations(const solution_lb &base)
         }
 }
 
-
-void solution_lb::initErrors()
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::initErrors()
 {
 	int i;
 	// Calc regularisation value
@@ -285,9 +295,10 @@ void solution_lb::initErrors()
 	critErr = err[critical];
 }
 
-std::vector<double> solution_lb::getNewRandomSolution(int size)
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+std::vector<admittance> solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::getNewRandomSolution(int size)
 {
-	std::vector<double> res;
+	std::vector<admittance> res;
 	res.reserve(size);
 	int i = 0;
 #ifdef USE_PREVIOUS_DATA
@@ -300,9 +311,11 @@ std::vector<double> solution_lb::getNewRandomSolution(int size)
 	return res;
 }
 
-std::vector<double> solution_lb::getShuffledSolution(shuffleData *data, const shuffler &sh) const
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+std::vector<admittance> solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::
+	getShuffledSolution(shuffleData *data, const shuffler &sh) const
 {
-	std::vector<double> res(sol);
+	std::vector<admittance> res(sol);
 	// head or tails
 	if(genint(2)) { // Normal
 #ifndef USE_PREVIOUS_DATA
@@ -318,10 +331,10 @@ std::vector<double> solution_lb::getShuffledSolution(shuffleData *data, const sh
 		if(sh.shuffleConsts[ncoef]==0) {
 			res[ncoef] = minc+genreal()*(maxc-minc);
 		} else {
-			double val;
+			admittance val;
 			do {
 				val = res[ncoef];
-				double rnd = 0;
+				admittance rnd = 0;
 				for(int i=0;i<sh.shuffleConsts[ncoef];i++)
 					rnd += genreal();
 				rnd /= sh.shuffleConsts[ncoef];
@@ -349,15 +362,15 @@ std::vector<double> solution_lb::getShuffledSolution(shuffleData *data, const sh
 			node1 = node2;;
 			node2 = aux;
 		}
-		double v1 = res[node1], v2 = res[node2];
-		double a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
+		admittance v1 = res[node1], v2 = res[node2];
+		admittance a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
 
-		double delta;
+		admittance delta;
 		do {
 			if(sh.swapshuffleconsts[ncoef]==0) {
 				delta = a*(genreal()*2 - 1);
 			} else {
-				double rnd = 0;
+				admittance rnd = 0;
 				for(int i=0;i<sh.swapshuffleconsts[ncoef];i++)
 					rnd += genreal();
 				rnd /= sh.swapshuffleconsts[ncoef];
@@ -377,11 +390,13 @@ std::vector<double> solution_lb::getShuffledSolution(shuffleData *data, const sh
 	return res;
 }
 
-solution_lb *solution_lb::shuffle(shuffleData *data, const shuffler &sh) const
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler>  *solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::
+	shuffle(shuffleData *data, const shuffler &sh) const
 {
 	solution_lb *res;
 	try {
-		res = new solution_lb(getShuffledSolution(data, sh), *this);
+		res = new solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> (getShuffledSolution(data, sh), *this);
 	} catch(...) {
 
 		for(int i=0;i<65;i++)
@@ -391,12 +406,14 @@ solution_lb *solution_lb::shuffle(shuffleData *data, const shuffler &sh) const
 	return res;
 }
 
-void solution_lb::saturate()
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::saturate()
 {
       ensureMinIt(p->getNodesCount()+30);
 }
 
-void solution_lb::ensureMinIt(unsigned int it)
+template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
+void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::ensureMinIt(unsigned int it)
 {
       static Eigen::VectorXd aux(p->getGenericElectrodesCount()-1);
       for(unsigned int i = 0; i<o.getNObs();i++) {

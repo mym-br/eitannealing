@@ -60,6 +60,7 @@ template <class solver, class admittance, class observations, class matBuilder, 
 			double totalDist;
 			double minTotalDist;
 			double maxTotalDist;
+			// FIXME: Adopt a maximal heap here?
 			int critical;
 			double critErr;
 			double regularisation;

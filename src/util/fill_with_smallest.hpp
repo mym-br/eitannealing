@@ -23,11 +23,14 @@ void fillWithNSmallest(container1 &dest, const container2 &orig, unsigned long n
         oo++;
     }
     if(oo != orig.end()) { // There are remaining elements, get the n largest
+        // FIXME: Here we could probably use std::make_heap
         make_heap_down(dest.begin(), dest.end(), std::forward<comparator>(cmp)); // max heap
         while(oo != orig.end()) {
             typename container1::value_type el(*oo);
             if(cmp(el, dest.front())) {
                 // Replace smallest element and fix the heap
+                //      AFAIK, there's no "replace top element" algorithm in stl,
+                //      so we roll our own.
                 dest.front() = el;
                 heap_sift_top_down(dest.begin(), dest.begin(), dest.end(), std::forward<comparator>(cmp));
             }

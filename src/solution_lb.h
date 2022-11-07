@@ -47,9 +47,9 @@ template <class solver, class admittance, class observations, class matBuilder, 
 			const observations &o;
 
 			std::vector<solver> simulations;
-			Eigen::VectorXd distance;
-			Eigen::VectorXd maxdist;
-			Eigen::VectorXd mindist;
+			Eigen::VectorXd distance2;
+			Eigen::VectorXd maxdist2;
+			Eigen::VectorXd mindist2;
 			Eigen::VectorXd err;
 			Eigen::VectorXd err_x_dist;
 
@@ -60,7 +60,7 @@ template <class solver, class admittance, class observations, class matBuilder, 
 			double totalDist;
 			double minTotalDist;
 			double maxTotalDist;
-			// FIXME: Adopt a maximal heap here?
+			std::vector<unsigned > solver_heap_ordered_by_errors;
 			int critical;
 			double critErr;
 			double regularisation;
@@ -117,7 +117,7 @@ template <class solver, class admittance, class observations, class matBuilder, 
 		}
 
 		double getErrorAt(int sim) const {
-			return this->distance[sim];
+			return std::sqrt(this->distance2[sim]);
 		}
 
 		int getTotalIt() const {

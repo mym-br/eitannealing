@@ -81,15 +81,18 @@ void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, 
 	simulations[critical].do_iteration();
 	this->totalit++;
 	// Recalcule expected distance and boundaries
+	double d = simulations[critical].getErrorl2Estimate();
+	double min_d = simulations[critical].getMinErrorl2Estimate();
+	double max_d = simulations[critical].getMaxErrorl2Estimate();
 
-	distance[critical] = simulations[critical].getErrorl2Estimate();
-	maxdist[critical] = simulations[critical].getMaxErrorl2Estimate();
-	mindist[critical] = simulations[critical].getMinErrorl2Estimate();
-	err[critical] = maxdist[critical]-mindist[critical];
-	err_x_dist[critical] = maxdist[critical]*err[critical];
-	totalDist = distance.norm()+regularisation;
-	minTotalDist = mindist.norm()+regularisation;
-	maxTotalDist = maxdist.norm()+regularisation;
+	distance2[critical] = d*d;
+	maxdist2[critical] = max_d*max_d;
+	mindist2[critical] = min_d*min_d;
+	err[critical] = max_d-min_d;
+	err_x_dist[critical] = max_d*err[critical];
+	totalDist = std::sqrt(distance2.sum())+regularisation;
+	minTotalDist = std::sqrt(mindist2.sum())+regularisation;
+	maxTotalDist = std::sqrt(maxdist2.sum())+regularisation;
 	// reevaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
@@ -158,9 +161,9 @@ template <class solver, class admittance, class observations, class matBuilder, 
 solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::solution_lb_gen(std::shared_ptr<problem> p, const observations &o, std::vector<admittance> &&sol):
 				p(p), matrixBuilder(new realMatrixBuilder(*p)), o(o),
 				sol(std::move(sol)),
-				distance(o.getNObs()),
-				maxdist(o.getNObs()),
-				mindist(o.getNObs()),
+				distance2(o.getNObs()),
+				maxdist2(o.getNObs()),
+				mindist2(o.getNObs()),
 				err(o.getNObs()),
 				err_x_dist(o.getNObs())
 {
@@ -176,9 +179,9 @@ solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuff
 	solution_lb_gen(std::vector<admittance> &&sol, const solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler>  &base):
                 p(base.p), matrixBuilder(base.matrixBuilder), o(base.o),
                 sol(std::move(sol)),
-                distance(o.getNObs()),
-                maxdist(o.getNObs()),
-                mindist(o.getNObs()),
+                distance2(o.getNObs()),
+                maxdist2(o.getNObs()),
+                mindist2(o.getNObs()),
                 err(o.getNObs()),
                 err_x_dist(o.getNObs())
 {
@@ -194,9 +197,9 @@ solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuff
 	solution_lb_gen(std::shared_ptr<problem> p, const observations &o):
                 p(p), matrixBuilder(new realMatrixBuilder(*p)), o(o),
 		sol(solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::getNewRandomSolution(p->getNumCoefficients())),
-		distance(o.getNObs()),
-		maxdist(o.getNObs()),
-		mindist(o.getNObs()),
+		distance2(o.getNObs()),
+		maxdist2(o.getNObs()),
+		mindist2(o.getNObs()),
 		err(o.getNObs()),
 		err_x_dist(o.getNObs())
 {
@@ -272,17 +275,18 @@ void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, 
 	this->regularisation = gradientNormRegularisation::getInstance()->getRegularisation(this->sol.data())*0.010+electrodevariance*20;
 	// Retrieve distance estimates, errors and boundaries
 	for(i=0;i<o.getNObs();i++) {
-		// Compare with observation
-
-		distance[i] = simulations[i].getErrorl2Estimate();
-		maxdist[i] = simulations[i].getMaxErrorl2Estimate();
-		mindist[i] = simulations[i].getMinErrorl2Estimate();
-		err[i] = maxdist[i]-mindist[i];
-		err_x_dist[i] = maxdist[i]*err[i];
+		double d = simulations[i].getErrorl2Estimate();
+		double min_d = simulations[i].getMinErrorl2Estimate();
+		double max_d = simulations[i].getMaxErrorl2Estimate();
+		distance2[i] = d*d;
+		maxdist2[i] = max_d*max_d;
+		mindist2[i] = min_d*min_d;
+		err[i] = max_d - min_d;
+		err_x_dist[i] = max_d*err[i];
 	}
-	totalDist = distance.norm()+regularisation;
-	minTotalDist = mindist.norm()+regularisation;
-	maxTotalDist = maxdist.norm()+regularisation;
+	totalDist = std::sqrt(distance2.sum())+regularisation;
+	minTotalDist = std::sqrt(mindist2.sum())+regularisation;
+	maxTotalDist = std::sqrt(maxdist2.sum())+regularisation;
 	// evaluate critical
 	double max = err_x_dist[0];
 	critical = 0;
@@ -421,14 +425,18 @@ void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, 
                 simulations[i].do_iteration();
                 this->totalit++;
 
-                distance[i] = simulations[i].getErrorl2Estimate();
-                maxdist[i] = simulations[i].getMaxErrorl2Estimate();
-                mindist[i] = simulations[i].getMinErrorl2Estimate();
-                err[i] = maxdist[i]-mindist[i];
-                err_x_dist[i] = maxdist[i]*err[i];
-                totalDist = distance.norm()+regularisation;
-                minTotalDist = mindist.norm()+regularisation;
-                maxTotalDist = maxdist.norm()+regularisation;
+				double d = simulations[i].getErrorl2Estimate();
+				double min_d = simulations[i].getMinErrorl2Estimate();
+				double max_d = simulations[i].getMaxErrorl2Estimate();
+
+                distance2[i] = d*d;
+                maxdist2[i] = max_d*max_d;
+                mindist2[i] = min_d*min_d;
+                err[i] = max_d-min_d;
+                err_x_dist[i] = max_d*err[i];
+                totalDist = std::sqrt(distance2.sum())+regularisation;
+                minTotalDist = std::sqrt(mindist2.sum())+regularisation;
+                maxTotalDist = std::sqrt(maxdist2.sum())+regularisation;
 
                // reevaluate critical
                 double max = err_x_dist[0];

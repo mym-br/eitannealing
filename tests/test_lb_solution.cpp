@@ -40,15 +40,30 @@ int main(int argc, char *argv[])
      std::unique_ptr<shuffler> sh;
      std::cout << "Evaluating initial solution..." << std::flush;     
      current.reset(new solution_lb(input, *readingsScalar, reg, std::vector<double>(sol)));
+     std::cout << "Initial values: " << current->getDMin() << " (min) " << current->getDMax() << " (max)\n";
+     std::cout << "Saturating initial solution..." << std::flush;
      current->saturate();
      std::cout << "Done\n" << std::flush;
-     std::cout << "Initial values: " << current->getDMin() << " (min) " << current->getDMax() << " (max)\n";
+     std::cout << "Saturated values: " << current->getDMin() << " (min) " << current->getDMax() << " (max)\n";
      
      std::cout << "generating next solution..." << std::flush;     
      sh.reset(new shuffler(input, readingsScalar));
      next.reset(current->shuffle(&sdata, *sh));
      std::cout << "Done\n" << std::flush;
      std::cout << "Next solution Initial values: " << next->getDMin() << " (min) " << next->getDMax() << " (max)\n";
+     std::cout << "improving next solution..." << std::flush;
+     next->improve();
+     std::cout << "Done\n" << std::flush;
+     std::cout << "Next solution values: " << next->getDMin() << " (min) " << next->getDMax() << " (max)\n";
+     std::cout << "improving next solution..." << std::flush;
+     next->improve();
+     std::cout << "Done\n" << std::flush;
+     std::cout << "Next solution values: " << next->getDMin() << " (min) " << next->getDMax() << " (max)\n";
+     std::cout << "improving next solution..." << std::flush;
+     next->improve();
+     std::cout << "Done\n" << std::flush;
+     std::cout << "Next solution values: " << next->getDMin() << " (min) " << next->getDMax() << " (max)\n";
+
      
      
 

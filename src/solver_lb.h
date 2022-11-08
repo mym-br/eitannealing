@@ -240,7 +240,7 @@ template<class num_engine> class LB_Solver_A {
                 ev = 1/temp_eigenvector.norm();
                 temp_eigenvector *= ev;
             }
-            //this->a = ev;
+            this->a = ev;
             // We need now to recalculate Dt...
             this->dt = AlphaVector[0] - this->a;
             for(unsigned int i=1;i<this->it;i++) {

@@ -4,7 +4,7 @@
 #include "../src/problem.h"
 #include "../src/nodecoefficients.h"
 #include "../src/intcoef.h"
-#include "../src/solution_lb.h"
+#include "../src/solution_lb_real.h"
 #include "../src/gradientnormregularisation.h"
 
 int main(int argc, char *argv[])
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
      input->buildNodeCoefficients();
      input->prepareSkeletonMatrix();
      input->createCoef2KMatrix();
-     gradientNormRegularisation::initInstance(input);
+     std::shared_ptr<gradientNormRegularisation> reg(new gradientNormRegularisation(input));
      std::cout << "Done\n" << std::flush;
      std::cout << "Solution with " << input->getNumCoefficients() << " coefficients\n" << std::flush;
      
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
      shuffleData sdata;
      std::unique_ptr<shuffler> sh;
      std::cout << "Evaluating initial solution..." << std::flush;     
-     current.reset(new solution_lb(input, *readingsScalar, std::vector<double>(sol)));
+     current.reset(new solution_lb(input, *readingsScalar, reg, std::vector<double>(sol)));
      current->saturate();
      std::cout << "Done\n" << std::flush;
      std::cout << "Initial values: " << current->getDMin() << " (min) " << current->getDMax() << " (max)\n";

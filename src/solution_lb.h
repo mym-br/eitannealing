@@ -35,7 +35,7 @@
  */
 
 
-template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler> class solution_lb_gen {
+template <class solver, class admittance, class observations, class regularizer, class matBuilder, class shuffleData, class shuffler> class solution_lb_gen {
 	protected:
 
 			std::vector<admittance> sol;
@@ -43,6 +43,7 @@ template <class solver, class admittance, class observations, class matBuilder, 
 			std::unique_ptr<typename solver::Preconditioner> precond;
 			std::shared_ptr<problem> p;
 			std::shared_ptr<matBuilder> matrixBuilder;
+			std::shared_ptr<regularizer> reg;
 
 			const observations &o;
 
@@ -81,8 +82,8 @@ template <class solver, class admittance, class observations, class matBuilder, 
 
 	public:
 
-		solution_lb_gen(std::shared_ptr<problem> p, const observations &o, std::vector<admittance> &&sol);
-		solution_lb_gen(std::shared_ptr<problem> p, const observations &o);	// New random solution
+		solution_lb_gen(std::shared_ptr<problem> p, const observations &o, std::shared_ptr<regularizer> r, std::vector<admittance> &&sol);
+		solution_lb_gen(std::shared_ptr<problem> p, const observations &o, std::shared_ptr<regularizer> r);	// New random solution
 		bool compareWith(solution_lb_gen &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
 		//bool compareWithMaxE2(solution &target, float kt, double e2);
@@ -138,9 +139,5 @@ template <class solver, class admittance, class observations, class matBuilder, 
 
 		//void ensureMaxE2(double e2);
 };
-
-typedef observations<double> realobservations;
-typedef LBMatrixBuilder<eigen_double_engine::scalar, eigen_double_engine::symMatrix, eigen_double_engine::matrix> realMatrixBuilder;
-typedef solution_lb_gen<LB_Solver, double, realobservations, realMatrixBuilder, shuffleData, shuffler> solution_lb;
 
 #endif /* SOLUTION_H_ */

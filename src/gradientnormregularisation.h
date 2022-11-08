@@ -9,7 +9,6 @@ class gradientNormRegularisation
 {
 
 private:
-	gradientNormRegularisation(std::shared_ptr<problem> _input);
     static std::unique_ptr<gradientNormRegularisation> instance;
     int electrodecoefficients;
     std::unique_ptr<matrix> regularizationMatrix;
@@ -18,6 +17,7 @@ private:
     std::set<int> lastElectrodeNodes;    
 	std::shared_ptr<problem> input;
 public:
+  	gradientNormRegularisation(std::shared_ptr<problem> _input);
     double getRegularisation(const double *sol) const;
   
 	static void initInstance(std::shared_ptr<problem> _input);

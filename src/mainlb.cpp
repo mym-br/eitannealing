@@ -24,6 +24,7 @@
 //#include "nodecoefficients.h"
 #include "solutioncomplex.h"
 #include "solution_lb.h"
+#include "solution_lb_real.h"
 #include "solution_lb_complex.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
@@ -70,6 +71,7 @@ void workProc()
 	double *solim = new double[input->getNumCoefficients()];
 	std::unique_ptr<solution_lb_complex> currentComplex, nextComplex;
 	std::unique_ptr<solution_lb> currentScalar, nextScalar;
+	std::shared_ptr<gradientNormRegularisation> reg(new gradientNormRegularisation(input));
 
 	int totalit;
 	int acceptit;
@@ -90,7 +92,7 @@ void workProc()
 		std::vector<double> electrodesCoeffs;
 		//for (int j = 0; j < 32; j++) electrodesCoeffs.push_back(0.002);
 		sh.reset(new shuffler(input, readingsScalar));
-		currentScalar.reset(new solution_lb(input, *readingsScalar));
+		currentScalar.reset(new solution_lb(input, *readingsScalar, reg));
 	}
 
 	std::cout.flush();

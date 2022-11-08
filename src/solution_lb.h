@@ -53,21 +53,17 @@ template <class solver, class admittance, class observations, class matBuilder, 
 			Eigen::VectorXd err;
 			Eigen::VectorXd err_x_dist;
 
-			// Least eigenvector and eigenvalue estimations
-			double eigenvalue_estimate;
-			typename solver::vector eigenvector_estimate;
-
 			double totalDist;
 			double minTotalDist;
 			double maxTotalDist;
 			std::vector<unsigned > solver_heap_ordered_by_errors;
-			int critical;
 			double critErr;
 			double regularisation;
 			int totalit;
 
-
-
+			// Least eigenvector and eigenvalue estimations
+			double eigenvalue_estimate;
+			typename solver::vector eigenvector_estimate;
 
 			void initSimulations();
 			void initSimulations(const solution_lb_gen &base);
@@ -109,7 +105,7 @@ template <class solver, class admittance, class observations, class matBuilder, 
 		}
 
 		int getCritical() const {
-			return this->critical;
+			return this->solver_heap_ordered_by_errors[0];
 		}
 
 		double getCritErr() const {

@@ -10,6 +10,7 @@
 #include <iostream>
 #include "gradientnormregularisation.h"
 #include "util/standard_deviation.hpp"
+#include "util/heap_siftdown.hpp"
 
 #ifndef max
 #define max(x,y) ((x)>(y)?(x):(y))
@@ -77,6 +78,7 @@ const float base[] = {
 template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
 void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuffler> ::improve()
 {
+	unsigned critical = solver_heap_ordered_by_errors[0];
 	// Do another iteration on the critical solver
 	simulations[critical].do_iteration();
 	this->totalit++;
@@ -94,15 +96,9 @@ void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, 
 	minTotalDist = std::sqrt(mindist2.sum())+regularisation;
 	maxTotalDist = std::sqrt(maxdist2.sum())+regularisation;
 	// reevaluate critical
-	double max = err_x_dist[0];
-	critical = 0;
-	for(int i = 1; i<o.getNObs();i++) {
-		if(max < err_x_dist[i]) {
-			max = err_x_dist[i];
-			critical = i;
-		}
-	}
-	critErr = err[critical];
+	heap_sift_top_down(solver_heap_ordered_by_errors.begin(), solver_heap_ordered_by_errors.begin(), solver_heap_ordered_by_errors.end(),
+		   [&errors = this->err_x_dist](unsigned i, unsigned j) { return errors[i]<errors[j]; });
+	critErr = this->err_x_dist[solver_heap_ordered_by_errors[0]];
 }
 
 template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
@@ -165,7 +161,8 @@ solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuff
 				maxdist2(o.getNObs()),
 				mindist2(o.getNObs()),
 				err(o.getNObs()),
-				err_x_dist(o.getNObs())
+				err_x_dist(o.getNObs()),
+				solver_heap_ordered_by_errors(o.getNObs())
 {
 
     this->initMatrices();
@@ -183,7 +180,8 @@ solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuff
                 maxdist2(o.getNObs()),
                 mindist2(o.getNObs()),
                 err(o.getNObs()),
-                err_x_dist(o.getNObs())
+                err_x_dist(o.getNObs()),
+				solver_heap_ordered_by_errors(o.getNObs())
 {
         this->initMatrices();
         this->initSimulations(base);
@@ -201,7 +199,8 @@ solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, shuff
 		maxdist2(o.getNObs()),
 		mindist2(o.getNObs()),
 		err(o.getNObs()),
-		err_x_dist(o.getNObs())
+		err_x_dist(o.getNObs()),
+		solver_heap_ordered_by_errors(o.getNObs())
 {
       this->initMatrices();
       this->initSimulations();
@@ -283,20 +282,15 @@ void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, 
 		mindist2[i] = min_d*min_d;
 		err[i] = max_d - min_d;
 		err_x_dist[i] = max_d*err[i];
+		solver_heap_ordered_by_errors[i] = i;
 	}
 	totalDist = std::sqrt(distance2.sum())+regularisation;
 	minTotalDist = std::sqrt(mindist2.sum())+regularisation;
 	maxTotalDist = std::sqrt(maxdist2.sum())+regularisation;
 	// evaluate critical
-	double max = err_x_dist[0];
-	critical = 0;
-	for(i = 1; i<o.getNObs();i++) {
-		if(max < err_x_dist[i]) {
-			max = err_x_dist[i];
-			critical = i;
-		}
-	}
-	critErr = err[critical];
+	make_heap_down(solver_heap_ordered_by_errors.begin(), solver_heap_ordered_by_errors.end(),
+				   [&errors = this->err_x_dist](unsigned i, unsigned j) { return errors[i]<errors[j]; });
+	critErr = this->err_x_dist[solver_heap_ordered_by_errors[0]];
 }
 
 template <class solver, class admittance, class observations, class matBuilder, class shuffleData, class shuffler>
@@ -438,16 +432,10 @@ void solution_lb_gen<solver, admittance, observations, matBuilder, shuffleData, 
                 minTotalDist = std::sqrt(mindist2.sum())+regularisation;
                 maxTotalDist = std::sqrt(maxdist2.sum())+regularisation;
 
-               // reevaluate critical
-                double max = err_x_dist[0];
-                critical = 0;
-                for(int j = 1; j<o.getNObs();j++) {
-                  if(max < err_x_dist[j]) {
-                        max = err_x_dist[j];
-                        critical = j;
-                  }
-                }
-                critErr = err[critical];
+                // reevaluate critical
+			    make_heap_down(solver_heap_ordered_by_errors.begin(), solver_heap_ordered_by_errors.end(),
+				   [&errors = this->err_x_dist](unsigned i, unsigned j) { return errors[i]<errors[j]; });
+				critErr = this->err_x_dist[solver_heap_ordered_by_errors[0]];
             }
       }
 }

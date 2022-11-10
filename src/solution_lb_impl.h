@@ -158,7 +158,7 @@ void solution_lb_gen<solver, admittance, observations, regularizer, matBuilder, 
       Aii = matrixBuilder->buildAiiMatrix(sol);
 	  Aic = matrixBuilder->buildAicMatrix(sol);
 	  Acc = matrixBuilder->buildAccMatrix(sol);
-      precond.reset(LB_Solver::makePreconditioner(*Aii, *Aic));
+      precond.reset(solver::makePreconditioner(*Aii, *Aic));
 }
 
 template <class solver, class admittance, class observations, class regularizer, class matBuilder, class shuffleData, class shuffler>
@@ -172,13 +172,13 @@ void solution_lb_gen<solver, admittance, observations, regularizer, matBuilder, 
     simulations.reserve(o.getNObs());
     // 1st solution estimates also least eigenvalue
     simulations.emplace_back(Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
-                    Eigen::VectorXd(o.getTensions()[0]), *precond,  100, (float)0.0001, this->eigenvalue_estimate, this->eigenvector_estimate);
+                    typename solver::vector(o.getTensions()[0]), *precond,  100, (float)0.0001, this->eigenvalue_estimate, this->eigenvector_estimate);
     this->totalit += simulations[0].getIteration();
 	for(i=1;i<o.getNObs();i++)
 	{
         simulations.emplace_back(
             Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
-            Eigen::VectorXd(o.getTensions()[i]), *precond, this->eigenvalue_estimate);
+            typename solver::vector(o.getTensions()[i]), *precond, this->eigenvalue_estimate);
 		simulations[i].do_iteration();
 		this->totalit += simulations[i].getIteration();
 	}
@@ -195,15 +195,16 @@ void solution_lb_gen<solver, admittance, observations, regularizer, matBuilder, 
         // Reserve so we don't need to move solvers around
         simulations.reserve(o.getNObs());
         // 1st solution estimates also least eigenvalue
+
         simulations.emplace_back(Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[0].tail(p->getGenericElectrodesCount()),
-                        Eigen::VectorXd(o.getTensions()[0]), *precond,
+                        typename solver::vector(o.getTensions()[0]), *precond,
                         base.simulations[0].getX(), base.getLeastEigenvectorEstimation(), 100, (float)0.0001, this->eigenvalue_estimate, this->eigenvector_estimate);
         this->totalit += simulations[0].getIteration();
         for(i=1;i<o.getNObs();i++)
         {
                 simulations.emplace_back(
                         Aii.get(), Aic.get(), Acc.get(), o.getCurrents()[i].tail(p->getGenericElectrodesCount()),
-                        Eigen::VectorXd(o.getTensions()[i]), *precond, this->eigenvalue_estimate,
+                        typename solver::vector(o.getTensions()[i]), *precond, this->eigenvalue_estimate,
 					       base.simulations[i].getX());
                 simulations[i].do_iteration();
                 this->totalit += simulations[i].getIteration();

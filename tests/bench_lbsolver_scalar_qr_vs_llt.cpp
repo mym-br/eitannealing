@@ -16,6 +16,7 @@ struct eigen_double_qr_engine {
 	typedef Eigen::SparseMatrix<double, Eigen::ColMajor> symMatrix;
 	typedef Eigen::SparseMatrix<double, Eigen::ColMajor> matrix;
 	typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> vector;
+    typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> real_vector;
 	typedef SparseIncompleteQR<double> preconditioner;
 
     static SparseIncompleteQRBuilder<double> &getQRBuilder() {

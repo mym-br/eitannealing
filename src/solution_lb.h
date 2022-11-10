@@ -63,8 +63,8 @@ template <class solver, class admittance, class observations, class regularizer,
 			int totalit;
 
 			// Least eigenvector and eigenvalue estimations
-			double eigenvalue_estimate;
-			typename solver::vector eigenvector_estimate;
+			typename solver::real eigenvalue_estimate;
+			typename solver::real_vector eigenvector_estimate;
 
 			void initSimulations();
 			void initSimulations(const solution_lb_gen &base);
@@ -129,7 +129,7 @@ template <class solver, class admittance, class observations, class regularizer,
             return this->eigenvalue_estimate;
         }
 
-        const Eigen::VectorXd &getLeastEigenvectorEstimation() const {
+        const typename solver::real_vector &getLeastEigenvectorEstimation() const {
             return this->eigenvector_estimate;
         }
 

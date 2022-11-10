@@ -10,7 +10,7 @@
 #include <numeric>
 #include <iterator>
 
-template<class InputIterator> typename std::iterator_traits<InputIterator>::value_type population_variance(InputIterator start, InputIterator end)
+template<class InputIterator> double population_variance(InputIterator start, InputIterator end)
 {
     struct moments {
         typename std::iterator_traits<InputIterator>::value_type s;

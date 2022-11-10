@@ -47,6 +47,7 @@ set(eit_core_SRCS
 set(eit_new_complex_engine_SRCS
   src/solver_lb_complex.cpp
   src/solution_lb_complex.cpp
+  src/solution_lb_complex2.cpp
 )
 
 set(eit_cuda_SRCS

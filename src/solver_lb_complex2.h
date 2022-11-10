@@ -28,6 +28,7 @@ struct eigen_complexdouble_engine {
 	typedef Eigen::SparseMatrix<scalar, Eigen::ColMajor> symMatrix;
 	typedef Eigen::SparseMatrix<scalar, Eigen::ColMajor> matrix;
 	typedef Eigen::Matrix<scalar, Eigen::Dynamic, 1> vector;
+	typedef Eigen::Matrix<real, Eigen::Dynamic, 1> real_vector;
 	typedef SparseIncompleteQRComplex2 preconditioner;
 
 	struct complex_wrapper_alwaysconj;

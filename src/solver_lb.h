@@ -23,6 +23,8 @@ template<class num_engine> class LB_Solver_A {
 		typedef typename num_engine::matrix matrix;
 		typedef typename num_engine::scalar scalar;
 		typedef typename num_engine::real real;
+		typedef typename num_engine::real_vector real_vector;
+
 	protected:
             unsigned int it;
 
@@ -152,7 +154,7 @@ template<class num_engine> class LB_Solver_A {
 					it = 0;
 					// 0
 					num_engine::j_minus_a_x_phi(r, rc, Aic, *_Acc, J, Phi);
-					Eigen::VectorXd xaux(x0);
+					//Eigen::VectorXd xaux(x0);
 					num_engine::subtract_a_x(r, rc, Aii, Aic, x0);
 					init();
 				}
@@ -213,7 +215,7 @@ template<class num_engine> class LB_Solver_A {
 
     private:
         // This method only works if called *after* init and *before* any do_iteration!
-        std::pair<scalar, vector> estimate_smallest_eigenvalue(int n, float e, vector &&temp_eigenvector) {
+        std::pair<real, real_vector> estimate_smallest_eigenvalue(int n, float e, real_vector &&temp_eigenvector) {
             Eigen::SparseMatrix<double, Eigen::ColMajor>  U(n,n);
             // Alpha and beta must be stored in order to recalculate dt
             std::vector<double> AlphaVector;
@@ -231,8 +233,8 @@ template<class num_engine> class LB_Solver_A {
             }
             U.makeCompressed();
             // Now calc eigenvalue
-            scalar oev=0;
-            scalar ev = 1.0;
+            real oev=0;
+            real ev = 1.0;
             while(fabs(oev-ev)/ev > e) {
                 U.triangularView<Eigen::Upper>().transpose().solveInPlace(temp_eigenvector);
                 U.triangularView<Eigen::Upper>().solveInPlace(temp_eigenvector);
@@ -253,20 +255,20 @@ template<class num_engine> class LB_Solver_A {
     public:
         // Constructor with eigevalue estimation
 	  LB_Solver_A(symMatrix *Aii, matrix *Aic, symMatrix *Acc, const vector &J, const vector &Phi, const Preconditioner &precond,
-                                int n, float e, scalar &res_smallest_eigenvalue, vector &res_eigenvector):
+                                int n, float e, real &res_smallest_eigenvalue, real_vector &res_eigenvector):
                                 LB_Solver_A<num_engine>(Aii, Aic, Acc, J, Phi, precond, 0)
         {
-            auto res = estimate_smallest_eigenvalue(n, e, Eigen::VectorXd::Constant(n,1/sqrt(n)));
+            auto res = estimate_smallest_eigenvalue(n, e, real_vector::Constant(n,1/sqrt(n)));
             res_smallest_eigenvalue = res.first;
             res_eigenvector = std::move(res.second);
         }
 
         // Constructor with eigevalue estimation reusing previous eigenvector estimate
         LB_Solver_A(symMatrix *Aii, matrix *Aic, symMatrix *Acc, const vector &J, const vector &Phi, const Preconditioner &precond,
-                    const vector &x0, const vector &egHint, unsigned int n, float e, scalar &res_smallest_eigenvalue, vector &res_eigenvector):
+                    const vector &x0, const real_vector &egHint, unsigned int n, float e, real &res_smallest_eigenvalue, real_vector &res_eigenvector):
                     LB_Solver_A<num_engine>(Aii, Aic, Acc, J, Phi, precond, 0, x0)
         {
-            auto res = estimate_smallest_eigenvalue(n, e, vector(egHint));
+            auto res = estimate_smallest_eigenvalue(n, e, real_vector(egHint));
             res_smallest_eigenvalue = res.first;
             res_eigenvector = std::move(res.second);
         }
@@ -280,6 +282,7 @@ struct eigen_double_engine {
 	typedef Eigen::SparseMatrix<double, Eigen::ColMajor> symMatrix;
 	typedef Eigen::SparseMatrix<double, Eigen::ColMajor> matrix;
 	typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> vector;
+	typedef Eigen::Matrix<real, Eigen::Dynamic, 1> real_vector;
 	typedef SparseIncompleteLLT preconditioner;
 
 	inline static void product_ii_ic_vector(vector &dest_i, vector &dest_c, const symMatrix &ii, const symMatrix &ic, const vector &b) {

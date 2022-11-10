@@ -15,7 +15,7 @@
 // Lower triangular Symmetric view
 template <typename _Scalar,typename t_vector > _Scalar EigenSymmQuadraticL(
   const typename Eigen::SparseMatrix<_Scalar, Eigen::ColMajor>::template SelfAdjointViewReturnType<Eigen::Lower>::Type &m,
-  const Eigen::MatrixBase<t_vector>& x)
+  t_vector&& x)
 {
 	//std::ofstream myfile;
 	//myfile.open("RegularisationMatrix.txt", std::ios::binary);
@@ -34,17 +34,16 @@ template <typename _Scalar,typename t_vector > _Scalar EigenSymmQuadraticL(
 	_Scalar res = 0;
     col = m.matrix().outerIndexPtr()[0]; 
     for(Index j=0;j<m.matrix().outerSize();j++) {
-	nextcol = m.matrix().outerIndexPtr()[j+1];
-	if(col==nextcol) continue;
-	_Scalar xi = x[m.matrix().innerIndexPtr()[col]];
-	res += xi*xi*m.matrix().valuePtr()[col];
-	col++;
-	while(col!=nextcol) {
-	  //res += 2*xi*x[m.matrix().innerIndexPtr()[col]]*m.matrix().valuePtr()[col];
-		res += xi*x[m.matrix().innerIndexPtr()[col]] * m.matrix().valuePtr()[col];
-		res += xi*x[m.matrix().innerIndexPtr()[col]] * m.matrix().valuePtr()[col];
-	  col++;
-	}
+		nextcol = m.matrix().outerIndexPtr()[j+1];
+		if(col==nextcol) continue;
+		_Scalar xi = x[m.matrix().innerIndexPtr()[col]];
+		res += xi*xi*m.matrix().valuePtr()[col];
+		col++;
+		while(col!=nextcol) {
+			_Scalar a = xi*x[m.matrix().innerIndexPtr()[col]] * m.matrix().valuePtr()[col];
+			res += a + a;
+			col++;
+		}
     }
     return res;
 }

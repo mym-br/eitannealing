@@ -37,19 +37,19 @@ std::vector<std::complex<double> > solution_lb_gen<LB_Solver_Complex2, std::comp
 {
 	std::vector<std::complex<double> > res(sol);
 	bool shufflereal = genint(2);
+	float minc, maxc;
+	if(shufflereal) {
+		maxc = (float)maxcond;
+		minc = (float)mincond;
+	} else {
+		maxc = maxcond_I;
+		minc = mincond_I;
+	}
+
 	// head or tails
 	if(genint(2)) { // Normal
-
 		int ncoef = genint(p->getNumCoefficients());
 		int pcoef = ncoef + (shufflereal?0:p->getNumCoefficients());
-		float minc, maxc;
-		if(shufflereal) {
-			maxc = (float)maxcond;
-			minc = (float)mincond;
-		} else {
-			maxc = maxcond_I;
-			minc = mincond_I;
-		}
 
 		if(sh.shuffleConsts[pcoef]==0) {
 			if(shufflereal)
@@ -90,20 +90,27 @@ std::vector<std::complex<double> > solution_lb_gen<LB_Solver_Complex2, std::comp
 		node2 = p->getNode2Coefficient(adj.second);
 
 		// Order nodes
-		if((shufflereal && (res[node1].real()>res[node2].real())) || (res[node1].imag()>res[node2].imag())) {
-			int aux = node1;
-			node1 = node2;;
-			node2 = aux;
-		}
+		if(shufflereal)
+			if(res[node1].real()>res[node2].real()) {
+				int aux = node1;
+				node1 = node2;;
+				node2 = aux;
+			}
+		else
+			if(res[node1].imag()>res[node2].imag()) {
+				int aux = node1;
+				node1 = node2;;
+				node2 = aux;
+			}
 		double v1p, v2p, v1, v2;
 		if(shufflereal) {
 			v1p = v1 = res[node1].real();
 			v2p = v2 = res[node2].real();
 		} else {
 			v1p = v1 = res[node1].imag();
-			v1p = v2 = res[node2].imag();
+			v2p = v2 = res[node2].imag();
 		}
-		double a = max( min(v1-mincond, maxcond-v2), min(maxcond-v1, v2-mincond));
+		double a = max( min(v1-minc, maxc-v2), min(maxc-v1, v2-minc));
 
 		double delta;
 		do {
@@ -119,7 +126,7 @@ std::vector<std::complex<double> > solution_lb_gen<LB_Solver_Complex2, std::comp
 			}
 			v1 = v1p - delta;
 			v2 = v2p + delta;
-		} while((v1 < mincond) || (v2 < mincond) || (v1 > maxcond) || (v2 > maxcond));
+		} while((v1 < minc) || (v2 < minc) || (v1 > maxc) || (v2 > maxc));
 		if(shufflereal) {
 			res[node1].real(v1);
 			res[node2].real(v2);

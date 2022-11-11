@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
      eigen_complexdouble_engine::vector J = (eigen_complexdouble_engine::vector(J_R) + Complex(0,1)*eigen_complexdouble_engine::vector(J_I));
 
      std::unique_ptr<LB_Solver_Complex::Preconditioner> pre =
-        std::make_unique<LB_Solver_Complex::Preconditioner>(8, 16, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
+     std::make_unique<LB_Solver_Complex::Preconditioner>(8, 16, *Aii_R, *Aii_I, *Aic_R, *Aic_I);
 
 
      std::unique_ptr<eigen_complexdouble_engine::preconditioner> pre2(
@@ -118,6 +118,25 @@ int main(int argc, char *argv[])
      pre2->solveInPlaceT(s);
 
 
+     Eigen::VectorXd eigenvector;
+     double eigenvalue;
+
+     Eigen::VectorXd eigenvector2;
+     double eigenvalue2;
+
+     std::cout << "Estimating least eigenvalue (old)..." << std::flush;
+     {
+         LB_Solver_EG_Complex_Estimate solver1(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, V_R, V_I, *pre, 300, 0.00001);
+         eigenvalue = solver1.getLeastEvEst();
+     }
+     std::cout << "Done\n" << std::flush;
+
+     std::cout << "Estimating least eigenvalue (new)..." << std::flush;
+     LB_Solver_Complex2(&Aii, &Aic, &Acc, J, V, *pre2, 300, 0.00001, eigenvalue2, eigenvector2);
+     std::cout << "Done\n" << std::flush;
+     std::cout << "Eigenvalues: " << eigenvalue << " (old) " << eigenvalue2 << " (new)\n" << std::flush;
+
+
      //std::cout << s - s_R - s_I*Complex(0,1) << std::endl;
 
      //std::cout << Aic.transpose() - Aic.adjoint();
@@ -126,10 +145,10 @@ int main(int argc, char *argv[])
      //std::cout << "Int:\n";
 
      std::unique_ptr<LB_Solver_Complex> solver =
-        std::make_unique<LB_Solver_Complex>(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, V_R, V_I, *pre, 0.002);
+        std::make_unique<LB_Solver_Complex>(Aii_R, Aii_I, Aic_R, Aic_I, Acc_R, Acc_I, J_R, J_I, V_R, V_I, *pre, eigenvalue);
 
      std::unique_ptr<LB_Solver_Complex2> solver2 =
-        std::make_unique<LB_Solver_Complex2>(&Aii, &Aic, &Acc, J, V, *pre2, 0.002);
+        std::make_unique<LB_Solver_Complex2>(&Aii, &Aic, &Acc, J, V, *pre2, eigenvalue);
 
      Eigen::VectorXd X_R, X_I;
      solver->getX(X_R, X_I);
@@ -142,6 +161,39 @@ int main(int argc, char *argv[])
          solver->do_iteration();
          solver2->do_iteration();
          std::cout << i << ":" << solver->getMinErrorl2Estimate() << ":" << solver->getMaxErrorl2Estimate() << std::endl;
+         std::cout << i << ":" << solver2->getMinErrorl2Estimate() << ":" << solver2->getMaxErrorl2Estimate() << std::endl;
+     }
+
+     std::cout << "Comparing real vs new\n";
+     std::unique_ptr<LB_Solver::Preconditioner> pre3(eigen_double_engine::make_new_preconditioner(*Aii_R, *Aic_R));
+     Aii = (Eigen::MatrixXcd(*Aii_R)).sparseView();
+     Aic = (Eigen::MatrixXcd(*Aic_R)).sparseView();
+     Acc = (Eigen::MatrixXcd(*Acc_R)).sparseView();
+
+     V = (eigen_complexdouble_engine::vector(V_R));
+     J = (eigen_complexdouble_engine::vector(J_R));
+
+     std::cout << "Estimating least eigenvalue (real)..." << std::flush;
+     LB_Solver(Aii_R, Aic_R, Acc_R, J_R, V_R, *pre3, 500, 0.00001, eigenvalue, eigenvector);
+     std::cout << "Done\n" << std::flush;
+
+     std::cout << "Estimating least eigenvalue (complex)..." << std::flush;
+     LB_Solver_Complex2(&Aii, &Aic, &Acc, J, V, *pre2, 500, 0.00001, eigenvalue2, eigenvector2);
+     std::cout << "Done\n" << std::flush;
+     std::cout << "Eigenvalues: " << eigenvalue << " (real) " << eigenvalue2 << " (complex)\n" << std::flush;
+
+
+     std::unique_ptr<LB_Solver> solver_real =
+     std::make_unique<LB_Solver>(Aii_R, Aic_R, Acc_R, J_R, V_R, *pre3, eigenvalue);
+
+     solver2 = std::make_unique<LB_Solver_Complex2>(&Aii, &Aic, &Acc, J, V, *pre2, eigenvalue);
+
+
+     std::cout << "Iterations:\n";
+     for(int i=0; i<100;i++) {
+         solver_real->do_iteration();
+         solver2->do_iteration();
+         std::cout << i << ":" << solver_real->getMinErrorl2Estimate() << ":" << solver_real->getMaxErrorl2Estimate() << std::endl;
          std::cout << i << ":" << solver2->getMinErrorl2Estimate() << ":" << solver2->getMaxErrorl2Estimate() << std::endl;
      }
 

@@ -25,7 +25,7 @@
 #include "solutioncomplex.h"
 #include "solution_lb.h"
 #include "solution_lb_real.h"
-#include "solution_lb_complex.h"
+#include "solution_lb_complex2.h"
 #include "problem.h"
 #include "twodim/problem2D.h"
 #include "threedim/problem3D.h"
@@ -69,30 +69,21 @@ void workProc()
 	// Simulated annealing
 	double *solre = new double[input->getNumCoefficients()];
 	double *solim = new double[input->getNumCoefficients()];
-	std::unique_ptr<solution_lb_complex> currentComplex, nextComplex;
+	std::unique_ptr<solution_lb_complex2> currentComplex, nextComplex;
 	std::unique_ptr<solution_lb> currentScalar, nextScalar;
-	std::shared_ptr<gradientNormRegularisation> reg(new gradientNormRegularisation(input));
 
 	int totalit;
 	int acceptit;
 	shuffleData sdata;
 	std::unique_ptr<shuffler> sh;
 
-	shuffleData sdata_i;
-	std::unique_ptr<shuffler> sh_i;
-	bool shuffleR = true;
-	//sh = isComplexProblem ? std::unique_ptr<shuffler>(new shuffler(input, readingsComplex)) : new std::unique_ptr<shuffler>(shuffler(input, readingsScalar));
 	if (isComplexProblem) {
-		sh.reset(new shuffler(input, readingsScalar));
-		sh_i.reset(new shuffler(input, readingsScalar));
-		std::vector<std::complex<double>> electrodesCoeffs;
-		currentComplex.reset(new solution_lb_complex(input, *readingsComplex));
+		sh.reset(new shuffler(input, readingsComplex));
+		currentComplex.reset(new solution_lb_complex2(input, *readingsComplex, std::shared_ptr<complexGradientNormRegularisation>(new complexGradientNormRegularisation(input))));
 	}
 	else {
-		std::vector<double> electrodesCoeffs;
-		//for (int j = 0; j < 32; j++) electrodesCoeffs.push_back(0.002);
 		sh.reset(new shuffler(input, readingsScalar));
-		currentScalar.reset(new solution_lb(input, *readingsScalar, reg));
+		currentScalar.reset(new solution_lb(input, *readingsScalar, std::shared_ptr<gradientNormRegularisation>(new gradientNormRegularisation(input))));
 	}
 
 	std::cout.flush();
@@ -112,8 +103,7 @@ void workProc()
 		solutions = 0;
 		iterations = 0;
 		while (totalit<15000 && acceptit < 3000) {
-
-			isComplexProblem ? nextComplex.reset(currentComplex->shuffle(&sdata, *sh, &sdata_i, *sh_i, &shuffleR)) : nextScalar.reset(currentScalar->shuffle(&sdata, *sh));
+			isComplexProblem ? nextComplex.reset(currentComplex->shuffle(&sdata, *sh)) : nextScalar.reset(currentScalar->shuffle(&sdata, *sh));
 			//next.reset(current->shuffle(&sdata, sh));
 			bool decision;
 			decision = isComplexProblem ? currentComplex->compareWith(*nextComplex, kt, 1 - param) : currentScalar->compareWith(*nextScalar, kt, 1 - param);
@@ -121,16 +111,14 @@ void workProc()
 			if (decision) {
 				iterations += isComplexProblem ? currentComplex->getTotalIt() : currentScalar->getTotalIt();
 				solutions++;
-				if(shuffleR) sh->addShufflerFeedback(sdata, true);
-				else sh_i->addShufflerFeedback(sdata_i, true);
+				sh->addShufflerFeedback(sdata, true);
 				if (isComplexProblem) currentComplex = std::move(nextComplex); else currentScalar = std::move(nextScalar);
 				acceptit++;
 			}
 			else {
 				iterations += isComplexProblem ? nextComplex->getTotalIt() : nextScalar->getTotalIt();
 				solutions++;
-				if(shuffleR) sh->addShufflerFeedback(sdata, false);
-				else sh_i->addShufflerFeedback(sdata_i, false);
+				sh->addShufflerFeedback(sdata, false);
 			}
 			if (isComplexProblem) {
 				e += currentComplex->getDEstimate();
@@ -150,8 +138,8 @@ void workProc()
 				double w = 2 * M_PI * input->getCurrentFreq();
 				if (isComplexProblem) {
 					for (int kk = 0; kk < input->getNumCoefficients(); kk++) {
-						solre[kk] = currentComplex->getSolution_R()[kk];
-						solim[kk] = currentComplex->getSolution_I()[kk] / w;
+						solre[kk] = currentComplex->getSolution()[kk].real();
+						solim[kk] = currentComplex->getSolution()[kk].imag() / w;
 					}
 					viewre->setCurrentSolution(solre);
 					viewim->setCurrentSolution(solim);

@@ -16,6 +16,7 @@
 class CG_Solver {
 	protected:
 		unsigned int it;
+		double totalItTime, totalTriangularTime, totalSpmvTime;
 		int lastRefresh;
 		bool refresh_at_next;
 		double rmod, rmod_1;
@@ -63,18 +64,22 @@ class CG_Solver {
 
 
 
-		void init();
-
+						
 		void saveVals(const char* fname, double val, bool app = true);
 
 	public:
-
+		void init(double res = -1);
+	
 		void setrefresh() {
 			this->refresh_at_next = true;
 		}
 
 		unsigned int getIteration() const {
 			return this->it;
+		}
+		
+		std::tuple<double, double, double> getIterationTimes() {
+			return{ totalItTime / (double)it, totalTriangularTime / (double)it, totalSpmvTime / (double)it };
 		}
 
 		double getResidueSquaredNorm() const {
@@ -87,8 +92,9 @@ class CG_Solver {
 			} else return 0;
 		}
 
-		CG_Solver(matrix &A, const Eigen::VectorXd &b, const SparseIncompleteLLT &precond);
-		CG_Solver(matrix &A, const Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &precond);
+		CG_Solver(matrix &A, const Eigen::VectorXd &b, const SparseIncompleteLLT &precond, double res, bool init=true);
+		CG_Solver(matrix &A, const Eigen::VectorXd &b, const SparseIncompleteLLT &precond, bool init=true);
+		CG_Solver(matrix &A, const Eigen::VectorXd &b, const Eigen::VectorXd &x0, const SparseIncompleteLLT &precond, bool init=true);
 		void do_iteration();
 
 		const Eigen::VectorXd &getX() const {

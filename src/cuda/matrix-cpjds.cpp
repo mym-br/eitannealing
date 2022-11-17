@@ -17,12 +17,11 @@
 
 /* this method allows the conversion os (row, col) coordinates to the index in the data and indices arrays */
 int MatrixCPJDSManager::coordinates2Index(int row, int col) {
-	std::map<int, int> columnsMap = coord2IndexMap[row];
-	if (columnsMap.find(col) == columnsMap.end()) {
+	if (coord2IndexMap[row]->find(col) == coord2IndexMap[row]->end()) {
 		return -1;
 	}
 	else {
-		return columnsMap[col];
+		return (*coord2IndexMap[row])[col];
 	}
 }
 
@@ -85,52 +84,141 @@ Vector * MatrixCPJDSManager::mask() {
 }
 
 MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
-	int n = pdata->cols();
+		int n = pdata->cols();
 	int colorCount = 0;
 	std::unique_ptr<int[]> reorderIdx(new int[n]); // map for original index -> color-sorted index
-								   // color-sort stiffness matrix
-	LOG("--Color sorting--");
+
+	// color-sort stiffness matrix (faster with full matrix, really? but the output is lower matrix)
 	std::unique_ptr<int[]> colorsOff = colorSort(pdata, colorCount, reorderIdx, false);
-	if (colorsOff == NULL) {
-		LOG("Erro no color-sort.");
-		return;
-	}
+	if (colorsOff == NULL) return;
 
-	int nPadded = n;
 	// padding-fill for warps
-	//std::cout << "--Padding-filling--" << std::endl;
-	this->data = fillPadding(pdata, colorCount, colorsOff, nPadded);
-	this->n = nPadded;
-	this->nOrig = n;
-
-	// corrigir offsets no vetor de cores
-	//int * colorsOffPadded = new int[colorCount + 1];
+	int nPadded = n;
 	std::shared_ptr<int[]> colorsOffPadded(new int[colorCount + 1]);
-	int newSize = 0;
-	for (int i = 0; i < colorCount; i++) {
-		colorsOffPadded[i] = newSize;
-		newSize += (int)ceil((double)(colorsOff[i + 1] - colorsOff[i]) / WARP_SIZE) * WARP_SIZE;
-	}
-	colorsOffPadded[colorCount] = newSize;
-
+	this->data2 = fillPadding(pdata, colorCount, colorsOff, colorsOffPadded, nPadded);
+	this->n = nPadded;
+	this->blocks = (int)ceil((double)nPadded / BLOCKSIZE);
+	this->nOrig = n;
 	this->colorCount = colorCount;
-	this->colors = colorsOffPadded;
+	this->colors = colorsOffPadded; 
 
 	// map for color-sorted index -> original index
 	std::unique_ptr<int[]> unorderIdx(new int[n]);
+
 	// fill padding reorder indices array
 	std::unique_ptr<int[]> reorderIdxPadded(new int[nPadded]);
 	std::unique_ptr<int[]> unorderIdxPadded(new int[n]);
-	fixIndicesMapPadding(n, reorderIdx, unorderIdx, nPadded, reorderIdxPadded, unorderIdxPadded, colorCount, colorsOff);
-
+	fixIndicesMapPadding(n, reorderIdx, unorderIdx, nPadded, reorderIdxPadded, unorderIdxPadded, colorCount, colorsOff, colorsOffPadded);
 	this->padded2OriginalIdx = std::move(reorderIdxPadded);
 	this->original2PaddedIdx = std::move(unorderIdxPadded);
-	//LOGV2(padded2OriginalIdx, nPadded, "Padded 2 Original", LOGCPU);
-	//LOGV2(original2PaddedIdx, n, "Original 2 Padded", LOGCPU);
 
-
+	// create auxliary vectors
 	this->auxv = std::unique_ptr<numType[]>(new numType[this->n]);
 	this->auxi = std::unique_ptr<int[]>(new int[this->n]);
+}
 
-	blocks = (int)ceil((double)n / BLOCKSIZE);
+void MatrixCPJDSManager::leftShiftMatrix(std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU) {
+	for (int k = 0; k < data2->outerSize(); ++k)
+		for (Eigen::SparseMatrix<double>::InnerIterator it(*data2, k); it; ++it)
+		{
+			if (it.row() == it.col()) continue;
+			rowsL[it.row()].push_back(it.col()); // adding non zero Aij to each row array
+			rowsU[it.col()].push_back(it.row()); // adding non zero Aij to each row array
+		}
+}
+
+void MatrixCPJDSManager::createDataAndIndicesVectors(numType *mdata, int *indices, int *colOffset, int *colorOffsetCount, std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU, std::vector<std::deque<int>> &padding) {
+	int pos = 0;
+	// each block is built in color order
+	for (int k = 0; k < colorCount; k++) {
+		bool hasElements = true;
+		int col = 0;
+		// insert diagonal in first column
+		colOffset[colorOffsetCount[k] + col] = pos;
+		for (int i = colors[k]; i < colors[k + 1]; i++) {
+			indices[pos] = i;
+			mdata[pos] = data2->coeff(i,i);
+			pos++;
+		}
+		col++;
+		while (true) { // iterate over all rows in color block for as long as it has elements
+			hasElements = false;
+			int startPos = pos;
+			for (int i = colors[k]; i < colors[k + 1]; i++) {
+				// fill data array in COL-MAJOR format
+				if (rowsL[i].size() > 0) {// lower triangular
+					int idx = rowsL[i].front(); // first element
+					rowsL[i].pop_front(); // remove element
+
+					indices[pos] = idx;
+					mdata[pos] = data2->coeff(i, idx);
+
+					pos++;
+					hasElements = true;
+				}
+				else if (rowsU[i].size() > 0) {// upper triangular
+					int idx = rowsU[i].front(); // first element
+					rowsU[i].pop_front(); // remove element
+
+					indices[pos] = idx;
+					mdata[pos] = data2->coeff(idx, i);
+
+					pos++;
+					hasElements = true;
+				}
+				else if (padding[i].size() > 0) {// padding zeroes
+					indices[pos] = -1;
+					mdata[pos] = 0;
+					padding[i].pop_front();
+
+					pos++;
+					hasElements = true;
+				}
+			}
+			if (hasElements) {
+				colOffset[colorOffsetCount[k] + col] = startPos;
+				//std::cout << " colOfsset idx: " << colorOffsetCount[k] + col << std::endl;
+				col++;
+			}
+			else {
+				break;
+			}
+		}
+	}
+}
+
+void MatrixCPJDSManager::dependencies_analysis2(int n, DependeciesMap * dependenciesMap) {
+	// TODO: implement dependencie analysis on the eigen sparse matrix
+}
+
+void MatrixCPJDSManager::createCsr2CpjdsMap(MatrixCPJDS2CSR &csrMap) {
+	std::vector<int> csr2cpjds_map;
+	std::vector<int> csr2cpjds_map_upper;
+	std::vector<int> csr2cpjds_idx;
+	std::vector<int> csr2cpjds_row;
+	int elCount = 0;
+	for (int col = 0; col<data2->outerSize(); ++col)
+		for (Eigen::SparseMatrix<double>::InnerIterator it(*data2, col); it; ++it) {
+			int row = it.row();
+			int col = it.col();
+			int dataIdx = (*coord2IndexMap[row])[col];
+			if (dataIdx >= 0) {
+				csr2cpjds_map.push_back(dataIdx);
+				csr2cpjds_idx.push_back(col); // nao esta sendo usado
+				csr2cpjds_row.push_back(row);
+				elCount++;
+			}
+			// upper triangular
+			int dataIdxUpper = (*coord2IndexMap[col])[row];
+			if (dataIdxUpper >= 0) {
+				csr2cpjds_map_upper.push_back(dataIdxUpper);
+			}
+		}
+
+	csrMap.n = n;
+	csrMap.nnz = elCount;
+	csrMap.csr2cpjds = csr2cpjds_map;
+	csrMap.csr2cpjds_upper = csr2cpjds_map_upper;
+	csrMap.indices = csr2cpjds_idx;
+	csrMap.row = csr2cpjds_row;
 }

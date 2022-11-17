@@ -61,6 +61,8 @@ set(eit_cuda_SRCS
   src/cuda/color.cpp
   src/cuda/analysis.cpp
   src/cuda/solver-pcg.cu
+  src/cuda/solver-cpcg.cu
+  src/cuda/solver-cpcgcg.cu
   src/cuda/solvercuda.cu
   src/cuda/solvercuda.cpp
   src/cuda/solvercublas.cu
@@ -124,3 +126,4 @@ if(${CUDA_FOUND})
 endif()
 
 add_subdirectory(tests)
+add_subdirectory(directsolver)

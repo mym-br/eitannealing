@@ -5,7 +5,7 @@
 
 #define USECUDA
 
-#define numType float
+#define numType double
 
 #define EPS 1E-7
 

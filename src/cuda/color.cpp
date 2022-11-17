@@ -2,10 +2,7 @@
 
 #include <iostream>
 
-#ifndef NULL
 #define NULL 0
-#endif
-
 #define RED 1
 #define BLUE 2
 #define GREEN 3
@@ -17,20 +14,18 @@
 
 /* A utility function to check if the current color assignment
 is safe for vertex v */
-bool isSafe(matrix * data, std::unique_ptr<int[]> &colors, int color, int row) {
-	for (int k = 0; k<data->outerSize(); ++k)
-		for (matrix::InnerIterator it(*data, k); it; ++it)
-		{
-			if ((it.row() == row && MOD(it.value()) > EPS && colors[it.col()] == color) || 
-				(it.col() == row && MOD(it.value()) > EPS && colors[it.row()] == color) ) {
-				return false;
-			}
+bool isSafe(Eigen::SparseMatrix<double> * data, std::unique_ptr<int[]> &colors, int color, int row) {
+	// works only with full matrix. Is there a fast way to do this with a lower triangular matrix?
+	for (Eigen::SparseMatrix<double>::InnerIterator it(*data, row); it; ++it) {
+		if (colors[it.col()] == color || colors[it.row()] == color) {
+			return false;
 		}
+	}
 	return true;
 }
 
 /* A recursive utility function to solve m coloring problem */
-bool graphColoringUtil(matrix * data, std::unique_ptr<int[]> &colors, int row) {
+bool graphColoringUtil(Eigen::SparseMatrix<double> * data, std::unique_ptr<int[]> &colors, int row) {
 	int dim = data->cols();
 	/* base case: If all vertices are assigned a color then
 	return true */
@@ -62,7 +57,7 @@ bool graphColoringUtil(matrix * data, std::unique_ptr<int[]> &colors, int row) {
 	return true;
 }
 
-bool graphColoring(matrix * data, std::unique_ptr<int[]> &colors) {
+bool graphColoring(Eigen::SparseMatrix<double> * data, std::unique_ptr<int[]> &colors) {
 	int dim = data->cols();
 	// Initialize all color values as 0. This initialization is needed
 	// correct functioning of isSafe()

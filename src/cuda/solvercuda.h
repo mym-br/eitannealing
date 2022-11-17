@@ -12,9 +12,9 @@ enum CGSOLVERTYPE {DEFAULT, CONSOLIDATED, CONSOLIDATEDCG};
 
 class CGCUDA_Solver {
 	public:
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, double res, CGSOLVERTYPE solverType = DEFAULT, bool init=true);
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, CGSOLVERTYPE = DEFAULT, bool init=true);
-		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm, CGSOLVERTYPE = DEFAULT, bool init=true);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, double _LINFinityNorm, double res, CGSOLVERTYPE solverType = DEFAULT, bool init=true);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, double _LINFinityNorm, CGSOLVERTYPE = DEFAULT, bool init=true);
+		CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, double _LINFinityNorm, CGSOLVERTYPE = DEFAULT, bool init=true);
 		void do_iteration();
 		Eigen::Matrix<double, -1, 1, 0> getX();
 		int getSize() { return this->size; }
@@ -22,27 +22,27 @@ class CGCUDA_Solver {
 		std::tuple<double, double, double> getIterationTimes();
 		Vector *getCpjdsX();
 
-		static numType createPreconditioner(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
+		static double createPreconditioner(MatrixCPJDS &M, std::unique_ptr<double[]> &pdata);
 		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness, nodeCoefficients **nodeCoef, int nodesCount, int numcoefficients);
 		static MatrixCPJDSManager *createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness);
-		static cgl::Vector *createCurrentVector(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
+		static cgl::Vector *createCurrentVector(double *vec, MatrixCPJDSManager &mgr, int size, int n);
 		
 		double getResidueSquaredNorm() const;
 		double getErrorl2Estimate() const;
 
 		// Debug
-		static Eigen::SparseMatrix<double, 0, int> getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata);
-		static Eigen::Matrix<double, -1, 1, 0> getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n);
+		static Eigen::SparseMatrix<double, 0, int> getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<double[]> &pdata);
+		static Eigen::Matrix<double, -1, 1, 0> getCpjdsCurrent(double *vec, MatrixCPJDSManager &mgr, int size, int n);
 		void init(double res = -1);
 
 	private:
-		static void cblas_dscal(int n, numType alpha, numType *x, int inc);
-		static numType m_preconditioner_eigen(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata, std::unique_ptr<numType[]> &precond);
-		std::vector<numType> transfX2Cpu();
+		static void cblas_dscal(int n, double alpha, double *x, int inc);
+		static double m_preconditioner_eigen(MatrixCPJDS &M, std::unique_ptr<double[]> &pdata, std::unique_ptr<double[]> &precond);
+		std::vector<double> transfX2Cpu();
 		int size;
 		PCGSolverCPJDS *solver;
 		MatrixCPJDSManager *mgr;
-		numType LINFinityNorm;
+		double LINFinityNorm;
 
 };
 

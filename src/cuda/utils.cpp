@@ -33,18 +33,18 @@ void logMessage(char * msg) {
 #endif
 }
 
-void logNumber(numType * data, char * msg, int mode) {
+void logNumber(double * data, char * msg, int mode) {
 #ifdef DEBUG
 
 #ifdef USECUDA
 	if (mode == LOGAUTO || mode == LOGCUDA) {
 		// copy from CUDA device memory to host memory
-		numType * data_h = new numType[1];
-		cudaMemcpy(data_h, data, (size_t) sizeof (numType), cudaMemcpyDeviceToHost);
+		double * data_h = new double[1];
+		cudaMemcpy(data_h, data, (size_t) sizeof (double), cudaMemcpyDeviceToHost);
 		data = data_h;
 	}
 #endif
-	numType val = data[0];
+	double val = data[0];
 	if (MOD(val) < EPS) {
 		val = 0;
 	}
@@ -62,18 +62,18 @@ void logNumber(numType * data, char * msg, int mode) {
 #endif
 }
 
-void logVector(numType * data, int size, char * msg, int mode) {
+void logVector(double * data, int size, char * msg, int mode) {
 #ifdef DEBUG
 
 #ifdef USECUDA
 	if (mode == LOGAUTO || mode == LOGCUDA) {
 		// copy from CUDA device memory to host memory
-		numType * data_h = new numType[size];
-		cudaMemcpy(data_h, data, (size_t)size * sizeof (numType), cudaMemcpyDeviceToHost);
+		double * data_h = new double[size];
+		cudaMemcpy(data_h, data, (size_t)size * sizeof (double), cudaMemcpyDeviceToHost);
 		data = data_h;
 	}
 #endif
-	numType val;
+	double val;
 	if (size < SIZETHRESH) {
 		printf("\n");
 		printf(msg);
@@ -140,17 +140,17 @@ void logVector(int * data, int size, char * msg, int mode) {
 #endif
 }
 
-void logMatrix(numType * data, int rows, int cols, char * msg, int mode) {
+void logMatrix(double * data, int rows, int cols, char * msg, int mode) {
 #ifdef DEBUG
 #ifdef USECUDA
 	if (mode == LOGAUTO || mode == LOGCUDA) {
 		// copy from CUDA device memory to host memory
-		numType * data_h = new numType[rows * cols];
-		cudaMemcpy(data_h, data, (size_t)rows * cols * sizeof (numType), cudaMemcpyDeviceToHost);
+		double * data_h = new double[rows * cols];
+		cudaMemcpy(data_h, data, (size_t)rows * cols * sizeof (double), cudaMemcpyDeviceToHost);
 		data = data_h;
 	}
 #endif
-	numType val = 0;
+	double val = 0;
 	if (rows < SIZETHRESH && cols < SIZETHRESH) {
 		printf("\n");
 		printf(msg);
@@ -189,7 +189,7 @@ void logMatrix(numType * data, int rows, int cols, char * msg, int mode) {
 #endif
 }
 
-void logMatrix(numType * data, int rows, int * rm, char * msg, int mode) {
+void logMatrix(double * data, int rows, int * rm, char * msg, int mode) {
 #ifdef DEBUG
 #ifdef USECUDA
 	if (mode == LOGAUTO || mode == LOGCUDA) {
@@ -203,12 +203,12 @@ void logMatrix(numType * data, int rows, int * rm, char * msg, int mode) {
 			elCount += rm_h[i];
 		}
 		// copy from CUDA device memory to host memory
-		numType * data_h = new numType[elCount];
-		cudaMemcpy(data_h, data, (size_t)elCount * sizeof (numType), cudaMemcpyDeviceToHost);
+		double * data_h = new double[elCount];
+		cudaMemcpy(data_h, data, (size_t)elCount * sizeof (double), cudaMemcpyDeviceToHost);
 		data = data_h;
 	}
 #endif
-	numType val = 0;
+	double val = 0;
 	int offset = 0;
 	if (rows < SIZETHRESH) {
 		printf("\n");

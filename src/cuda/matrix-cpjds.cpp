@@ -26,11 +26,11 @@ int MatrixCPJDSManager::coordinates2Index(int row, int col) {
 }
 
 /* method for rearranging a regular vector to follow the CPJDS transformations */
-Vector * MatrixCPJDSManager::transform(std::vector<numType> v, bool removeGround) {
+Vector * MatrixCPJDSManager::transform(std::vector<double> v, bool removeGround) {
 	//FIXME: transform precisa usar mapeamento!
 
 	//Vector * transformed = new Vector(this->n);
-	numType aux = 0;
+	double aux = 0;
 	if (removeGround) {
 		aux = GROUNDNODE < 0 || GROUNDNODE >= v.size() ? 0 : v[GROUNDNODE];
 	}
@@ -38,8 +38,8 @@ Vector * MatrixCPJDSManager::transform(std::vector<numType> v, bool removeGround
 		auxv[i] = 0;
 	}
 
-	// removing ground node and changing to numtype array
-	numType * vecOrig = new numType[v.size() - 1];
+	// removing ground node and changing to double array
+	double * vecOrig = new double[v.size() - 1];
 	for (int i = 0; i < this->n; i++) {
 		vecOrig[i] = 0;
 	}
@@ -66,7 +66,7 @@ Vector * MatrixCPJDSManager::transform(std::vector<numType> v, bool removeGround
 
 /* method for creating an "electrode" mask vector */
 Vector * MatrixCPJDSManager::mask() {
-	numType * mask_h = new numType[n];
+	double * mask_h = new double[n];
 	for (int i = 0; i < n; i++) {
 		mask_h[i] = 0;
 	}
@@ -113,7 +113,7 @@ MatrixCPJDSManager::MatrixCPJDSManager(Eigen::SparseMatrix<double> *pdata) {
 	this->original2PaddedIdx = std::move(unorderIdxPadded);
 
 	// create auxliary vectors
-	this->auxv = std::unique_ptr<numType[]>(new numType[this->n]);
+	this->auxv = std::unique_ptr<double[]>(new double[this->n]);
 	this->auxi = std::unique_ptr<int[]>(new int[this->n]);
 }
 
@@ -127,7 +127,7 @@ void MatrixCPJDSManager::leftShiftMatrix(std::vector<std::deque<int>> &rowsL, st
 		}
 }
 
-void MatrixCPJDSManager::createDataAndIndicesVectors(numType *mdata, int *indices, int *colOffset, int *colorOffsetCount, std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU, std::vector<std::deque<int>> &padding) {
+void MatrixCPJDSManager::createDataAndIndicesVectors(double *mdata, int *indices, int *colOffset, int *colorOffsetCount, std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU, std::vector<std::deque<int>> &padding) {
 	int pos = 0;
 	// each block is built in color order
 	for (int k = 0; k < colorCount; k++) {

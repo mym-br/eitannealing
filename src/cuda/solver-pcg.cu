@@ -64,7 +64,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
 #endif // CGTIMING
 
-	numType *data_h = new numType[1];
+	double *data_h = new double[1];
 	//m_preconditioner(A, PCGSolverCPJDS::streams[PCGSolverCPJDS::mainStream]);
 	x->reset();
 	r->reset();
@@ -74,11 +74,11 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	u->reset();
 	partial->reset();
 
-	numType * zData = z->getData();
-	numType * rData = r->getData();
-	numType * xData = x->getData();
-	numType * bData = b->getData();
-	numType * partialData = partial->getData();
+	double * zData = z->getData();
+	double * rData = r->getData();
+	double * xData = x->getData();
+	double * bData = b->getData();
+	double * partialData = partial->getData();
 
 	it = 0;
 
@@ -97,10 +97,10 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	mgr->mult(*A, p, q); // q = A * p;
 	p->inner(q, gamma); // gamma = q.dot(p);
 	#ifdef CALCULATE_ERRORS
-	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2_1 = rmod2 = *data_h;
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 	if (rmod2 < res) { it = 0; return; }
 
@@ -134,7 +134,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 
 #ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
-	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
 
 	// Error calculations
@@ -148,7 +148,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	w[0] = 1 / r1;
 
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 	if (rmod2 < res) { it = 1; return; }
 
@@ -187,7 +187,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 
 #ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
-	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
 
 	// Error calculations
@@ -206,7 +206,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	w[1] /= r1;
 
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 	if (rmod2 < res) { it = 2; return; }
 
@@ -245,7 +245,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 
 #ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
-	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
 
 	// Error calculations
@@ -265,7 +265,7 @@ void PCGSolverCPJDS::init(Vector *x0, double res) {
 	w[2] /= r1;
 
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 
 	// Update values for next iteration
@@ -301,7 +301,7 @@ void PCGSolverCPJDS::doIteration(int iteration) {
 #endif // CGTIMING
 
 	checkedCudaEventRecord(startTotal);
-	numType *data_h = new numType[1];
+	double *data_h = new double[1];
 	it++;
 	x->scalarAdd(rmod, gamma, p, NULL);
 	r->scalarSubtr(rmod, gamma, q, NULL); //r -= alpha * q; alpha = rmod / gamma
@@ -323,7 +323,7 @@ void PCGSolverCPJDS::doIteration(int iteration) {
 
 #ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
-	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmod->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
 
 	// Error calculations
@@ -340,7 +340,7 @@ void PCGSolverCPJDS::doIteration(int iteration) {
 	s = eta_p1 / r1;
 
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gamma->getData(), (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 
 	// FIXME: GET RID OF THOSE STUPID BUFFERS!!!!!!!!!!!!!!!!!!!!!

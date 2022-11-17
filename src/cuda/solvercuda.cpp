@@ -4,7 +4,7 @@
 #include "../incomplete_cholesky.h"
 #include "../basematrix.h"
 
-vectorx CGCUDA_Solver::getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n) {
+vectorx CGCUDA_Solver::getCpjdsCurrent(double *vec, MatrixCPJDSManager &mgr, int size, int n) {
 	vectorx vecArr(size);
 	for (int i = 0; i < size; i++) {
 		vecArr[i] = 0;
@@ -15,7 +15,7 @@ vectorx CGCUDA_Solver::getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, in
 	return vecArr;
 }
 
-matrix CGCUDA_Solver::getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata) {
+matrix CGCUDA_Solver::getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<double[]> &pdata) {
 	int size = M.csrMap.n;
 	int nnz = M.csrMap.nnz;
 	MatrixCPJDS2CSR csrMap = M.csrMap;
@@ -36,14 +36,14 @@ matrix CGCUDA_Solver::getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[
 	return stiff;
 }
 
-void CGCUDA_Solver::cblas_dscal(int n, numType alpha, numType *x, int inc) {
+void CGCUDA_Solver::cblas_dscal(int n, double alpha, double *x, int inc) {
 	for (int i = 0; i < n; i++) {
 		*x *= alpha;
 		x += inc;
 	}
 }
 
-numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata, std::unique_ptr<numType[]> &precond) {
+double CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS &M, std::unique_ptr<double[]> &pdata, std::unique_ptr<double[]> &precond) {
 
 	int size = M.csrMap.n;
 	int nnz = M.csrMap.nnz;

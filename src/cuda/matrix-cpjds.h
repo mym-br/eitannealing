@@ -16,12 +16,12 @@
 
 using namespace cgl;
 
-struct DeleterCudaIntPtr { void operator()(int* ptr); void operator()(numType* ptr); };
+struct DeleterCudaIntPtr { void operator()(int* ptr); void operator()(double* ptr); };
 
 struct MatrixData {
 	int n; // n is multiple of WARP_SIZE (32)
 	// TODO: convert ALL to smart cuda ptr
-	std::unique_ptr<numType[], DeleterCudaIntPtr> data;
+	std::unique_ptr<double[], DeleterCudaIntPtr> data;
 	std::unique_ptr<int[], DeleterCudaIntPtr> indices;
 	std::unique_ptr<int[], DeleterCudaIntPtr> rowLength; // row length (non-zeros)
 	std::unique_ptr<int[], DeleterCudaIntPtr> rowSize; // row max (includes trailing padding-zeros) - all rows in the warp have same size
@@ -65,8 +65,8 @@ struct MatrixCPJDS2CSR {
 };
 
 struct CPUData {
-	std::unique_ptr<numType[]> data;
-	std::unique_ptr<numType[]> precond;
+	std::unique_ptr<double[]> data;
+	std::unique_ptr<double[]> precond;
 	std::unique_ptr<int[]> indices;
 };
 
@@ -74,7 +74,7 @@ struct MatrixCPJDS {
 	MatrixData matrixData;
 	MatrixColors matrixColors;
 	MatrixDependencies matrixDependencies;
-	std::unique_ptr<numType[], DeleterCudaIntPtr> preconditionedData; // TODO: convert to smart cuda ptr
+	std::unique_ptr<double[], DeleterCudaIntPtr> preconditionedData; // TODO: convert to smart cuda ptr
 
 	/* aux map for preconditioner computation */
 	CPUData cpuData;
@@ -104,13 +104,13 @@ private:
 	int nOrig;
 
 	/* aux vector for transforming, incrementing, etc */
-	std::unique_ptr<numType[]> auxv;
+	std::unique_ptr<double[]> auxv;
 	/* aux indices vector for transforming, incrementing, etc */
 	std::unique_ptr<int[]> auxi;
 	/* maximum coefficient dependencies' count */
 	int maxDepCount;
 	/* aux device array for incrementing */
-	std::unique_ptr<numType[], DeleterCudaIntPtr> auxv_d; // TODO: convert to smart cuda ptr
+	std::unique_ptr<double[], DeleterCudaIntPtr> auxv_d; // TODO: convert to smart cuda ptr
 	/* aux device array for incrementing */
 	std::unique_ptr<int[], DeleterCudaIntPtr> auxi_d; // TODO: convert to smart cuda ptr
 
@@ -118,7 +118,7 @@ private:
 	int blocks;
 
 	void leftShiftMatrix(std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU);
-	void createDataAndIndicesVectors(numType *mdata, int *indices, int *colOffset, int *colorOffsetCount, std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU, std::vector<std::deque<int>> &padding);
+	void createDataAndIndicesVectors(double *mdata, int *indices, int *colOffset, int *colorOffsetCount, std::vector<std::deque<int>> &rowsL, std::vector<std::deque<int>> &rowsU, std::vector<std::deque<int>> &padding);
 	void dependencies_analysis2(int n, DependeciesMap * dependenciesMap);
 	void createCsr2CpjdsMap(MatrixCPJDS2CSR &csrMap);
 public:
@@ -137,21 +137,21 @@ public:
 	int coordinates2Index(int row, int col);
 
 	/* sets an element value according to row and column indexes */
-	void set(MatrixCPJDS &M, int row, int col, numType val);
+	void set(MatrixCPJDS &M, int row, int col, double val);
 
 	/* increments an element value according to row and column indexes */
-	void increment(MatrixCPJDS &M, int row, int col, numType val);
+	void increment(MatrixCPJDS &M, int row, int col, double val);
 
 	/* increments an array of elements value according to elements' indexes */
-	void pushIncrements(MatrixCPJDS &M, int size, numType * vals, int * indices);
+	void pushIncrements(MatrixCPJDS &M, int size, double * vals, int * indices);
 	/* increments an array of elements value according to elements' indexes */
-	void pushIncrements(MatrixCPJDS &M, int size, numType * vals, int * indices, cudaStream_t stream);
+	void pushIncrements(MatrixCPJDS &M, int size, double * vals, int * indices, cudaStream_t stream);
 
 	/* method for rearranging a regular vector to follow the CPJDS transformations */
-	Vector * transform(std::vector<numType> v, bool removeGround);
+	Vector * transform(std::vector<double> v, bool removeGround);
 
 	/* method for restoring CPJDS-transformed vector to its original size and indexes */
-	std::vector<numType> restore(Vector * v);
+	std::vector<double> restore(Vector * v);
 
 	/* method for creating an "electrode" mask vector */
 	Vector * mask();
@@ -193,7 +193,7 @@ public:
 	 * inner product b.x (x's partials are filled) */
 	void solve_and_inner(MatrixCPJDS &M, Vector * b, Vector * x, Vector * u, cudaStream_t stream);
 
-	void saveToFile(char * filename, MatrixCPJDS &M, numType * data, bool isCPU);
+	void saveToFile(char * filename, MatrixCPJDS &M, double * data, bool isCPU);
 };
 
 #endif /* CPJDS_H */

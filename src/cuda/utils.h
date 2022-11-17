@@ -22,15 +22,15 @@ void logClose();
 
 void logMessage(char * msg);
 
-void logNumber(numType * data, char * msg, int mode);
+void logNumber(double * data, char * msg, int mode);
 
-void logVector(numType * data, int size, char * msg, int mode);
+void logVector(double * data, int size, char * msg, int mode);
 
 void logVector(int * data, int size, char * msg, int mode);
 
-void logMatrix(numType * data, int rows, int cols, char * msg, int mode);
+void logMatrix(double * data, int rows, int cols, char * msg, int mode);
 
-void logMatrix(numType * data, int rows, int * rm, char * msg, int mode);
+void logMatrix(double * data, int rows, int * rm, char * msg, int mode);
 
 void logMatrix(int * data, int rows, int cols, char * msg, int mode);
 

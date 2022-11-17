@@ -39,7 +39,7 @@ struct raw_matrix {
 };
 typedef std::vector<double> raw_vector;
 
-void saveVals(const char* fname, Eigen::SparseMatrix<numType> &mat, bool symm = false) {
+void saveVals(const char* fname, Eigen::SparseMatrix<double> &mat, bool symm = false) {
 	FILE *f;
 	if ((f = fopen(fname, "w")) == NULL) { std::cerr << "Could not open market matrix file to write" << *fname << std::endl; return; }
 	EITFILECONVERSIONS::saveMtx(&mat, f, symm);
@@ -232,7 +232,7 @@ std::tuple<long, long, int> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, r
 	std::chrono::duration<double> time_analyser = t2 - t1;
 	//saveVals("A.mtx", A, true); 
 	//matrix Lprint = L.matrixL();  saveVals("L.mtx", Lprint, false);
-	//Eigen::SparseMatrix<numType> bPrint(Araw.N, 1); for (int i = 0; i < b.size(); i++) bPrint.coeffRef(i, 0) = b[i]; saveVals("b.mtx", bPrint);
+	//Eigen::SparseMatrix<double> bPrint(Araw.N, 1); for (int i = 0; i < b.size(); i++) bPrint.coeffRef(i, 0) = b[i]; saveVals("b.mtx", bPrint);
 	std::cout << "Serial analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 
 	std::cout << "Starting CG with res = " << res << " and max iterations = " << maxit << std::endl;
@@ -269,32 +269,32 @@ std::tuple<long, long, int> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, r
 
 std::tuple<long, long, int> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit, CGSOLVERTYPE solverType) {
 	// Convert to full matrix
-	std::vector<Eigen::Triplet<numType>> tripletList;
+	std::vector<Eigen::Triplet<double>> tripletList;
 	for (auto el : Araw) {
-		tripletList.push_back(Eigen::Triplet<numType>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
-		if(std::get<0>(el) != std::get<1>(el)) tripletList.push_back(Eigen::Triplet<numType>(std::get<1>(el), std::get<0>(el), std::get<2>(el)));
+		tripletList.push_back(Eigen::Triplet<double>(std::get<0>(el), std::get<1>(el), std::get<2>(el)));
+		if(std::get<0>(el) != std::get<1>(el)) tripletList.push_back(Eigen::Triplet<double>(std::get<1>(el), std::get<0>(el), std::get<2>(el)));
 	}
 	auto t1 = std::chrono::high_resolution_clock::now();
 	// Create sparse matrix
-	Eigen::SparseMatrix<numType> A(Araw.M, Araw.N);
+	Eigen::SparseMatrix<double> A(Araw.M, Araw.N);
 	A.setFromTriplets(tripletList.begin(), tripletList.end());
 	A.makeCompressed();
 	std::unique_ptr<MatrixCPJDS> stiffness = std::unique_ptr<MatrixCPJDS>(new MatrixCPJDS);
 	std::unique_ptr<MatrixCPJDSManager> mgr = std::unique_ptr<MatrixCPJDSManager>(CGCUDA_Solver::createManager(&A, stiffness.get()));
 	// Create vector on GPU
-	std::unique_ptr<numType[]> bdata(new numType[braw.size()]);
+	std::unique_ptr<double[]> bdata(new double[braw.size()]);
 	for (int i = 0; i < braw.size(); i++) bdata[i] = braw[i];
 	Vector *b = CGCUDA_Solver::createCurrentVector(bdata.get() , *mgr, stiffness->matrixData.n, braw.size());
 	// Create preconditioner
-	numType lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
+	double lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
 	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, res, solverType);
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> time_analyser = t2 - t1;
 	std::cout << "Cuda analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 	//// Output cpjds matrices and vector to mtx files
-	//Eigen::SparseMatrix<numType> mPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.data); saveVals("Acpjds.mtx", mPrint, true);
-	//Eigen::SparseMatrix<numType> precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.mtx", precondPrint);
-	//Eigen::SparseMatrix<numType> bPrint(stiffness->matrixData.n, 1); for (int i = 0; i < braw.size(); i++) bPrint.coeffRef(mgr->original2PaddedIdx[i], 0) = braw[i]; saveVals("bcpjds.mtx", bPrint);
+	//Eigen::SparseMatrix<double> mPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.data); saveVals("Acpjds.mtx", mPrint, true);
+	//Eigen::SparseMatrix<double> precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.mtx", precondPrint);
+	//Eigen::SparseMatrix<double> bPrint(stiffness->matrixData.n, 1); for (int i = 0; i < braw.size(); i++) bPrint.coeffRef(mgr->original2PaddedIdx[i], 0) = braw[i]; saveVals("bcpjds.mtx", bPrint);
 
 	std::string solverLabel;
 	switch (solverType) {
@@ -323,7 +323,7 @@ std::tuple<long, long, int> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, ra
 	///* now write out result */
 	///************************/
 	try {
-		Eigen::Matrix<numType, Eigen::Dynamic, 1> xeig = solvercuda.getX();
+		Eigen::Matrix<double, Eigen::Dynamic, 1> xeig = solvercuda.getX();
 		std::chrono::duration<double> time_executor = t2 - t1;
 		std::cout << solverLabel << " executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << sqrt(curRes) << " after " << totalIts << " iterations." << std::endl;
 #ifdef CGTIMING

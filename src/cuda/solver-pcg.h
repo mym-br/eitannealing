@@ -97,10 +97,10 @@ public:
 
 	void init(Vector *x0, double res = -1);
 	void doIteration(int iteration = -1);
-	void doIteration0(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2);
-	void doIteration1(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2);
-	void doIteration2(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2);
-	void doIteration3(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2);
+	void doIteration0(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2);
+	void doIteration1(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2);
+	void doIteration2(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2);
+	void doIteration3(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2);
 	double getRmod() { 
 		#ifndef CALCULATE_ERRORS
 		return rmod->transf2CPU(); 
@@ -122,10 +122,10 @@ public:
 
 	void init(Vector *x0, double res = -1);
 	void doIteration(int iteration = -1);
-	void doIteration0(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2);
-	void doIteration1(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2);
-	void doIteration2(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2);
-	void doIteration3(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2);
+	void doIteration0(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2);
+	void doIteration1(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2);
+	void doIteration2(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2);
+	void doIteration3(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2);
 	double getRmod() {
 #ifndef CALCULATE_ERRORS
 		return rmod->transf2CPU();

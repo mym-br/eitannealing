@@ -19,10 +19,10 @@
 #endif
 
 void DeleterCudaIntPtr::operator()(int* ptr) { cudaFree(ptr); };
-void DeleterCudaIntPtr::operator()(numType* ptr) { cudaFree(ptr); };
+void DeleterCudaIntPtr::operator()(double* ptr) { cudaFree(ptr); };
 
-//void dependencies_analysis(numType * data, int n, DependeciesMap * dependenciesMap) {
-void dependencies_analysis(std::unique_ptr<numType[]> &data, int n, DependeciesMap * dependenciesMap) {
+//void dependencies_analysis(double * data, int n, DependeciesMap * dependenciesMap) {
+void dependencies_analysis(std::unique_ptr<double[]> &data, int n, DependeciesMap * dependenciesMap) {
 	//for (int i = 0; i < n; i++) { // for each row...
 	//	for (int j = i + 1; j < n; j++) { // ... for every (upper triangle) column in the row
 	//		//for (int j = 0; j < i; j++) { // ... for every (lower triangle) column in the row
@@ -44,49 +44,49 @@ void dependencies_analysis(std::unique_ptr<numType[]> &data, int n, DependeciesM
 }
 
 /* CPJDS matrix element setter */
-__global__ void cm_set_cpjds(int idx, numType * data, numType val);
+__global__ void cm_set_cpjds(int idx, double * data, double val);
 
 /* CPJDS matrix element incrementer */
-__global__ void cm_increment_cpjds(int idx, numType * data, numType val);
+__global__ void cm_increment_cpjds(int idx, double * data, double val);
 
 /* CPJDS matrix batch incrementer */
-__global__ void cm_increment_cpjds(int size, numType * data, numType * vals, int * indices);
+__global__ void cm_increment_cpjds(int size, double * data, double * vals, int * indices);
 
 /* CPJDS matrix-vector multiplication */
-__global__ void cmv_mult_cpjds(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorOffset, int colorColOffset, numType * xData, numType * bData);
+__global__ void cmv_mult_cpjds(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorOffset, int colorColOffset, double * xData, double * bData);
 
 /* CPJDS matrix-vector multiplication */
-__global__ void cmv_mult_cpjds2(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * bData);
+__global__ void cmv_mult_cpjds2(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * xData, double * bData);
 
 /* CPJDS matrix-vector multiplication, followed by vector inner product */
-__global__ void cmv_mult_inner_cpjds(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorOffset, int colorColOffset, numType * xData, numType * yData, numType * partial);
+__global__ void cmv_mult_inner_cpjds(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorOffset, int colorColOffset, double * xData, double * yData, double * partial);
 
 /* CPJDS matrix-vector multiplication, followed by vector inner product */
-__global__ void cmv_mult(numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorColOffset, numType * xData, numType * yData, numType * partial);
+__global__ void cmv_mult(double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorColOffset, double * xData, double * yData, double * partial);
 
 /* CPJDS matrix-vector multiplication, followed by vector inner product */
-__global__ void cmv_mult_2(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * yData, numType * partial);
+__global__ void cmv_mult_2(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * xData, double * yData, double * partial);
 
 /* CPJDS lower triangular solver */
-__global__ void cmv_solve_cpjds(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorOffset, int colorColOffset, numType * xData, numType * bData);
+__global__ void cmv_solve_cpjds(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorOffset, int colorColOffset, double * xData, double * bData);
 
 /* CPJDS upper triangular solver */
-__global__ void cmv_solve_t_cpjds(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorOffset, int colorColOffset, numType * xData, numType * bData);
+__global__ void cmv_solve_t_cpjds(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorOffset, int colorColOffset, double * xData, double * bData);
 
 /* CPJDS lower and upper triangular solver */
-__global__ void cmv_solve(numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * bData);
+__global__ void cmv_solve(double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * xData, double * bData);
 
 /* CPJDS lower and upper triangular solver */
-__global__ void cmv_solve_inner(numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * bData, numType * interm, numType * partial);
+__global__ void cmv_solve_inner(double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * xData, double * bData, double * interm, double * partial);
 
 /*
 * M: resulting matrix in colored pJDS format
@@ -166,7 +166,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	std::unique_ptr<int[]> colOffset(new int[offsetSize]);
 
 	// data and indices arrays
-	std::unique_ptr<numType[]> mdata(new numType[total]);
+	std::unique_ptr<double[]> mdata(new double[total]);
 	std::unique_ptr<int[]> indices(new int[total]);
 	createDataAndIndicesVectors(mdata.get(), indices.get(), colOffset.get(), colorOffsetCount.get(), rowsL, rowsU, padding);
 
@@ -307,7 +307,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	//	idxSize = depsLowerArr.size(); // = depsUpperArr.size()
 
 	/* matrix data */
-	std::unique_ptr<numType[], DeleterCudaIntPtr> c_mdata(new numType[total]);
+	std::unique_ptr<double[], DeleterCudaIntPtr> c_mdata(new double[total]);
 	std::unique_ptr<int[], DeleterCudaIntPtr> c_indices(new int[total]);
 	std::unique_ptr<int[], DeleterCudaIntPtr> c_rowLength(new int[n]);
 	std::unique_ptr<int[], DeleterCudaIntPtr> c_rowSize(new int[n]);
@@ -324,11 +324,11 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	//std::unique_ptr<int[], DeleterCudaIntPtr> c_dependenciesSize(new int[n]);
 	//std::unique_ptr<int[], DeleterCudaIntPtr> c_nnzElementDataIndex(new int[n + 1]);
 	/* preconditioner data */
-	std::unique_ptr<numType[], DeleterCudaIntPtr> c_pdata(new numType[total]);
+	std::unique_ptr<double[], DeleterCudaIntPtr> c_pdata(new double[total]);
 
 	// CUDA device memory allocation
 	/* matrix data */
-	cudaMalloc((void**)& c_mdata, total * sizeof(numType));
+	cudaMalloc((void**)& c_mdata, total * sizeof(double));
 	cudaMalloc((void**)& c_indices, total * sizeof(int));
 	cudaMalloc((void**)& c_rowLength, n * sizeof(int));
 	cudaMalloc((void**)& c_rowSize, n * sizeof(int));
@@ -345,11 +345,11 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	//cudaMalloc((void**)& c_dependenciesSize, n * sizeof(int));
 	//cudaMalloc((void**)& c_nnzElementDataIndex, (n + 1) * sizeof(int));
 	/* preconditioner data */
-	cudaMalloc((void**)& c_pdata, total * sizeof(numType));
+	cudaMalloc((void**)& c_pdata, total * sizeof(double));
 
 	// CUDA device memory transfer
 	/* matrix data */
-	cudaMemcpy(c_mdata.get(), mdata.get(), (size_t)total * sizeof(numType), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_mdata.get(), mdata.get(), (size_t)total * sizeof(double), cudaMemcpyHostToDevice);
 	cudaMemcpy(c_indices.get(), indices.get(), (size_t)total * sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(c_rowLength.get(), rowLength, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(c_rowSize.get(), rowSize, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
@@ -366,7 +366,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	//cudaMemcpy(c_dependenciesSize.get(), dependenciesSize, (size_t)n * sizeof(int), cudaMemcpyHostToDevice);
 	//cudaMemcpy(c_nnzElementDataIndex.get(), nnzElementDataIndex, (size_t)(n + 1) * sizeof(int), cudaMemcpyHostToDevice);
 	/* preconditioner data */
-	cudaMemcpy(c_pdata.get(), pdata, (size_t)total * sizeof(numType), cudaMemcpyHostToDevice);
+	cudaMemcpy(c_pdata.get(), pdata, (size_t)total * sizeof(double), cudaMemcpyHostToDevice);
 
 	/* set matrix data */
 	(*M).matrixData.data = std::move(c_mdata);
@@ -401,7 +401,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	// setting CPU aux data
 	(*M).cpuData.data = std::move(mdata);
 	(*M).cpuData.indices = std::move(indices);//indices;
-	(*M).cpuData.precond = std::unique_ptr<numType[]>(new numType[total]); for (int i = 0; i < total; i++) (*M).cpuData.precond[i] = 0;
+	(*M).cpuData.precond = std::unique_ptr<double[]>(new double[total]); for (int i = 0; i < total; i++) (*M).cpuData.precond[i] = 0;
 
 	// free CPU memory used for initializing GPU data
 	/* matrix data */
@@ -490,13 +490,13 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M, nodeCoefficients **node
 			maxDepCount = coefDepCount[i];
 		}
 	}
-	cudaMalloc((void**)& auxv_d, maxDepCount * sizeof(numType));
+	cudaMalloc((void**)& auxv_d, maxDepCount * sizeof(double));
 	cudaMalloc((void**)& auxi_d, maxDepCount * sizeof(int));
 	return 0;
 }
 
 /* sets an element value according to row and column indexes */
-void MatrixCPJDSManager::set(MatrixCPJDS &M, int row, int col, numType val) {
+void MatrixCPJDSManager::set(MatrixCPJDS &M, int row, int col, double val) {
 	int rowP = original2PaddedIdx[row];
 	int colP = original2PaddedIdx[col];
 	int idx = coordinates2Index(rowP, colP);
@@ -504,7 +504,7 @@ void MatrixCPJDSManager::set(MatrixCPJDS &M, int row, int col, numType val) {
 }
 
 /* increments an element value according to row and column indexes */
-void MatrixCPJDSManager::increment(MatrixCPJDS &M, int row, int col, numType val) {
+void MatrixCPJDSManager::increment(MatrixCPJDS &M, int row, int col, double val) {
 	int rowP = original2PaddedIdx[row];
 	int colP = original2PaddedIdx[col];
 	int idx = coordinates2Index(rowP, colP);
@@ -512,8 +512,8 @@ void MatrixCPJDSManager::increment(MatrixCPJDS &M, int row, int col, numType val
 }
 
 /* increments an array of elements value according to elements' indexes */
-void MatrixCPJDSManager::pushIncrements(MatrixCPJDS &M, int size, numType * vals, int * indices) {
-	cudaMemcpy(auxv_d.get(), vals, (size_t)size * sizeof(numType), cudaMemcpyHostToDevice);
+void MatrixCPJDSManager::pushIncrements(MatrixCPJDS &M, int size, double * vals, int * indices) {
+	cudaMemcpy(auxv_d.get(), vals, (size_t)size * sizeof(double), cudaMemcpyHostToDevice);
 	cudaMemcpy(auxi_d.get(), indices, (size_t)size * sizeof(int), cudaMemcpyHostToDevice);
 	int blocksi = 1,
 		blocksizes = size;
@@ -527,8 +527,8 @@ void MatrixCPJDSManager::pushIncrements(MatrixCPJDS &M, int size, numType * vals
 }
 
 /* increments an array of elements value according to elements' indexes */
-void MatrixCPJDSManager::pushIncrements(MatrixCPJDS &M, int size, numType * vals, int * indices, cudaStream_t stream) {
-	cudaMemcpyAsync(auxv_d.get(), vals, (size_t)size * sizeof(numType), cudaMemcpyHostToDevice, stream);
+void MatrixCPJDSManager::pushIncrements(MatrixCPJDS &M, int size, double * vals, int * indices, cudaStream_t stream) {
+	cudaMemcpyAsync(auxv_d.get(), vals, (size_t)size * sizeof(double), cudaMemcpyHostToDevice, stream);
 	cudaMemcpyAsync(auxi_d.get(), indices, (size_t)size * sizeof(int), cudaMemcpyHostToDevice, stream);
 	int blocksi = 1,
 		blocksizes = size;
@@ -542,12 +542,12 @@ void MatrixCPJDSManager::pushIncrements(MatrixCPJDS &M, int size, numType * vals
 }
 
 /* method for restoring CPJDS-transformed vector to its original size and indexes */
-std::vector<numType> MatrixCPJDSManager::restore(Vector * v){
+std::vector<double> MatrixCPJDSManager::restore(Vector * v){
 	// groundNode = -1: no ground node
-	std::vector<numType> restored(nOrig);
+	std::vector<double> restored(nOrig);
 
-	numType * data_h = new numType[this->n];
-	cudaMemcpy(data_h, v->getData(), (size_t)this->n * sizeof(numType), cudaMemcpyDeviceToHost);
+	double * data_h = new double[this->n];
+	cudaMemcpy(data_h, v->getData(), (size_t)this->n * sizeof(double), cudaMemcpyDeviceToHost);
 
 	for (int i = 0; i < nOrig; i++) {
 		restored[i] = data_h[original2PaddedIdx[i]];
@@ -568,7 +568,7 @@ void MatrixCPJDSManager::mult(MatrixCPJDS &M, Vector * x, Vector * b) {
 		return;
 	}
 #endif
-	//numType * mData = M.matrixData.data;
+	//double * mData = M.matrixData.data;
 	//int * mIndices = M.matrixData.indices;
 	//int * mRowLength = M.matrixData.rowLength;
 	//int * mRowSize = M.matrixData.rowSize;
@@ -578,8 +578,8 @@ void MatrixCPJDSManager::mult(MatrixCPJDS &M, Vector * x, Vector * b) {
 	//int * colors = M.matrixColors.colors;
 	//int * mColorsColOffsetSize = M.matrixColors.colorsColOffsetSize;
 
-	//numType * xData = x->getData();
-	//numType * bData = b->getData();
+	//double * xData = x->getData();
+	//double * bData = b->getData();
 
 	//for (int k = 0; k < colorCount; k++) {
 
@@ -709,7 +709,7 @@ void MatrixCPJDSManager::multInner2(MatrixCPJDS &M, Vector * x, Vector * y, cuda
 //		return;
 //	}
 //#endif
-	//numType * mData = M.preconditionedData;
+	//double * mData = M.preconditionedData;
 	//// Launch CUDA matrix-vector multiplication kernel
 	//cmv_mult <<<blocks, BLOCKSIZE, 0, stream >>>(mData, mIndices, mRowLength, mRowSize,
 	//	mColOffset, colorCount, colors_d, mColorsColOffsetSize_d, xData, yData, pData);
@@ -745,7 +745,7 @@ void MatrixCPJDSManager::solve(MatrixCPJDS &M, Vector * b, Vector * x) {
 #endif
 
 	//int size = M.n;
-	//numType * mData = M.preconditionedData;//; M.matrixData.data;
+	//double * mData = M.preconditionedData;//; M.matrixData.data;
 	for (int k = 0; k < M.matrixColors.colorCount; k++) {
 		int colorStart = M.matrixColors.colors[k];
 		int colorEnd = M.matrixColors.colors[k + 1];
@@ -784,7 +784,7 @@ void MatrixCPJDSManager::solve(MatrixCPJDS &M, Vector * b, Vector * x, cudaStrea
 #endif
 
 	//int size = M.n;
-	//numType * mData = M.preconditionedData; // M.matrixData.data;
+	//double * mData = M.preconditionedData; // M.matrixData.data;
 	for (int k = 0; k < M.matrixColors.colorCount; k++) {
 		int colorStart = M.matrixColors.colors[k];
 		int colorEnd = M.matrixColors.colors[k + 1];
@@ -823,7 +823,7 @@ void MatrixCPJDSManager::solve_t(MatrixCPJDS &M, Vector * b, Vector * x) {
 #endif
 
 	//int size = M.n;
-	//numType * mData = M.preconditionedData; //M.matrixData.data;
+	//double * mData = M.preconditionedData; //M.matrixData.data;
 	for (int k = M.matrixColors.colorCount - 1; k >= 0; k--) {
 
 		int colorStart = M.matrixColors.colors[k];
@@ -863,7 +863,7 @@ void MatrixCPJDSManager::solve_t(MatrixCPJDS &M, Vector * b, Vector * x, cudaStr
 #endif
 
 	//int size = M.n;
-	//numType * mData = M.preconditionedData; //M.matrixData.data;
+	//double * mData = M.preconditionedData; //M.matrixData.data;
 	for (int k = M.matrixColors.colorCount - 1; k >= 0; k--) {
 
 		int colorStart = M.matrixColors.colors[k];
@@ -904,20 +904,20 @@ void MatrixCPJDSManager::solve_and_inner(MatrixCPJDS &M, Vector * b, Vector * x,
 		M.matrixData.colOffset.get(), M.matrixColors.colorCount, M.matrixColors.colors_d.get(), M.matrixColors.colorsColOffsetSize_d.get(), x->getData(), b->getData(), u->getData(), x->getPartial());
 }
 
-void MatrixCPJDSManager::saveToFile(char * filename, MatrixCPJDS &M, numType * data, bool isCPU) {
+void MatrixCPJDSManager::saveToFile(char * filename, MatrixCPJDS &M, double * data, bool isCPU) {
 
 	std::ofstream file(filename);
 	if (!isCPU) {
 		// copy from CUDA device memory to host memory
-		numType * data_h = new numType[M.matrixData.elCount];
-		cudaMemcpy(data_h, data, (size_t)M.matrixData.elCount * sizeof(numType), cudaMemcpyDeviceToHost);
+		double * data_h = new double[M.matrixData.elCount];
+		cudaMemcpy(data_h, data, (size_t)M.matrixData.elCount * sizeof(double), cudaMemcpyDeviceToHost);
 		data = data_h;
 	}
 
 	for (int row = 0; row < M.matrixData.n; row++) {
 		for (int col = 0; col < M.matrixData.n; col++) {
 			int idx = coordinates2Index(row, col);
-			numType val = 0;
+			double val = 0;
 			if (idx > -1) {
 				int dcol = M.cpuData.indices[idx];
 				val = M.cpuData.data[idx];
@@ -940,19 +940,19 @@ void MatrixCPJDSManager::saveToFile(char * filename, MatrixCPJDS &M, numType * d
 /*****************************************************************************************/
 
 /* CPJDS matrix element setter */
-__global__ void cm_set_cpjds(int idx, numType * data, numType val) {
+__global__ void cm_set_cpjds(int idx, double * data, double val) {
 	// row index
 	data[idx] = val;
 }
 
 /* CPJDS matrix element incrementer */
-__global__ void cm_increment_cpjds(int idx, numType * data, numType val) {
+__global__ void cm_increment_cpjds(int idx, double * data, double val) {
 	// row index
 	data[idx] += val;
 }
 
 /* CPJDS matrix batch incrementer */
-__global__ void cm_increment_cpjds(int size, numType * data, numType * vals, int * indices) {
+__global__ void cm_increment_cpjds(int size, double * data, double * vals, int * indices) {
 	// row index
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	if (idx < size) {
@@ -961,8 +961,8 @@ __global__ void cm_increment_cpjds(int size, numType * data, numType * vals, int
 }
 
 /* CPJDS matrix-vector multiplication */
-__global__ void cmv_mult_cpjds(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorOffset, int colorColOffset, numType * xData, numType * bData) {
+__global__ void cmv_mult_cpjds(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorOffset, int colorColOffset, double * xData, double * bData) {
 	// thread index
 	int tidx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -974,13 +974,13 @@ __global__ void cmv_mult_cpjds(int dim, numType * aData, int * aIndices, int * a
 		// row size (length + padding zeros)
 		int rowSize = aRowSize[row];
 
-		numType sum = 0;
+		double sum = 0;
 		__syncthreads();
 		for (int j = 0; j < rowSize; j++) {
 			// colorColOffset already includes colorOffset (thus, color's first row)
 			int offset = aColOffset[colorColOffset + j] + tidx; // coalesced?
 
-			numType rowData = aData[offset]; // coalesced
+			double rowData = aData[offset]; // coalesced
 			int idx = aIndices[offset]; // coalesced
 			sum += rowData * xData[idx]; // NOT coalesced!
 			//sum += mData[offset] * xData[mIndices[offset]];
@@ -994,8 +994,8 @@ __global__ void cmv_mult_cpjds(int dim, numType * aData, int * aIndices, int * a
 }
 
 /* CPJDS matrix-vector multiplication */
-__global__ void cmv_mult_cpjds2(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * bData) {
+__global__ void cmv_mult_cpjds2(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * xData, double * bData) {
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -1013,13 +1013,13 @@ __global__ void cmv_mult_cpjds2(int dim, numType * aData, int * aIndices, int * 
 		// row size (length + padding zeros)
 		int rowSize = aRowLength[row];
 
-		numType sum = 0;
+		double sum = 0;
 		__syncthreads();
 		for (int j = 0; j < rowSize; j++) {
 			// colorColOffset already includes colorOffset (thus, color's first row)
 			int offset = aColOffset[colorColOffset + j] + (row - colorStart); // coalesced?
 
-			numType rowData = aData[offset]; // coalesced
+			double rowData = aData[offset]; // coalesced
 			int idx = aIndices[offset]; // coalesced
 			sum += rowData * xData[idx]; // NOT coalesced!
 			//if (row == 5) {
@@ -1036,10 +1036,10 @@ __global__ void cmv_mult_cpjds2(int dim, numType * aData, int * aIndices, int * 
 }
 
 /* CPJDS matrix-vector multiplication, followed by vector inner product */
-__global__ void cmv_mult_inner_cpjds(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorOffset, int colorColOffset, numType * xData, numType * yData, numType * partial) {
+__global__ void cmv_mult_inner_cpjds(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorOffset, int colorColOffset, double * xData, double * yData, double * partial) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// thread index
 	int tidx = blockDim.x * blockIdx.x + threadIdx.x;
 	int cacheIndex = threadIdx.x;
@@ -1052,13 +1052,13 @@ __global__ void cmv_mult_inner_cpjds(int dim, numType * aData, int * aIndices, i
 		// row size (length + padding zeros)
 		int rowSize = aRowSize[row];
 
-		numType sum = 0;
+		double sum = 0;
 		__syncthreads();
 		for (int j = 0; j < rowSize; j++) {
 			// colorColOffset already includes colorOffset (thus, color's first row)
 			int offset = aColOffset[colorColOffset + j] + tidx; // coalesced?
 
-			numType rowData = aData[offset]; // coalesced
+			double rowData = aData[offset]; // coalesced
 			int idx = aIndices[offset]; // coalesced
 			sum += rowData * xData[idx]; // NOT coalesced!
 			//sum += mData[offset] * xData[mIndices[offset]];
@@ -1093,7 +1093,7 @@ __global__ void cmv_mult_inner_cpjds(int dim, numType * aData, int * aIndices, i
 
 	// isto precisa ser enviado para outro ponto, para que as somas parciais sejam totalizadas
 	//if (row == 0) {
-	//	numType sum = 0;
+	//	double sum = 0;
 	//	for (int i = 0; i < blocks; i++) {
 	//		sum += r[i];
 	//	}
@@ -1103,10 +1103,10 @@ __global__ void cmv_mult_inner_cpjds(int dim, numType * aData, int * aIndices, i
 
 // backup do kernel cmv_mult, modificado abaixo
 /* CPJDS matrix-vector multiplication, followed by vector inner product */
-__global__ void cmv_mult(numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * yData, numType * partial) {
+__global__ void cmv_mult(double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * xData, double * yData, double * partial) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int cacheIndex = threadIdx.x;
@@ -1121,13 +1121,13 @@ __global__ void cmv_mult(numType * aData, int * aIndices, int * aRowLength, int 
 			// row size (length + padding zeros)
 			int rowSize = aRowSize[row];
 
-			numType sum = 0;
+			double sum = 0;
 			__syncthreads();
 			for (int j = 0; j < rowSize; j++) {
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + (row - colorStart); // coalesced?
 
-				numType rowData = aData[offset]; // coalesced
+				double rowData = aData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				sum += rowData * xData[idx]; // NOT coalesced!
 
@@ -1159,10 +1159,10 @@ __global__ void cmv_mult(numType * aData, int * aIndices, int * aRowLength, int 
 }
 
 /* CPJDS matrix-vector multiplication, followed by vector inner product */
-__global__ void cmv_mult_2(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * yData, numType * partial) {
+__global__ void cmv_mult_2(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * xData, double * yData, double * partial) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int cacheIndex = threadIdx.x;
@@ -1182,13 +1182,13 @@ __global__ void cmv_mult_2(int dim, numType * aData, int * aIndices, int * aRowL
 		// row size (length + padding zeros)
 		int rowSize = aRowSize[row];
 
-		numType sum = 0;
+		double sum = 0;
 		__syncthreads();
 		for (int j = 0; j < rowSize; j++) {
 			// colorColOffset already includes colorOffset (thus, color's first row)
 			int offset = aColOffset[colorColOffset + j] + (row - colorStart); // coalesced?
 
-			numType rowData = aData[offset]; // coalesced
+			double rowData = aData[offset]; // coalesced
 			int idx = aIndices[offset]; // coalesced
 		//	sum += rowData * xData[idx]; // NOT coalesced!
 			//if (row == 0 || row == 1045 || row == 1151) {
@@ -1224,8 +1224,8 @@ __global__ void cmv_mult_2(int dim, numType * aData, int * aIndices, int * aRowL
 
 /* CPJDS lower triangular solver */
 // does not work per se, in parallel
-__global__ void cmv_solve_cpjds(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorOffset, int colorColOffset, numType * xData, numType * bData) {
+__global__ void cmv_solve_cpjds(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorOffset, int colorColOffset, double * xData, double * bData) {
 	// thread index
 	int tidx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -1237,14 +1237,14 @@ __global__ void cmv_solve_cpjds(int dim, numType * aData, int * aIndices, int * 
 		// row size (length + padding zeros)
 		int rowSize = aRowLength[row];
 
-		numType sum = 0;
+		double sum = 0;
 		__syncthreads();
 
 		for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 			// colorColOffset already includes colorOffset (thus, color's first row)
 			int offset = aColOffset[colorColOffset + j] + tidx; // coalesced?
 
-			numType rowData = aData[offset]; // coalesced
+			double rowData = aData[offset]; // coalesced
 			int idx = aIndices[offset]; // coalesced
 			if (idx < row) { // main diagonal can be skiped
 				sum += rowData * xData[idx];
@@ -1259,8 +1259,8 @@ __global__ void cmv_solve_cpjds(int dim, numType * aData, int * aIndices, int * 
 
 /* CPJDS upper triangular solver */
 // does not work per se, in parallel
-__global__ void cmv_solve_t_cpjds(int dim, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorOffset, int colorColOffset, numType * xData, numType * bData) {
+__global__ void cmv_solve_t_cpjds(int dim, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorOffset, int colorColOffset, double * xData, double * bData) {
 	// thread index
 	int tidx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -1272,14 +1272,14 @@ __global__ void cmv_solve_t_cpjds(int dim, numType * aData, int * aIndices, int 
 		// row size (length + padding zeros)
 		int rowSize = aRowLength[row];
 
-		numType sum = 0;
+		double sum = 0;
 		__syncthreads();
 
 		for (int j = 1; j < rowSize; j++) { // first idx is main diagonal
 			// colorColOffset already includes colorOffset (thus, color's first row)
 			int offset = aColOffset[colorColOffset + j] + tidx; // coalesced?
 
-			numType rowData = aData[offset]; // coalesced
+			double rowData = aData[offset]; // coalesced
 			int idx = aIndices[offset]; // coalesced
 			if (idx > row && idx > -1) { // main diagonal can be skiped
 				sum += rowData * xData[idx];
@@ -1293,8 +1293,8 @@ __global__ void cmv_solve_t_cpjds(int dim, numType * aData, int * aIndices, int 
 }
 
 /* CPJDS lower and upper triangular solver */
-__global__ void cmv_solve(numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * bData) {
+__global__ void cmv_solve(double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * xData, double * bData) {
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -1308,14 +1308,14 @@ __global__ void cmv_solve(numType * aData, int * aIndices, int * aRowLength, int
 		if (row >= colorStart && row < colorEnd) {
 			int rowSize = aRowSize[row];
 
-			numType sum = 0;
+			double sum = 0;
 			__syncthreads();
 
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + inColorIdx; // coalesced?
 
-				numType rowData = aData[offset]; // coalesced
+				double rowData = aData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx < row) { // main diagonal can be skiped
 					sum += rowData * xData[idx];
@@ -1338,14 +1338,14 @@ __global__ void cmv_solve(numType * aData, int * aIndices, int * aRowLength, int
 		if (row >= colorStart && row < colorEnd) {
 			int rowSize = aRowSize[row];
 
-			numType sum = 0;
+			double sum = 0;
 			__syncthreads();
 
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + inColorIdx; // coalesced?
 
-				numType rowData = aData[offset]; // coalesced
+				double rowData = aData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx < row) { // main diagonal can be skiped
 					sum += rowData * xData[idx];
@@ -1361,10 +1361,10 @@ __global__ void cmv_solve(numType * aData, int * aIndices, int * aRowLength, int
 }
 
 /* CPJDS lower and upper triangular solver followed by inner product */
-__global__ void cmv_solve_inner(numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * xData, numType * bData, numType * interm, numType * partial) {
+__global__ void cmv_solve_inner(double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * xData, double * bData, double * interm, double * partial) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int cacheIndex = threadIdx.x;
@@ -1381,14 +1381,14 @@ __global__ void cmv_solve_inner(numType * aData, int * aIndices, int * aRowLengt
 		if (row >= colorStart && row < colorEnd) {
 			int rowSize = aRowSize[row];
 
-			numType sum = 0;
+			double sum = 0;
 			__syncthreads();
 
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + inColorIdx; // coalesced?
 
-				numType rowData = aData[offset]; // coalesced
+				double rowData = aData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx < row) { // main diagonal can be skiped
 					sum += rowData * xData[idx];
@@ -1411,23 +1411,23 @@ __global__ void cmv_solve_inner(numType * aData, int * aIndices, int * aRowLengt
 		if (row >= colorStart && row < colorEnd) {
 			int rowSize = aRowSize[row];
 
-			numType sum = 0;
+			double sum = 0;
 			__syncthreads();
 
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + inColorIdx; // coalesced?
 
-				numType rowData = aData[offset]; // coalesced
+				double rowData = aData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx < row) { // main diagonal can be skiped
 					sum += rowData * xData[idx];
 				}
 				__syncthreads();
 			}
-			//numType bVal = bData[row];
-			numType bVal = interm[row]; // result from previous (lower triangular) solver
-			numType xVal = (bVal - sum) / aData[aColOffset[colorColOffset] + inColorIdx];
+			//double bVal = bData[row];
+			double bVal = interm[row]; // result from previous (lower triangular) solver
+			double xVal = (bVal - sum) / aData[aColOffset[colorColOffset] + inColorIdx];
 			xData[row] = xVal;
 			cache[cacheIndex] = xVal * bVal;
 		}

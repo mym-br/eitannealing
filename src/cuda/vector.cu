@@ -23,7 +23,7 @@
 /*****************************************************************************************/
 /*****************************************************************************************/
 
-__global__ void cv_init(int dim, numType * v) {
+__global__ void cv_init(int dim, double * v) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -34,7 +34,7 @@ __global__ void cv_init(int dim, numType * v) {
 	__syncthreads();
 }
 
-__global__ void cv_sum(int dim, numType * v, numType * u, numType * r) {
+__global__ void cv_sum(int dim, double * v, double * u, double * r) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -45,7 +45,7 @@ __global__ void cv_sum(int dim, numType * v, numType * u, numType * r) {
 	__syncthreads();
 }
 
-__global__ void cv_subtraction(int dim, numType * v, numType * u, numType * r) {
+__global__ void cv_subtraction(int dim, double * v, double * u, double * r) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -56,10 +56,10 @@ __global__ void cv_subtraction(int dim, numType * v, numType * u, numType * r) {
 	__syncthreads();
 }
 
-__global__ void cv_scalar(int dim, numType * v, numType * a, numType * r) {
+__global__ void cv_scalar(int dim, double * v, double * a, double * r) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
-	const numType val = a[0];
+	const double val = a[0];
 
 	if (row < dim) {
 		r[row] = v[row] * val;
@@ -68,10 +68,10 @@ __global__ void cv_scalar(int dim, numType * v, numType * a, numType * r) {
 	__syncthreads();
 }
 
-__global__ void cv_scalar(int dim, numType * v, numType * a, numType * b, numType * r) {
+__global__ void cv_scalar(int dim, double * v, double * a, double * b, double * r) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
-	numType val;
+	double val;
 	val = a[0] / b[0];
 
 	if (row < dim) {
@@ -81,10 +81,10 @@ __global__ void cv_scalar(int dim, numType * v, numType * a, numType * b, numTyp
 	__syncthreads();
 }
 
-__global__ void cv_scalar_add(int dim, numType * r, numType * a, numType * b, numType * v) {
+__global__ void cv_scalar_add(int dim, double * r, double * a, double * b, double * v) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
-	numType val;
+	double val;
 	val = a[0] / b[0];
 
 	if (row < dim) {
@@ -94,16 +94,16 @@ __global__ void cv_scalar_add(int dim, numType * r, numType * a, numType * b, nu
 	__syncthreads();
 }
 
-__global__ void cv_scalar_add_totalize(int dim, numType * r, numType * a, numType * b, numType * v,
-	int blocks, numType * partials) {
+__global__ void cv_scalar_add_totalize(int dim, double * r, double * a, double * b, double * v,
+	int blocks, double * partials) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidx = threadIdx.x;
 
 	// totalization
-	numType aVal;
+	double aVal;
 	if (tidx == 0) {
-		numType sum = 0;
+		double sum = 0;
 		for (int i = 0; i < blocks; i++) {
 			sum += partials[i];
 		}
@@ -114,7 +114,7 @@ __global__ void cv_scalar_add_totalize(int dim, numType * r, numType * a, numTyp
 	}
 	__syncthreads();
 
-	const numType val = aVal / b[0];
+	const double val = aVal / b[0];
 
 	if (row < dim) {
 		r[row] += v[row] * val;
@@ -123,10 +123,10 @@ __global__ void cv_scalar_add_totalize(int dim, numType * r, numType * a, numTyp
 	__syncthreads();
 }
 
-__global__ void cv_scalar_subtr(int dim, numType * r, numType * a, numType * b, numType * v) {
+__global__ void cv_scalar_subtr(int dim, double * r, double * a, double * b, double * v) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
-	numType val;
+	double val;
 
 	val = a[0] / b[0];
 	if (row < dim) {
@@ -136,17 +136,17 @@ __global__ void cv_scalar_subtr(int dim, numType * r, numType * a, numType * b, 
 	__syncthreads();
 }
 
-__global__ void cv_scalar_add_subtr_totalize(int dim, numType * v, numType * k, numType * m,
-	numType * r, numType * s, numType * u, int blocks, numType * partials) {
+__global__ void cv_scalar_add_subtr_totalize(int dim, double * v, double * k, double * m,
+	double * r, double * s, double * u, int blocks, double * partials) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidx = threadIdx.x;
 
-	numType mVal;
+	double mVal;
 	// partial totalization
 	if (tidx == 0) {
 
-		numType sum = 0;
+		double sum = 0;
 		for (int i = 0; i < blocks; i++) {
 			sum += partials[i];
 		}
@@ -159,7 +159,7 @@ __global__ void cv_scalar_add_subtr_totalize(int dim, numType * v, numType * k, 
 	__syncthreads();
 
 	// r += (k/m) * v
-	const numType val = k[0] / m[0];
+	const double val = k[0] / m[0];
 	if (row < dim) {
 		// r += (k/m) * v
 		r[row] += v[row] * val;
@@ -170,9 +170,9 @@ __global__ void cv_scalar_add_subtr_totalize(int dim, numType * v, numType * k, 
 	__syncthreads();
 }
 
-__global__ void cv_inner(int dim, numType * v, numType * u, numType * r, int blocks, numType * val) {
+__global__ void cv_inner(int dim, double * v, double * u, double * r, int blocks, double * val) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int cacheIndex = threadIdx.x;
@@ -204,7 +204,7 @@ __global__ void cv_inner(int dim, numType * v, numType * u, numType * r, int blo
 	__syncthreads();
 
 	if (row == 0) {
-		numType sum = 0;
+		double sum = 0;
 		for (int i = 0; i < blocks; i++) {
 			sum += r[i];
 		}
@@ -213,9 +213,9 @@ __global__ void cv_inner(int dim, numType * v, numType * u, numType * r, int blo
 }
 
 // probably not used
-__global__ void cv_inner(int dim, numType * v, numType * u, numType * r) {
+__global__ void cv_inner(int dim, double * v, double * u, double * r) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int cacheIndex = threadIdx.x;
@@ -247,7 +247,7 @@ __global__ void cv_inner(int dim, numType * v, numType * u, numType * r) {
 	__syncthreads();
 }
 
-__global__ void cv_mask(int dim, numType * v, numType * m) {
+__global__ void cv_mask(int dim, double * v, double * m) {
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -259,9 +259,9 @@ __global__ void cv_mask(int dim, numType * v, numType * m) {
 }
 
 // probably not used
-__global__ void cv_reduction_sum(int dim, numType * v, numType * r) {
+__global__ void cv_reduction_sum(int dim, double * v, double * r) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// row index
 	int row = threadIdx.x;
 
@@ -299,9 +299,9 @@ __global__ void cv_reduction_sum(int dim, numType * v, numType * r) {
 /*****************************************************************************************/
 
 // can be replaced by inner product with itself
-__global__ void cv_norm(int dim, numType * v, numType * norm) {
+__global__ void cv_norm(int dim, double * v, double * norm) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// row index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int cacheIndex = threadIdx.x;
@@ -334,9 +334,9 @@ __global__ void cv_norm(int dim, numType * v, numType * norm) {
 }
 
 // can be replaced by inner product with itself
-__global__ void cv_reduction(int dim, numType * v) {
+__global__ void cv_reduction(int dim, double * v) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// row index
 	int row = threadIdx.x;
 
@@ -367,9 +367,9 @@ __global__ void cv_reduction(int dim, numType * v) {
 	__syncthreads();
 }
 
-__global__ void cv_reduction2(int dim, numType * v, numType * n) {
+__global__ void cv_reduction2(int dim, double * v, double * n) {
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// row index
 	int row = threadIdx.x;
 
@@ -400,19 +400,19 @@ __global__ void cv_reduction2(int dim, numType * v, numType * n) {
 	__syncthreads();
 }
 
-__global__ void cv_add(int dim, numType * v, int idx, numType val) {
+__global__ void cv_add(int dim, double * v, int idx, double val) {
 	if (idx < dim) {
 		v[idx] += val;
 	}
 }
 
-__global__ void cv_set(int dim, numType * v, int idx, numType val) {
+__global__ void cv_set(int dim, double * v, int idx, double val) {
 	if (idx < dim) {
 		v[idx] = val;
 	}
 }
 
-__global__ void cv_set2(int dim, numType * v, numType * target, int * indices) {
+__global__ void cv_set2(int dim, double * v, double * target, int * indices) {
 	// row index
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	if (idx < dim) {
@@ -432,10 +432,10 @@ Vector::Vector(int n) {
 	blocks = ceil((double)size / BLOCKSIZE);
 
 	// CUDA device memory allocation
-	cudaMalloc((void**)& this->data, size * sizeof (numType));
+	cudaMalloc((void**)& this->data, size * sizeof (double));
 
 	// CUDA device memory allocation
-	cudaMalloc((void**)& this->partial_d, blocks * sizeof(numType));
+	cudaMalloc((void**)& this->partial_d, blocks * sizeof(double));
 
 	// initialization
 	cv_init<<<blocks, BLOCKSIZE >>>(n, this->data);
@@ -451,17 +451,17 @@ Vector::Vector(int n) {
 #endif
 }
 
-Vector::Vector(numType * v, int n) {
+Vector::Vector(double * v, int n) {
 	size = n;
 	blocks = ceil((double)size / BLOCKSIZE);
 
 	// CUDA device memory allocation
-	cudaMalloc((void**)& partial_d, blocks * sizeof(numType));
+	cudaMalloc((void**)& partial_d, blocks * sizeof(double));
 
 	// CUDA device memory allocation
-	cudaMalloc((void**)& this->data, size * sizeof (numType));
+	cudaMalloc((void**)& this->data, size * sizeof (double));
 	// CUDA memory copy
-	cudaMemcpy(this->data, v, (size_t)size * sizeof (numType), cudaMemcpyHostToDevice);
+	cudaMemcpy(this->data, v, (size_t)size * sizeof (double), cudaMemcpyHostToDevice);
 }
 
 Vector::~Vector() {
@@ -500,7 +500,7 @@ void Vector::reset(cudaStream_t stream) {
 }
 
 /* sets a single element */
-void Vector::set(int idx, numType val) {
+void Vector::set(int idx, double val) {
 #ifdef DEBUG
 	if (idx < 0 || idx >= size) {
 		LOG("set: Invalid vector index!");
@@ -510,7 +510,7 @@ void Vector::set(int idx, numType val) {
 #endif
 
 	//cv_set <<<1, 1 >>>(size, data, idx, val);
-	cudaMemcpy(&this->data[idx], &val, (size_t) sizeof(numType), cudaMemcpyHostToDevice);
+	cudaMemcpy(&this->data[idx], &val, (size_t) sizeof(double), cudaMemcpyHostToDevice);
 
 #ifdef DEBUG
 	// TODO: should check for kernel errors
@@ -518,7 +518,7 @@ void Vector::set(int idx, numType val) {
 }
 
 /* sets a single element */
-void Vector::set(int idx, numType val, cudaStream_t stream) {
+void Vector::set(int idx, double val, cudaStream_t stream) {
 #ifdef DEBUG
 	if (idx < 0 || idx >= size) {
 		LOG("set: Invalid vector index!");
@@ -527,7 +527,7 @@ void Vector::set(int idx, numType val, cudaStream_t stream) {
 	}
 #endif
 
-	cudaMemcpyAsync(&(this->data[idx]), &(val), (size_t)size * sizeof(numType), cudaMemcpyHostToDevice, stream);
+	cudaMemcpyAsync(&(this->data[idx]), &(val), (size_t)size * sizeof(double), cudaMemcpyHostToDevice, stream);
 
 #ifdef DEBUG
 	// TODO: should check for kernel errors
@@ -535,7 +535,7 @@ void Vector::set(int idx, numType val, cudaStream_t stream) {
 }
 
 /* sets elements in batch */
-void Vector::set(int size, numType * src, int * indices) {
+void Vector::set(int size, double * src, int * indices) {
 	int sblocks = 1;
 //#ifdef DEBUG
 //	if (size < 0) {
@@ -559,7 +559,7 @@ void Vector::set(int size, numType * src, int * indices) {
 }
 
 /* sets elements in batch */
-void Vector::set(int size, numType * src, int * indices, cudaStream_t stream) {
+void Vector::set(int size, double * src, int * indices, cudaStream_t stream) {
 	int sblocks = 1;
 //#ifdef DEBUG
 //	if (size < 0) {
@@ -594,11 +594,11 @@ void Vector::copyTo(Vector * target) {
 		// TODO: should check for different sizes
 		target->size = this->size;
 		// CUDA device memory allocation
-		cudaMalloc((void**)& target->data, size * sizeof(numType));
+		cudaMalloc((void**)& target->data, size * sizeof(double));
 	}
 #endif
 	// CUDA memory copy
-	cudaMemcpy(target->data, this->data, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(target->data, this->data, (size_t)size * sizeof(double), cudaMemcpyDeviceToDevice);
 }
 
 /* copies this vector to another */
@@ -613,15 +613,15 @@ void Vector::copyTo(Vector * target, cudaStream_t stream) {
 		// TODO: should check for different sizes
 		target->size = this->size;
 		// CUDA device memory allocation
-		cudaMalloc((void**)& target->data, size * sizeof(numType));
+		cudaMalloc((void**)& target->data, size * sizeof(double));
 	}
 #endif
 	// CUDA memory copy
-	cudaMemcpyAsync(target->data, this->data, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice, stream);
+	cudaMemcpyAsync(target->data, this->data, (size_t)size * sizeof(double), cudaMemcpyDeviceToDevice, stream);
 }
 
 /* copy values from another array to this vector */
-void Vector::copy(int size, numType * src) {
+void Vector::copy(int size, double * src) {
 	// TODO: should check for different sizes
 #ifdef DEBUG
 	if (size != this->size) {
@@ -631,11 +631,11 @@ void Vector::copy(int size, numType * src) {
 	return;
 #endif
 	// CUDA memory copy
-	cudaMemcpy(this->data, src, (size_t)size * sizeof(numType), cudaMemcpyHostToDevice);
+	cudaMemcpy(this->data, src, (size_t)size * sizeof(double), cudaMemcpyHostToDevice);
 }
 
 /* copy values from another array to this vector */
-void Vector::copy(int size, numType * src, cudaStream_t stream) {
+void Vector::copy(int size, double * src, cudaStream_t stream) {
 	// TODO: should check for different sizes
 #ifdef DEBUG
 	if (size != this->size) {
@@ -645,13 +645,13 @@ void Vector::copy(int size, numType * src, cudaStream_t stream) {
 	return;
 #endif
 	// CUDA memory copy
-	cudaMemcpyAsync(this->data, src, (size_t)size * sizeof(numType), cudaMemcpyHostToDevice, stream);
+	cudaMemcpyAsync(this->data, src, (size_t)size * sizeof(double), cudaMemcpyHostToDevice, stream);
 }
 
 /* computes vector norm */
-numType Vector::norm() {
+double Vector::norm() {
 	// TODO: should we be transfering and allocing all the time?
-	numType inner = 0;
+	double inner = 0;
 
 	// Launch CUDA vector scalar multiplication kernel
 	cv_norm << <blocks, BLOCKSIZE >> >(size, data, partial_d);
@@ -680,7 +680,7 @@ numType Vector::norm() {
 #endif
 
 	//LOGV(partial_d, blocks, "partial sum");
-	cudaMemcpy(&inner, partial_d, (size_t) sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&inner, partial_d, (size_t) sizeof(double), cudaMemcpyDeviceToHost);
 
 #ifdef DEBUG
 	// Check for any errors
@@ -690,9 +690,9 @@ numType Vector::norm() {
 }
 
 /* computes vector norm */
-numType Vector::norm(cudaStream_t stream) {
+double Vector::norm(cudaStream_t stream) {
 	// TODO: should we be transfering and allocing all the time?
-	numType inner = 0;
+	double inner = 0;
 
 	// Launch CUDA vector scalar multiplication kernel
 	cv_norm <<<blocks, BLOCKSIZE, 0, stream >>>(size, data, partial_d);
@@ -721,7 +721,7 @@ numType Vector::norm(cudaStream_t stream) {
 #endif
 
 	//LOGV(partial_d, blocks, "partial sum");
-	cudaMemcpyAsync(&inner, partial_d, (size_t) sizeof(numType), cudaMemcpyDeviceToHost, stream);
+	cudaMemcpyAsync(&inner, partial_d, (size_t) sizeof(double), cudaMemcpyDeviceToHost, stream);
 
 #ifdef DEBUG
 	// Check for any errors

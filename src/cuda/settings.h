@@ -5,8 +5,6 @@
 
 #define USECUDA
 
-#define numType double
-
 #define EPS 1E-7
 
 #define MOD(val) (val > 0 ? val : -val)

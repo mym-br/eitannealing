@@ -57,7 +57,7 @@ void solutionCuda::initSimulations() {
 	this->totalit = 0;
 	for (i = 0; i<readings->getNObs(); i++)
 	{
-		numType *currentsData = new numType[input->getNodesCount()];
+		double *currentsData = new double[input->getNodesCount()];
 		for (int j = 0; j < input->getNodesCount(); j++) currentsData[j] = input->getCurrentVector(i, readings)[j];
 		Vector *bVec = CGCUDA_Solver::createCurrentVector(currentsData, *mgr, stiffnessCpjds->matrixData.n, input->getNodesCount());
 		simulations[i] = new CGCUDA_Solver(stiffnessCpjds, mgr, bVec, lINFinityNorm);
@@ -88,7 +88,7 @@ void solutionCuda::initSimulations(const solutionCuda &base) {
 	this->totalit = 0;
 	for (i = 0; i<readings->getNObs(); i++)
 	{
-		numType *currentsData = new numType[input->getNodesCount()];
+		double *currentsData = new double[input->getNodesCount()];
 		for (int j = 0; j < input->getNodesCount(); j++) currentsData[j] = input->getCurrentVector(i, readings)[j];
 		Vector *bVec = CGCUDA_Solver::createCurrentVector(currentsData, *mgr, stiffnessCpjds->matrixData.n, input->getNodesCount());
 		// Reuse previous solutions as initial values. FIXME: Use gpu values directly
@@ -109,7 +109,7 @@ void solutionCuda::initSimulations(const solutionCuda &base) {
 		//}
 		//myfile.close();
 
-		numType *x0Data = new numType[input->getNodesCount()]; for (int i = 0; i < input->getNodesCount(); i++) x0Data[i] = xprev[i];
+		double *x0Data = new double[input->getNodesCount()]; for (int i = 0; i < input->getNodesCount(); i++) x0Data[i] = xprev[i];
 		Vector *x0Vec = CGCUDA_Solver::createCurrentVector(x0Data, *mgr, stiffnessCpjds->matrixData.n, input->getNodesCount());
 		simulations[i] = new CGCUDA_Solver(stiffnessCpjds, mgr, bVec, x0Vec, lINFinityNorm);
 

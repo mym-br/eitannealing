@@ -7,7 +7,7 @@
 
 namespace EITFILECONVERSIONS {
 	std::string convertMeshFile(const std::string filename);
-	void saveMtx(Eigen::SparseMatrix<numType> *m, FILE *f, bool symmetric = true);
+	void saveMtx(Eigen::SparseMatrix<double> *m, FILE *f, bool symmetric = true);
 }
 
 #endif // CONVERSIONS_H

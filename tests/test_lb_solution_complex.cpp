@@ -31,13 +31,18 @@ int main(int argc, char *argv[])
      readings->initObs((const char **)&argv[2], argv[4], input->getNodesCount(), input->getGenericElectrodesCount());
      std::cout << "Done\n" << std::flush;
 
+     std::cout << "Observation potentials:\n";
+     for(int i = 0; i<readings->getNObs(); i++) {
+         std::cout << i << std::endl;
+         std::cout << readings->getTensions()[i] << std::endl;
+    }
 
      std::cout << "Preparing dummy solution..." << std::flush;
      std::vector<double> sol_R(input->getNumCoefficients());
      for(int i=0;i<input->getNumCoefficients();i++) sol_R[i]=(mincond+maxcond)/2;
      std::vector<double> sol_I(input->getNumCoefficients());
      for(int i=0;i<32;i++) sol_I[i]=0.0;
-     for(int i=32;i<input->getNumCoefficients();i++) sol_I[i]=0.05;
+     for(int i=32;i<input->getNumCoefficients();i++) sol_I[i]=0.0;
 
      std::vector<eigen_complexdouble_engine::scalar> sol;
      for(int i=0;i<input->getNumCoefficients();i++) {

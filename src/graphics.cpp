@@ -28,7 +28,7 @@ QPoint translateCoordinate(float x, float y)
 }
 
 viewport::viewport(int width, int height, const char *title, std::shared_ptr<problem2D> _input, double mincond, double maxcond) :
-paintbuff(width, height, QImage::Format_RGB32), scale(width, 70, QImage::Format_RGB32), input(_input), minval(mincond), maxval(maxcond)
+paintbuff(width, height, QImage::Format_RGB32), scale(width, 75, QImage::Format_RGB32), input(_input), minval(mincond), maxval(maxcond)
 {
 	this->setWindowTitle(title);
 	this->setFixedSize(width, height+scale.height());
@@ -54,8 +54,7 @@ paintbuff(width, height, QImage::Format_RGB32), scale(width, 70, QImage::Format_
 	  double level = (float)i/4;
 	  level = maxval*level + (1-level)*minval;
 	  painter.drawLine(x,40,x,45);
-	  painter.drawText(x-25, 45, 51, 20, Qt::AlignHCenter | Qt::AlignTop, QString::number(level));
-
+	  painter.drawText(x-25, 45, 51, 35, Qt::AlignHCenter | Qt::AlignTop, QString::number(level));
 	}
 
 
@@ -93,7 +92,7 @@ QBrush viewport::getBrushForElement(double *solution, int n1, int n2, int n3)
 		aux = n1; n1 = n2; n2 = aux;
 	    }
 	}
-	if((s3-s1)<0.001) {
+	if((s3-s1)<0.00001) {
 		return QBrush(getColorForLevel((s1+s3)/2));
 	}
 
@@ -156,7 +155,7 @@ void viewport::solution_updated(const QModelIndex & topLeft, const QModelIndex &
 			double level = (float)i / 4;
 			level = maxval*level + (1 - level)*minval;
 			painterScale.drawLine(x, 40, x, 45);
-			painterScale.drawText(x - 25, 45, 51, 20, Qt::AlignHCenter | Qt::AlignTop, QString::number(level,'g',2));
+			painterScale.drawText(x - 25, 45, 51, 35, Qt::AlignHCenter | Qt::AlignTop, QString::number(level,'g',2));
 		}
 
 	    int i;

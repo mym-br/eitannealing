@@ -27,8 +27,8 @@ template<> double population_variance<std::vector<std::complex<double> >::iterat
 // Declare template specialization
 template class solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler>;
 
-static float mincond_I = (float)0;
-static float maxcond_I = (float)0.1;
+static float mincond_I = (float)minperm;
+static float maxcond_I = (float)maxperm;
 
 // Shuffler specialization for real admitance
 template <>
@@ -45,7 +45,6 @@ std::vector<std::complex<double> > solution_lb_gen<LB_Solver_Complex2, std::comp
 		maxc = maxcond_I;
 		minc = mincond_I;
 	}
-
 	// head or tails
 	if(genint(2)) { // Normal
 		int ncoef = genint(p->getNumCoefficients());
@@ -149,8 +148,12 @@ std::vector<std::complex<double> > solution_lb_gen<LB_Solver_Complex2, std::comp
 	std::vector<std::complex<double> > res;
 	res.reserve(size);
 	int i = 0;
-	for(;i<size;i++)
-		res.emplace_back(mincond+genreal()*(maxcond-mincond), mincond_I+genreal()*(maxcond_I-mincond_I));
+	for(;i<size;i++) {
+		double re, im;
+		re = mincond+genreal()*(maxcond-mincond);
+		im = mincond_I+genreal()*(maxcond_I-mincond_I);
+		res.emplace_back(re, im);
+	}
 
 	return res;
 }

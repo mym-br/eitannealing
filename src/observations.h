@@ -103,48 +103,54 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 	file.close();
 };
 
+
+// FIXME: This actually ignores the 2nd current file, and currents can only be real
 template<>
 inline void observations<std::complex<double>>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode) {
 	std::ifstream file;
-	std::ifstream filecin, filecout;
-
-	filecin.open(filecurrents[0]);
-	filecout.open(filecurrents[1]);
+	std::ifstream filec;
+        //mesh_file = filename;
+	filec.open(*filecurrents);
 	file.open(filename);
 
-	int n = electrodesCount;
-	long valuesCount = (long)std::count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n');
-	nobs = valuesCount / n;
+	int n = electrodesCount; // TODO: read number of measurements from file
+	long valuesCount = (long)std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());
+	nobs = valuesCount / (2*electrodesCount);
 
 	file.clear();
 	file.seekg(0, std::ios::beg);
 	tensions = new vectorxcomplex[nobs];
 	currents = new vectorxcomplex[nobs];
-	currentVals = vectorxcomplex(nobs);
-	vectorxcomplex current(nodesCount);
+	vectorx current(nodesCount);
 	current.fill(0);
 	int baseIndex = (int)current.size() - n;
 	for (int i = 0; i<nobs; i++) {
-		char ch;
-		double valreal, valimag;
+		double c;
+		int entry, exit;
+		filec >> entry;
+		filec >> exit;
+		filec >> c;
+		entry--; exit--;	// zero-based
 		currents[i] = current;
-		filecin >> ch >> valreal >> ch >> valimag >> ch;
-		currents[i][baseIndex + i] = std::complex<double>(valreal, valimag);
-		filecout >> ch >> valreal >> ch >> valimag >> ch;
-		currents[i][i == nobs - 1 ? baseIndex : baseIndex + i + 1] = std::complex<double>(valreal, valimag);
-
+		currents[i][baseIndex + entry] = 1;
+		currents[i][baseIndex + exit] = -1;
 		// read tensions from file
 		tensions[i].resize(n);
-		std::complex<double> avg;
-		avg = 0;
+		Scalar val_re, val_im;
 		for (int j = 0; j<n; j++) {
-			file >> ch >> valreal >> ch >> valimag >> ch;
-			tensions[i][j] = std::complex<double>(valreal, valimag);
+			file >> val_re;	// 2 coefficients per tension
+			file >> val_im;
+			tensions[i][j] = std::complex<double>(val_re, val_im)/ c;  // Values are normalized by current
 		}
+		// rebase tensions, as our last electrode is always the ground
+		std::complex<double> val = tensions[i][n-1];
+		for (int j = 0; j < n-1; j++) {
+			tensions[i][j] -= val;
+		}
+		tensions[i][n-1] = 0.0f;
 	}
 
-	filecin.close();
-	filecout.close();
+	filec.close();
 	file.close();
 };
 

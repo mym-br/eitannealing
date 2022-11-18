@@ -135,11 +135,11 @@ void workProc()
 			if (totalit % 100 == 0) {
 				//std::cout << current->getDEstimate() << ":" << current->getRegularisationValue() << std::endl;
 				//std::cout << totalit << ":" << acceptit << ":" << (isComplexProblem ? currentComplex->getDEstimate() : currentScalar->getDEstimate()) << ":" << (isComplexProblem ? currentComplex->getRegularisationValue() : currentScalar->getRegularisationValue()) << std::endl;
-				double w = 2 * M_PI * input->getCurrentFreq();
+				//double w = 2 * M_PI * input->getCurrentFreq();
 				if (isComplexProblem) {
 					for (int kk = 0; kk < input->getNumCoefficients(); kk++) {
 						solre[kk] = currentComplex->getSolution()[kk].real();
-						solim[kk] = currentComplex->getSolution()[kk].imag() / w;
+						solim[kk] = currentComplex->getSolution()[kk].imag();
 					}
 					viewre->setCurrentSolution(solre);
 					viewim->setCurrentSolution(solim);
@@ -399,6 +399,8 @@ int main(int argc, char *argv[])
 	double minvalre, maxvalre, minvalim, maxvalim;
 	minvalre = input->getCalibrationMode() != 0 ? mincondint : mincond; maxvalre = input->getCalibrationMode() != 0 ? maxcondint : maxcond;
 	minvalim = input->getCalibrationMode() != 0 ? minpermint : minperm; maxvalim = input->getCalibrationMode() != 0 ? maxpermint : maxperm;
+
+	std::cout << "maxvalim: " << maxvalim << std::endl;
 
 	viewport graphics(600, 600, "Reverse Problem Real", std::dynamic_pointer_cast<problem2D>(input), minvalre, maxvalre);
 	viewport graphicsim(600, 600, "Reverse Problem Imaginary", std::dynamic_pointer_cast<problem2D>(input), minvalim, maxvalim);

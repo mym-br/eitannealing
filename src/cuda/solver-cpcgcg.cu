@@ -24,9 +24,9 @@ namespace cg = cooperative_groups;
 // multiplicacao matriz vetor e subtracao (r = b - A * x)
 // solver triangular inferior e superior - usando apenas o primeiro bloco (cor precisa caber nessas threads)
 // z = inv(M) * r
-__global__ void cpcgcg_mult_subtr_solver(int size, numType * aData, numType * precondData, int * aIndices, int * aRowLength,
+__global__ void cpcgcg_mult_subtr_solver(int size, double * aData, double * precondData, int * aIndices, int * aRowLength,
 	int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset,
-	numType * b, numType * x, numType * r, numType * z, numType * partial, int blocks) {
+	double * b, double * x, double * r, double * z, double * partial, int blocks) {
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidx = threadIdx.x;
@@ -45,14 +45,14 @@ __global__ void cpcgcg_mult_subtr_solver(int size, numType * aData, numType * pr
 	int colorStart = colors[colorIdx];
 	int colorColOffset = colorsColOffset[colorIdx];
 
-	numType sum = 0;
+	double sum = 0;
 	__syncthreads();
 	if (row < size) {
 		for (int j = 0; j < aRowSize[row]; j++) {
 			// colorColOffset already includes colorOffset (thus, color's first row)
 			int offset = aColOffset[colorColOffset + j] + (row - colorStart); // coalesced?
 
-			numType rowData = aData[offset]; // coalesced
+			double rowData = aData[offset]; // coalesced
 			int idx = aIndices[offset]; // coalesced
 			sum += rowData * x[idx]; // NOT coalesced!
 		}
@@ -71,12 +71,12 @@ __global__ void cpcgcg_mult_subtr_solver(int size, numType * aData, numType * pr
 		if (row < colorEnd) {
 			int rowStep = (row - colorStart);
 			int rowSize = aRowSize[row];
-			numType sum = 0;
+			double sum = 0;
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
 
-				numType rowData = precondData[offset]; // coalesced
+				double rowData = precondData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx < row) sum += rowData * z[idx]; // main diagonal can be skiped
 			}
@@ -96,12 +96,12 @@ __global__ void cpcgcg_mult_subtr_solver(int size, numType * aData, numType * pr
 		if (row < colorEnd) {
 			int rowStep = (row - colorStart);
 			int rowSize = aRowSize[row];
-			numType sum = 0;
+			double sum = 0;
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
 
-				numType rowData = precondData[offset]; // coalesced
+				double rowData = precondData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx > row && idx > -1) sum += rowData * z[idx]; // main diagonal can be skiped
 			}
@@ -117,19 +117,19 @@ __global__ void cpcgcg_mult_subtr_solver(int size, numType * aData, numType * pr
 // escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
 // matriz-vetor (q = A * p)
 // produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
-__global__ void cpcgcg_tot_esc_add_mmv_inner0(int size, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * z, numType * p, numType * q,
-	numType * rmod, numType * rmod_prev, numType * partialrmod, numType * partialgamma, int blocks) {
+__global__ void cpcgcg_tot_esc_add_mmv_inner0(int size, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * z, double * p, double * q,
+	double * rmod, double * rmod_prev, double * partialrmod, double * partialgamma, int blocks) {
 	//printf("blocks = %d\n", blocks);
 
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidx = threadIdx.x;
 
 	// partial totalization
-	__shared__ numType total;
+	__shared__ double total;
 	if (tidx == 0) {
 		total = 0;
 		for (int i = 0; i < blocks; i++) {
@@ -167,13 +167,13 @@ __global__ void cpcgcg_tot_esc_add_mmv_inner0(int size, numType * aData, int * a
 		// row size (length + padding zeros)
 		int rowSize = aRowSize[row];
 
-		numType sum = 0;
+		double sum = 0;
 		//__syncthreads();
 		for (int j = 0; j < rowSize; j++) {
 			// colorColOffset already includes colorOffset (thus, color's first row)
 			int offset = aColOffset[colorColOffset + j] + (row - colorStart); // coalesced?
 
-			numType rowData = aData[offset]; // coalesced
+			double rowData = aData[offset]; // coalesced
 			int idx = aIndices[offset]; // coalesced
 			sum += rowData * z[idx]; // NOT coalesced!
 
@@ -208,19 +208,19 @@ __global__ void cpcgcg_tot_esc_add_mmv_inner0(int size, numType * aData, int * a
 // escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
 // matriz-vetor (q = A * p)
 // produto interno (gamma = pt . (A * p), somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
-__global__ void cpcgcg_tot_esc_add_mmv_inner(int size, numType * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * z, numType * p, numType * q, 
-	numType * rmod, numType * rmod_prev, numType * partialrmod, numType * partialgamma, int blocks) {
+__global__ void cpcgcg_tot_esc_add_mmv_inner(int size, double * aData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * z, double * p, double * q, 
+	double * rmod, double * rmod_prev, double * partialrmod, double * partialgamma, int blocks) {
 	//printf("blocks = %d\n", blocks);
 
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidx = threadIdx.x;
 
 	// partial totalization
-	__shared__ numType total;
+	__shared__ double total;
 	if (tidx == 0) {
 		total = 0;
 		for (int i = 0; i < blocks; i++) {
@@ -234,7 +234,7 @@ __global__ void cpcgcg_tot_esc_add_mmv_inner(int size, numType * aData, int * aI
 	
 	//total = rmod[0];
 	// scalar add
-	const numType beta = total / rmod_prev[0]; //rmod_prev must be initialized with non-zero
+	const double beta = total / rmod_prev[0]; //rmod_prev must be initialized with non-zero
 	// matrix-vector multiplication
 	cache[tidx] = 0.0; //cache inicializado para realizar produto interno ao mesmo tempo da MMV
 	if (row < size) {
@@ -252,13 +252,13 @@ __global__ void cpcgcg_tot_esc_add_mmv_inner(int size, numType * aData, int * aI
 		// row size (length + padding zeros)
 		int rowSize = aRowLength[row];
 
-		numType sum = 0;
+		double sum = 0;
 		//__syncthreads();
 		for (int j = 0; j < rowSize; j++) {
 			// colorColOffset already includes colorOffset (thus, color's first row)
 			int offset = aColOffset[colorColOffset + j] + (row - colorStart); // coalesced?
 
-			numType rowData = aData[offset]; // coalesced
+			double rowData = aData[offset]; // coalesced
 			int idx = aIndices[offset]; // coalesced
 			sum += rowData * (z[idx] + beta * p[idx]); // NOT coalesced!
 			//__syncthreads(); // synchronization so all threads load from memory
@@ -294,16 +294,16 @@ __global__ void cpcgcg_tot_esc_add_mmv_inner(int size, numType * aData, int * aI
 // solver triangular inferior (z = inv(M) * r) - utiliza somente um bloco (cor precisa caber nessas threads)
 // solver triangular superior (z = inv(M) * r) - utiliza somente um bloco (cor precisa caber nessas threads)
 // precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-__global__ void cpcgcg_tot_esc_add_sub_solver(int size, numType * precondData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * x, numType * r, numType * z, numType * p, numType * q,
-	numType * rmod, numType * rmod_prev, numType * gamma, numType * partial, int blocks) {
+__global__ void cpcgcg_tot_esc_add_sub_solver(int size, double * precondData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * x, double * r, double * z, double * p, double * q,
+	double * rmod, double * rmod_prev, double * gamma, double * partial, int blocks) {
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidx = threadIdx.x;
 	cg::grid_group grid = cg::this_grid();
 
 	// partial totalization
-	__shared__ numType total;
+	__shared__ double total;
 	if (tidx == 0) {
 		total = 0;
 		for (int i = 0; i < blocks; i++) {
@@ -316,8 +316,8 @@ __global__ void cpcgcg_tot_esc_add_sub_solver(int size, numType * precondData, i
 	__syncthreads();
 
 	// scalar add and subtraction
-	const numType alpha = rmod[0] / total; //rmod_prev must be initialized with non-zero
-	const numType beta = rmod[0] / rmod_prev[0]; //rmod_prev must be initialized with non-zero
+	const double alpha = rmod[0] / total; //rmod_prev must be initialized with non-zero
+	const double beta = rmod[0] / rmod_prev[0]; //rmod_prev must be initialized with non-zero
 	if (row < size) {
 		// p = z + beta * p
 		p[row] = z[row] + beta * p[row];
@@ -339,12 +339,12 @@ __global__ void cpcgcg_tot_esc_add_sub_solver(int size, numType * precondData, i
 		if (row < colorEnd) {
 			int rowStep = (row - colorStart);
 			int rowSize = aRowSize[row];
-			numType sum = 0;
+			double sum = 0;
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
 
-				numType rowData = precondData[offset]; // coalesced
+				double rowData = precondData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx < row) sum += rowData * z[idx]; // main diagonal can be skiped
 			}
@@ -364,12 +364,12 @@ __global__ void cpcgcg_tot_esc_add_sub_solver(int size, numType * precondData, i
 		if (row < colorEnd) {
 			int rowStep = (row - colorStart);
 			int rowSize = aRowSize[row];
-			numType sum = 0;
+			double sum = 0;
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
 
-				numType rowData = precondData[offset]; // coalesced
+				double rowData = precondData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx > row && idx > -1) sum += rowData * z[idx]; // main diagonal can be skiped
 			}
@@ -387,16 +387,16 @@ __global__ void cpcgcg_tot_esc_add_sub_solver(int size, numType * precondData, i
 // solver triangular inferior (z = inv(M) * r) - utiliza somente um bloco (cor precisa caber nessas threads)
 // solver triangular superior (z = inv(M) * r) - utiliza somente um bloco (cor precisa caber nessas threads)
 // precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-__global__ void cpcgcg_tot_esc_add_sub_solver0(int size, numType * precondData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
-	int colorCount, int * colors, int * colorsColOffset, numType * x, numType * r, numType * z, numType * p, numType * q,
-	numType * rmod, numType * rmod_prev, numType * gamma, numType * partial, int blocks) {
+__global__ void cpcgcg_tot_esc_add_sub_solver0(int size, double * precondData, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset,
+	int colorCount, int * colors, int * colorsColOffset, double * x, double * r, double * z, double * p, double * q,
+	double * rmod, double * rmod_prev, double * gamma, double * partial, int blocks) {
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidx = threadIdx.x;
 	cg::grid_group grid = cg::this_grid();
 
 	// partial totalization
-	__shared__ numType total;
+	__shared__ double total;
 	if (tidx == 0) {
 		total = 0;
 		for (int i = 0; i < blocks; i++) {
@@ -409,8 +409,8 @@ __global__ void cpcgcg_tot_esc_add_sub_solver0(int size, numType * precondData, 
 	__syncthreads();
 
 	// scalar add and subtraction
-	const numType alpha = rmod[0] / total; //rmod_prev must be initialized with non-zero
-	const numType beta = total / rmod_prev[0]; //rmod_prev must be initialized with non-zero
+	const double alpha = rmod[0] / total; //rmod_prev must be initialized with non-zero
+	const double beta = total / rmod_prev[0]; //rmod_prev must be initialized with non-zero
 	if (row < size) {
 		// p = z
 		p[row] = z[row];
@@ -432,12 +432,12 @@ __global__ void cpcgcg_tot_esc_add_sub_solver0(int size, numType * precondData, 
 		if (row < colorEnd) {
 			int rowStep = (row - colorStart);
 			int rowSize = aRowSize[row];
-			numType sum = 0;
+			double sum = 0;
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
 
-				numType rowData = precondData[offset]; // coalesced
+				double rowData = precondData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx < row) sum += rowData * z[idx]; // main diagonal can be skiped
 			}
@@ -457,12 +457,12 @@ __global__ void cpcgcg_tot_esc_add_sub_solver0(int size, numType * precondData, 
 		if (row < colorEnd) {
 			int rowStep = (row - colorStart);
 			int rowSize = aRowSize[row];
-			numType sum = 0;
+			double sum = 0;
 			for (int j = 1; j < rowSize; j++) { // first element is main diagonal
 				// colorColOffset already includes colorOffset (thus, color's first row)
 				int offset = aColOffset[colorColOffset + j] + rowStep; // coalesced?
 
-				numType rowData = precondData[offset]; // coalesced
+				double rowData = precondData[offset]; // coalesced
 				int idx = aIndices[offset]; // coalesced
 				if (idx > row && idx > -1) sum += rowData * z[idx]; // main diagonal can be skiped
 			}
@@ -475,10 +475,10 @@ __global__ void cpcgcg_tot_esc_add_sub_solver0(int size, numType * precondData, 
 }
 
 // produto interno (rmod = zt . r, somente ate totalizacao inter-blocos), precisa ser sincronizado (feito entre kernels)
-__global__ void cpcgcg_inner(int size, numType * r, numType * z, numType * partial, int blocks) {
+__global__ void cpcgcg_inner(int size, double * r, double * z, double * partial, int blocks) {
 
 	// shared memory for reduction
-	__shared__ numType cache[BLOCKSIZE];
+	__shared__ double cache[BLOCKSIZE];
 	// thread index
 	int row = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidx = threadIdx.x;
@@ -522,8 +522,8 @@ void PCGSolverConsolidatedCPJDSCG::init(Vector *x0, double res) {
 	partial->reset(stream);
 	partial2->reset(stream);
 
-	//numType * aData = (*A).matrixData.data;
-	//numType * precond = (*A).preconditionedData;
+	//double * aData = (*A).matrixData.data;
+	//double * precond = (*A).preconditionedData;
 	//int * aIndices = (*A).matrixData.indices;
 	//int * aRowLength = (*A).matrixData.rowLength;
 	//int * aRowSize = (*A).matrixData.rowSize;
@@ -532,17 +532,17 @@ void PCGSolverConsolidatedCPJDSCG::init(Vector *x0, double res) {
 	//int colorCount = (*A).matrixColors.colorCount;
 	//int * colors = (*A).matrixColors.colors_d;
 	//int * colorsColOffset = (*A).matrixColors.colorsColOffsetSize_d;
-	numType * zData = z->getData();
-	numType * rData = r->getData();
-	numType * xData = x->getData();
-	numType * bData = b->getData();
-	numType * pData = p->getData();
-	numType * qData = q->getData();
-	numType * partialData = partial->getData();
-	numType * partialData2 = partial2->getData();
+	double * zData = z->getData();
+	double * rData = r->getData();
+	double * xData = x->getData();
+	double * bData = b->getData();
+	double * pData = p->getData();
+	double * qData = q->getData();
+	double * partialData = partial->getData();
+	double * partialData2 = partial2->getData();
 
-	numType *matrixData_d = (*A).matrixData.data.get();
-	numType *preconditionedData_d = (*A).preconditionedData.get();
+	double *matrixData_d = (*A).matrixData.data.get();
+	double *preconditionedData_d = (*A).preconditionedData.get();
 	int *indices_d = (*A).matrixData.indices.get();
 	int *rowLength_d = (*A).matrixData.rowLength.get();
 	int *rowSize_d = (*A).matrixData.rowSize.get();
@@ -559,7 +559,7 @@ void PCGSolverConsolidatedCPJDSCG::init(Vector *x0, double res) {
 	// multiplicacao matriz vetor e subtracao (r = b - A * x)
 	// solver triangular inferior e superior - usando apenas o primeiro bloco (cor precisa caber nessas threads)
 	// z = inv(M) * r
-	int sMemSize = sizeof(numType) * blocks;
+	int sMemSize = sizeof(double) * blocks;
 	dim3 dimGrid(blocks, 1, 1), dimBlock(BLOCKSIZE, 1, 1);
 	void *kernelArgs[] = {(void*)&size, &matrixData_d, &preconditionedData_d, &indices_d, &rowLength_d,
 		&rowSize_d, &colOffset_d, (void*)&colorCount, &colors_d, &colorsColOffsetSize_d,
@@ -588,12 +588,12 @@ void PCGSolverConsolidatedCPJDSCG::init(Vector *x0, double res) {
 #endif
 }
 
-void PCGSolverConsolidatedCPJDSCG::doIteration0(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2) {
-	numType *data_h = new numType[1];
-	numType * rmodData = rmod->getData();
-	numType * rmod_prevData = rmod_prev->getData();
-	numType * gammaData = gamma->getData();
-	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
+void PCGSolverConsolidatedCPJDSCG::doIteration0(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2) {
+	double *data_h = new double[1];
+	double * rmodData = rmod->getData();
+	double * rmod_prevData = rmod_prev->getData();
+	double * gammaData = gamma->getData();
+	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(double), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
@@ -609,7 +609,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration0(numType * aData, numType * preco
 	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
 	// solver triangular superior (z = inv(M) * r)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-	numType *preconditionedData_d = (*A).preconditionedData.get();
+	double *preconditionedData_d = (*A).preconditionedData.get();
 	int *indices_d = (*A).matrixData.indices.get();
 	int *rowLength_d = (*A).matrixData.rowLength.get();
 	int *rowSize_d = (*A).matrixData.rowSize.get();
@@ -618,7 +618,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration0(numType * aData, numType * preco
 	int *colorsColOffsetSize_d = (*A).matrixColors.colorsColOffsetSize_d.get();
 	void *kernelArgs[] = { (void*)&size, &preconditionedData_d, &indices_d, &rowLength_d, &rowSize_d, &colOffset_d, (void*)&colorCount, &colors_d, &colorsColOffsetSize_d,
 		&xData, &rData, &zData, &pData, &qData, &rmodData, &rmod_prevData, &gammaData, &partialData2, (void*)&blocks};
-	int sMemSize = sizeof(numType) * blocks;
+	int sMemSize = sizeof(double) * blocks;
 	dim3 dimGrid(blocks, 1, 1), dimBlock(BLOCKSIZE, 1, 1);
 	cudaLaunchCooperativeKernel((void *)cpcgcg_tot_esc_add_sub_solver0, dimGrid, dimBlock, kernelArgs, sMemSize);
 	//cpcgcg_tot_esc_add_sub_solver0 << <blocks, BLOCKSIZE, 0, stream >> >
@@ -627,10 +627,10 @@ void PCGSolverConsolidatedCPJDSCG::doIteration0(numType * aData, numType * preco
 
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
-	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 
 	// Error calculations
@@ -650,11 +650,11 @@ void PCGSolverConsolidatedCPJDSCG::doIteration0(numType * aData, numType * preco
 	delete data_h;
 }
 
-void PCGSolverConsolidatedCPJDSCG::doIteration1(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2) {
-	numType *data_h = new numType[1];
-	numType * rmodData = rmod->getData();
-	numType * rmod_prevData = rmod_prev->getData();
-	numType * gammaData = gamma->getData();
+void PCGSolverConsolidatedCPJDSCG::doIteration1(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2) {
+	double *data_h = new double[1];
+	double * rmodData = rmod->getData();
+	double * rmod_prevData = rmod_prev->getData();
+	double * gammaData = gamma->getData();
 
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
 #ifdef CGTIMING
@@ -664,7 +664,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration1(numType * aData, numType * preco
 	checkedCudaEventRecord(startTotal);
 #endif // CGTIMING
 	it++;
-	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(double), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
@@ -682,7 +682,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration1(numType * aData, numType * preco
 	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
 	// solver triangular superior (z = inv(M) * r)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-	numType *preconditionedData_d = (*A).preconditionedData.get();
+	double *preconditionedData_d = (*A).preconditionedData.get();
 	int *indices_d = (*A).matrixData.indices.get();
 	int *rowLength_d = (*A).matrixData.rowLength.get();
 	int *rowSize_d = (*A).matrixData.rowSize.get();
@@ -691,7 +691,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration1(numType * aData, numType * preco
 	int *colorsColOffsetSize_d = (*A).matrixColors.colorsColOffsetSize_d.get();
 	void *kernelArgs[] = { (void*)&size, &preconditionedData_d, &indices_d, &rowLength_d, &rowSize_d, &colOffset_d, (void*)&colorCount, &colors_d, &colorsColOffsetSize_d,
 		&xData, &rData, &zData, &pData, &qData, &rmodData, &rmod_prevData, &gammaData, &partialData2, (void*)&blocks };
-	int sMemSize = sizeof(numType) * blocks;
+	int sMemSize = sizeof(double) * blocks;
 	dim3 dimGrid(blocks, 1, 1), dimBlock(BLOCKSIZE, 1, 1);
 	checkedCudaEventRecord(startTri);
 	cudaLaunchCooperativeKernel((void *)cpcgcg_tot_esc_add_sub_solver, dimGrid, dimBlock, kernelArgs, sMemSize);
@@ -702,7 +702,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration1(numType * aData, numType * preco
 
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
-	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
 
 	// Error calculations
@@ -716,7 +716,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration1(numType * aData, numType * preco
 	w[0] = 1 / r1;
 
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 
 	// Update values for next iteration
@@ -742,11 +742,11 @@ void PCGSolverConsolidatedCPJDSCG::doIteration1(numType * aData, numType * preco
 	delete data_h;
 }
 
-void PCGSolverConsolidatedCPJDSCG::doIteration2(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2) {
-	numType *data_h = new numType[1];
-	numType * rmodData = rmod->getData();
-	numType * rmod_prevData = rmod_prev->getData();
-	numType * gammaData = gamma->getData();
+void PCGSolverConsolidatedCPJDSCG::doIteration2(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2) {
+	double *data_h = new double[1];
+	double * rmodData = rmod->getData();
+	double * rmod_prevData = rmod_prev->getData();
+	double * gammaData = gamma->getData();
 
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
 #ifdef CGTIMING
@@ -756,7 +756,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration2(numType * aData, numType * preco
 	checkedCudaEventRecord(startTotal);
 #endif // CGTIMING
 	it++;
-	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(double), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
@@ -774,7 +774,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration2(numType * aData, numType * preco
 	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
 	// solver triangular superior (z = inv(M) * r)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-	numType *preconditionedData_d = (*A).preconditionedData.get();
+	double *preconditionedData_d = (*A).preconditionedData.get();
 	int *indices_d = (*A).matrixData.indices.get();
 	int *rowLength_d = (*A).matrixData.rowLength.get();
 	int *rowSize_d = (*A).matrixData.rowSize.get();
@@ -783,7 +783,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration2(numType * aData, numType * preco
 	int *colorsColOffsetSize_d = (*A).matrixColors.colorsColOffsetSize_d.get();
 	void *kernelArgs[] = { (void*)&size, &preconditionedData_d, &indices_d, &rowLength_d, &rowSize_d, &colOffset_d, (void*)&colorCount, &colors_d, &colorsColOffsetSize_d,
 		&xData, &rData, &zData, &pData, &qData, &rmodData, &rmod_prevData, &gammaData, &partialData2, (void*)&blocks };
-	int sMemSize = sizeof(numType) * blocks;
+	int sMemSize = sizeof(double) * blocks;
 	dim3 dimGrid(blocks, 1, 1), dimBlock(BLOCKSIZE, 1, 1);
 	checkedCudaEventRecord(startTri);
 	cudaLaunchCooperativeKernel((void *)cpcgcg_tot_esc_add_sub_solver, dimGrid, dimBlock, kernelArgs, sMemSize);
@@ -794,7 +794,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration2(numType * aData, numType * preco
 
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
-	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
 
 	// Error calculations
@@ -813,7 +813,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration2(numType * aData, numType * preco
 	w[1] /= r1;
 
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 
 	// Update values for next iteration
@@ -839,11 +839,11 @@ void PCGSolverConsolidatedCPJDSCG::doIteration2(numType * aData, numType * preco
 	delete data_h;
 }
 
-void PCGSolverConsolidatedCPJDSCG::doIteration3(numType * aData, numType * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, numType * zData, numType * rData, numType * xData, numType * pData, numType * qData, numType * partialData, numType * partialData2) {
-	numType *data_h = new numType[1];
-	numType * rmodData = rmod->getData();
-	numType * rmod_prevData = rmod_prev->getData();
-	numType * gammaData = gamma->getData();
+void PCGSolverConsolidatedCPJDSCG::doIteration3(double * aData, double * precond, int * aIndices, int * aRowLength, int * aRowSize, int * aColOffset, int colorCount, int * colors, int * colorsColOffset, double * zData, double * rData, double * xData, double * pData, double * qData, double * partialData, double * partialData2) {
+	double *data_h = new double[1];
+	double * rmodData = rmod->getData();
+	double * rmod_prevData = rmod_prev->getData();
+	double * gammaData = gamma->getData();
 
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
 #ifdef CGTIMING
@@ -853,7 +853,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration3(numType * aData, numType * preco
 	checkedCudaEventRecord(startTotal);
 #endif // CGTIMING
 	it++;
-	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(x_1->getData(), xData, (size_t)size * sizeof(double), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
@@ -871,7 +871,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration3(numType * aData, numType * preco
 	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
 	// solver triangular superior (z = inv(M) * r)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-	numType *preconditionedData_d = (*A).preconditionedData.get();
+	double *preconditionedData_d = (*A).preconditionedData.get();
 	int *indices_d = (*A).matrixData.indices.get();
 	int *rowLength_d = (*A).matrixData.rowLength.get();
 	int *rowSize_d = (*A).matrixData.rowSize.get();
@@ -880,7 +880,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration3(numType * aData, numType * preco
 	int *colorsColOffsetSize_d = (*A).matrixColors.colorsColOffsetSize_d.get();
 	void *kernelArgs[] = { (void*)&size, &preconditionedData_d, &indices_d, &rowLength_d, &rowSize_d, &colOffset_d, (void*)&colorCount, &colors_d, &colorsColOffsetSize_d,
 		&xData, &rData, &zData, &pData, &qData, &rmodData, &rmod_prevData, &gammaData, &partialData2, (void*)&blocks };
-	int sMemSize = sizeof(numType) * blocks;
+	int sMemSize = sizeof(double) * blocks;
 	dim3 dimGrid(blocks, 1, 1), dimBlock(BLOCKSIZE, 1, 1);
 	checkedCudaEventRecord(startTri);
 	cudaLaunchCooperativeKernel((void *)cpcgcg_tot_esc_add_sub_solver, dimGrid, dimBlock, kernelArgs, sMemSize);
@@ -891,7 +891,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration3(numType * aData, numType * preco
 
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
-	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
 
 	// Error calculations
@@ -911,7 +911,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration3(numType * aData, numType * preco
 	w[2] /= r1;
 
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 
 	// Update values for next iteration
@@ -938,10 +938,10 @@ void PCGSolverConsolidatedCPJDSCG::doIteration3(numType * aData, numType * preco
 }
 
 void PCGSolverConsolidatedCPJDSCG::doIteration(int iteration) {
-	numType *data_h = new numType[1];
+	double *data_h = new double[1];
 
-	//numType * aData = (*A).matrixData.data;
-	//numType * precond = (*A).preconditionedData;
+	//double * aData = (*A).matrixData.data;
+	//double * precond = (*A).preconditionedData;
 	//int * aIndices = (*A).matrixData.indices;
 	//int * aRowLength = (*A).matrixData.rowLength;
 	//int * aRowSize = (*A).matrixData.rowSize;
@@ -950,19 +950,19 @@ void PCGSolverConsolidatedCPJDSCG::doIteration(int iteration) {
 	//int colorCount = (*A).matrixColors.colorCount;
 	//int * colors = (*A).matrixColors.colors_d;
 	//int * colorsColOffset = (*A).matrixColors.colorsColOffsetSize_d;
-	numType * zData = z->getData();
-	numType * rData = r->getData();
-	numType * xData = x->getData();
-	numType * x2Data = x_1->getData();
-	numType * pData = p->getData();
-	numType * qData = q->getData();
+	double * zData = z->getData();
+	double * rData = r->getData();
+	double * xData = x->getData();
+	double * x2Data = x_1->getData();
+	double * pData = p->getData();
+	double * qData = q->getData();
 
-	numType * rmodData = rmod->getData();
-	numType * rmod_prevData = rmod_prev->getData();
-	numType * gammaData = gamma->getData();
+	double * rmodData = rmod->getData();
+	double * rmod_prevData = rmod_prev->getData();
+	double * gammaData = gamma->getData();
 
-	numType * partialData = partial->getData();
-	numType * partialData2 = partial2->getData();
+	double * partialData = partial->getData();
+	double * partialData2 = partial2->getData();
 
 	cudaEvent_t startTotal, stopTotal, startTri, stopTri, startSpmv, stopSpmv;
 #ifdef CGTIMING
@@ -973,7 +973,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration(int iteration) {
 #endif // CGTIMING
 
 	it++;
-	cudaMemcpy(x2Data, xData, (size_t)size * sizeof(numType), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(x2Data, xData, (size_t)size * sizeof(double), cudaMemcpyDeviceToDevice);
 
 	// totalizacao (intra-blocos, rmod = zt.r)
 	// escalar e vetor soma (p = z + (rmod/rmod_prev) * p)
@@ -991,7 +991,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration(int iteration) {
 	// solver triangular inferior (z = inv(M) * r), precisa ser sincronizado (feito entre kernels)
 	// solver triangular superior (z = inv(M) * r)
 	// precondData: vetor de dados do precondicionador (estrutura identica a matriz completa)
-	numType *preconditionedData_d = (*A).preconditionedData.get();
+	double *preconditionedData_d = (*A).preconditionedData.get();
 	int *indices_d = (*A).matrixData.indices.get();
 	int *rowLength_d = (*A).matrixData.rowLength.get();
 	int *rowSize_d = (*A).matrixData.rowSize.get();
@@ -1001,7 +1001,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration(int iteration) {
 	int *colorsColOffsetSize_d = (*A).matrixColors.colorsColOffsetSize_d.get();
 	void *kernelArgs[] = { (void*)&size, &preconditionedData_d, &indices_d, &rowLength_d, &rowSize_d, &colOffset_d, (void*)&colorCount, &colors_d, &colorsColOffsetSize_d,
 		&xData, &rData, &zData, &pData, &qData, &rmodData, &rmod_prevData, &gammaData, &partialData2, (void*)&blocks };
-	int sMemSize = sizeof(numType) * blocks;
+	int sMemSize = sizeof(double) * blocks;
 	dim3 dimGrid(blocks, 1, 1), dimBlock(BLOCKSIZE, 1, 1);
 	checkedCudaEventRecord(startTri);
 	cudaLaunchCooperativeKernel((void *)cpcgcg_tot_esc_add_sub_solver, dimGrid, dimBlock, kernelArgs, sMemSize);
@@ -1012,7 +1012,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration(int iteration) {
 
 	#ifdef CALCULATE_ERRORS
 	rmod2_1 = rmod2;
-	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, rmodData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	rmod2 = *data_h;
 
 	// Error calculations
@@ -1029,7 +1029,7 @@ void PCGSolverConsolidatedCPJDSCG::doIteration(int iteration) {
 	s = eta_p1 / r1;
 
 	gamma2_1 = gamma2;
-	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(numType), cudaMemcpyDeviceToHost);
+	cudaMemcpy(data_h, gammaData, (size_t)1 * sizeof(double), cudaMemcpyDeviceToHost);
 	gamma2 = *data_h;
 
 	// FIXME: GET RID OF THOSE STUPID BUFFERS!!!!!!!!!!!!!!!!!!!!!

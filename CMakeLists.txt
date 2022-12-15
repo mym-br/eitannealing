@@ -5,10 +5,10 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
 find_package(Threads REQUIRED)
 find_package(absl COMPONENTS container)
-find_package(CUDA 10)
+find_package(CUDA 11)
 if(CUDA_FOUND)
-  if(${CUDA_VERSION_MAJOR} GREATER 10) # FIXME: Cuda support is rotting fast
-    message(WARNING "Cuda version greater than 10 is not supported. Cuda Target will be skipped.")
+  if(${CUDA_VERSION_MAJOR} GREATER 11) # FIXME: Cuda support is rotting fast
+    message(WARNING "Cuda version greater than 11 is not supported. Cuda Target will be skipped.")
     unset(CUDA_FOUND)
   endif()
 endif()

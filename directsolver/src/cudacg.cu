@@ -20,17 +20,17 @@ extern "C" {
 #include "mm/mmio.h"
 }
 
-std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector<int> &J, std::vector<float> &val, std::vector<float> &rhs, std::vector<float> &x, int M, int N, int nz, float tol, int max_iter) {
+std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector<int> &J, std::vector<double> &val, std::vector<double> &rhs, std::vector<double> &x, int M, int N, int nz, double tol, int max_iter) {
 	int *d_col, *d_row;
-	float r0, r1, alpha, beta;
-	float *d_val, *d_x;
-	float *d_zm1, *d_zm2, *d_rm2;
-	float *d_r, *d_p, *d_omega, *d_y;
-	float *d_valsILU0;
+	double r0, r1, alpha, beta;
+	double *d_val, *d_x;
+	double *d_zm1, *d_zm2, *d_rm2;
+	double *d_r, *d_p, *d_omega, *d_y;
+	double *d_valsILU0;
 	void *buffer = NULL;
-	float dot, numerator, denominator, nalpha;
-	const float floatone = 1.0;
-	const float floatzero = 0.0;
+	double dot, numerator, denominator, nalpha;
+	const double floatone = 1.0;
+	const double floatzero = 0.0;
 
 	int nErrors = 0;
 
@@ -54,33 +54,33 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 	/* Allocate required memory */
 	cudaMalloc((void **)&d_col, nz * sizeof(int));
 	cudaMalloc((void **)&d_row, (N + 1) * sizeof(int));
-	cudaMalloc((void **)&d_val, nz * sizeof(float));
-	cudaMalloc((void **)&d_x, N * sizeof(float));
-	cudaMalloc((void **)&d_y, N * sizeof(float));
-	cudaMalloc((void **)&d_r, N * sizeof(float));
-	cudaMalloc((void **)&d_p, N * sizeof(float));
-	cudaMalloc((void **)&d_omega, N * sizeof(float));
-	cudaMalloc((void **)&d_valsILU0, nz * sizeof(float));
-	cudaMalloc((void **)&d_zm1, (N) * sizeof(float));
-	cudaMalloc((void **)&d_zm2, (N) * sizeof(float));
-	cudaMalloc((void **)&d_rm2, (N) * sizeof(float));
+	cudaMalloc((void **)&d_val, nz * sizeof(double));
+	cudaMalloc((void **)&d_x, N * sizeof(double));
+	cudaMalloc((void **)&d_y, N * sizeof(double));
+	cudaMalloc((void **)&d_r, N * sizeof(double));
+	cudaMalloc((void **)&d_p, N * sizeof(double));
+	cudaMalloc((void **)&d_omega, N * sizeof(double));
+	cudaMalloc((void **)&d_valsILU0, nz * sizeof(double));
+	cudaMalloc((void **)&d_zm1, (N) * sizeof(double));
+	cudaMalloc((void **)&d_zm2, (N) * sizeof(double));
+	cudaMalloc((void **)&d_rm2, (N) * sizeof(double));
 
 	/* Wrap raw data into cuSPARSE generic API objects */
 	cusparseSpMatDescr_t matA = NULL;
 	cusparseStatus = cusparseCreateCsr(&matA, N, N, nz, d_row, d_col, d_val,
 									CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-									CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F);
+									CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
 	cusparseDnVecDescr_t vecp = NULL;
-	cusparseStatus = cusparseCreateDnVec(&vecp, N, d_p, CUDA_R_32F);
+	cusparseStatus = cusparseCreateDnVec(&vecp, N, d_p, CUDA_R_64F);
 	cusparseDnVecDescr_t vecomega = NULL;
-	cusparseStatus = cusparseCreateDnVec(&vecomega, N, d_omega, CUDA_R_32F);
+	cusparseStatus = cusparseCreateDnVec(&vecomega, N, d_omega, CUDA_R_64F);
 
 	/* Initialize problem data */
 	cudaMemcpy(d_col, J.data(), nz * sizeof(int), cudaMemcpyHostToDevice);
 	cudaMemcpy(d_row, I.data(), (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_val, val.data(), nz * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_x, x.data(), N * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_r, rhs.data(), N * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_val, val.data(), nz * sizeof(double), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_x, x.data(), N * sizeof(double), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_r, rhs.data(), N * sizeof(double), cudaMemcpyHostToDevice);
 
 	/* Create ILU(0) info object */
 	csrilu02Info_t infoILU = NULL;
@@ -112,22 +112,22 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 	int stmp = 0;
 	cusparseStatus = cusparseSpMV_bufferSize(
 		cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &floatone, matA, vecp,
-		&floatzero, vecomega, CUDA_R_32F, CUSPARSE_SPMV_ALG_DEFAULT, &tmp);
+		&floatzero, vecomega, CUDA_R_64F, CUSPARSE_SPMV_ALG_DEFAULT, &tmp);
 	if (tmp > bufferSize) {
 	  bufferSize = stmp;
 	}
-	cusparseStatus = cusparseScsrilu02_bufferSize(
+	cusparseStatus = cusparseDcsrilu02_bufferSize(
 		cusparseHandle, N, nz, descr, d_val, d_row, d_col, infoILU, &stmp);
 	if (stmp > bufferSize) {
 	  bufferSize = stmp;
 	}
-	cusparseStatus = cusparseScsrsv2_bufferSize(
+	cusparseStatus = cusparseDcsrsv2_bufferSize(
 		cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, nz, descrL, d_val,
 		d_row, d_col, infoL, &stmp);
 	if (stmp > bufferSize) {
 	  bufferSize = stmp;
 	}
-	cusparseStatus = cusparseScsrsv2_bufferSize(
+	cusparseStatus = cusparseDcsrsv2_bufferSize(
 		cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, nz, descrU, d_val,
 		d_row, d_col, infoU, &stmp);
 	if (stmp > bufferSize) {
@@ -140,16 +140,16 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 	Follows the description by Golub & Van Loan, "Matrix Computations 3rd ed.", Algorithm 10.3.1  */
 
 	/* Perform analysis for ILU(0) */
-	cusparseStatus = cusparseScsrilu02_analysis(
+	cusparseStatus = cusparseDcsrilu02_analysis(
 		cusparseHandle, N, nz, descr, d_val, d_row, d_col, infoILU,
 		CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer);
   
 	/* Copy A data to ILU(0) vals as input*/
-	cudaMemcpy(d_valsILU0, d_val, nz * sizeof(float),
+	cudaMemcpy(d_valsILU0, d_val, nz * sizeof(double),
 							   cudaMemcpyDeviceToDevice);
   
 	/* generate the ILU(0) factors */
-	cusparseStatus = cusparseScsrilu02(cusparseHandle, N, nz, descr, d_valsILU0,
+	cusparseStatus = cusparseDcsrilu02(cusparseHandle, N, nz, descr, d_valsILU0,
 									  d_row, d_col, infoILU,
 									  CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer);
 
@@ -158,23 +158,23 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 	std::cout << "Cublas analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
   
 	/* perform triangular solve analysis */
-	cusparseStatus = cusparseScsrsv2_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+	cusparseStatus = cusparseDcsrsv2_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
 								N, nz, descrL, d_valsILU0, d_row, d_col, infoL,
 								CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer);
 
-	cusparseStatus = cusparseScsrsv2_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+	cusparseStatus = cusparseDcsrsv2_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
 								N, nz, descrU, d_valsILU0, d_row, d_col, infoU,
 								CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer);
 
 	/* reset the initial guess of the solution to zero */
 	for (int i = 0; i < N; i++) x[i] = 0.0;
 
-	cudaMemcpy(d_r, rhs.data(), N * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_x, x.data(), N * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_r, rhs.data(), N * sizeof(double), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_x, x.data(), N * sizeof(double), cudaMemcpyHostToDevice);
 
 	t1 = std::chrono::high_resolution_clock::now();
 	int k = 0;
-	cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
+	cublasDdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
 
 #ifdef CGTIMING
 	double totalItTime, totalTriangularTime, totalSpmvTime;
@@ -185,7 +185,7 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 	cudaEventCreate(&startSpmv); cudaEventCreate(&stopSpmv);
 #endif // CGTIMING
 
-	float tolsqr = tol > 0 ? tol*tol : -1;
+	double tolsqr = tol > 0 ? tol*tol : -1;
 	while (r1 > tolsqr && k <= max_iter)
 	{
 #ifdef CGTIMING
@@ -193,11 +193,11 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 		cudaEventRecord(startTri);
 #endif // CGTIMING
 		// preconditioner application: d_zm1 = U^-1 L^-1 d_r
-		cusparseStatus = cusparseScsrsv2_solve(
+		cusparseStatus = cusparseDcsrsv2_solve(
 			cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, nz, &floatone,
 			descrL, d_valsILU0, d_row, d_col, infoL, d_r, d_y,
 			CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer);
-		cusparseStatus = cusparseScsrsv2_solve(
+		cusparseStatus = cusparseDcsrsv2_solve(
 			cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, nz, &floatone,
 			descrU, d_valsILU0, d_row, d_col, infoU, d_y, d_zm1,
 			CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer);
@@ -209,47 +209,47 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 
 		if (k == 1)
 		{
-			cublasScopy(cublasHandle, N, d_zm1, 1, d_p, 1);
+			cublasDcopy(cublasHandle, N, d_zm1, 1, d_p, 1);
 		}
 		else
 		{
-			cublasSdot(cublasHandle, N, d_r, 1, d_zm1, 1, &numerator);
-			cublasSdot(cublasHandle, N, d_rm2, 1, d_zm2, 1, &denominator);
+			cublasDdot(cublasHandle, N, d_r, 1, d_zm1, 1, &numerator);
+			cublasDdot(cublasHandle, N, d_rm2, 1, d_zm2, 1, &denominator);
 			beta = numerator / denominator;
-			cublasSscal(cublasHandle, N, &beta, d_p, 1);
-			cublasSaxpy(cublasHandle, N, &floatone, d_zm1, 1, d_p, 1);
+			cublasDscal(cublasHandle, N, &beta, d_p, 1);
+			cublasDaxpy(cublasHandle, N, &floatone, d_zm1, 1, d_p, 1);
 		}
 #ifdef CGTIMING
 		cudaEventRecord(startSpmv);
 #endif // CGTIMING
 		cusparseSpMV(
 			cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &floatone, matA, vecp,
-			&floatzero, vecomega, CUDA_R_32F, CUSPARSE_SPMV_ALG_DEFAULT, buffer);
+			&floatzero, vecomega, CUDA_R_64F, CUSPARSE_SPMV_ALG_DEFAULT, buffer);
 #ifdef CGTIMING
 		cudaEventRecord(stopSpmv);
 #endif // CGTIMING
-		cublasSdot(cublasHandle, N, d_r, 1, d_zm1, 1, &numerator);
-		cublasSdot(cublasHandle, N, d_p, 1, d_omega, 1, &denominator);
+		cublasDdot(cublasHandle, N, d_r, 1, d_zm1, 1, &numerator);
+		cublasDdot(cublasHandle, N, d_p, 1, d_omega, 1, &denominator);
 		alpha = numerator / denominator;
-		cublasSaxpy(cublasHandle, N, &alpha, d_p, 1, d_x, 1);
-		cublasScopy(cublasHandle, N, d_r, 1, d_rm2, 1);
-		cublasScopy(cublasHandle, N, d_zm1, 1, d_zm2, 1);
+		cublasDaxpy(cublasHandle, N, &alpha, d_p, 1, d_x, 1);
+		cublasDcopy(cublasHandle, N, d_r, 1, d_rm2, 1);
+		cublasDcopy(cublasHandle, N, d_zm1, 1, d_zm2, 1);
 		nalpha = -alpha;
-		cublasSaxpy(cublasHandle, N, &nalpha, d_omega, 1, d_r, 1);
-		cublasSdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
+		cublasDaxpy(cublasHandle, N, &nalpha, d_omega, 1, d_r, 1);
+		cublasDdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
 #ifdef CGTIMING
 		cudaEventRecord(stopTotal);
 #endif // CGTIMING
 #ifdef CGTIMING
 		cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
-		float msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
+		double msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
 		cudaEventElapsedTime(&msTotal, startTotal, stopTotal); cudaEventElapsedTime(&msTri, startTri, stopTri); cudaEventElapsedTime(&msSpmv, startSpmv, stopSpmv);
-		totalItTime += (float)(1e3 * msTotal);
-		totalTriangularTime += (float)(1e3 * msTri);
-		totalSpmvTime += (float)(1e3 *  msSpmv);
+		totalItTime += (double)(1e3 * msTotal);
+		totalTriangularTime += (double)(1e3 * msTri);
+		totalSpmvTime += (double)(1e3 *  msSpmv);
 #endif // CGTIMING
 	}
-	cudaMemcpy(x.data(), d_x, N * sizeof(float), cudaMemcpyDeviceToHost); 
+	cudaMemcpy(x.data(), d_x, N * sizeof(double), cudaMemcpyDeviceToHost); 
 	t2 = std::chrono::high_resolution_clock::now();
 
 	///************************/

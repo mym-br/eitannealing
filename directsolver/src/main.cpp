@@ -345,7 +345,7 @@ std::tuple<long, long, int> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, ra
 std::tuple<long, long, int> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector &braw, raw_vector &x, double res, int maxit) {
 	std::vector<int> unsorted_mmrow;
 	std::vector<int> unsorted_J;
-	std::vector<float> unsorted_val;
+	std::vector<double> unsorted_val;
 	{
 		int row, col;
 		double curVal;
@@ -366,7 +366,7 @@ std::tuple<long, long, int> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector
 	std::transform(permvec.begin(), permvec.end(), mm_row.begin(), [&](std::size_t i) { return unsorted_mmrow[i]; });
 	std::vector<int> J(nz);
 	std::transform(permvec.begin(), permvec.end(), J.begin(), [&](std::size_t i) { return unsorted_J[i]; });
-	std::vector<float> val(nz);
+	std::vector<double> val(nz);
 	std::transform(permvec.begin(), permvec.end(), val.begin(), [&](std::size_t i) { return unsorted_val[i]; });
 
 	std::vector<int> I(Araw.N + 1);
@@ -382,24 +382,10 @@ std::tuple<long, long, int> runCusparseCublasCGTest(raw_matrix &Araw, raw_vector
 	}
 	currow++; I[currow] = I[currow - 1] + curJ;
 
-	std::vector<float> rhs(Araw.N);
+	std::vector<double> rhs(Araw.N);
 	for (int i = 0; i < braw.size(); i++) rhs[i] = braw[i];
 
-	std::vector<float> xcublas(Araw.N);
-
-	//// DEBUG: Ouput CSR format to file
-	//std::ofstream os(baseoutputname + "_csr.bin", std::ios::binary);
-	//int M = Araw.M, N = Araw.N;
-	//os.write((char*)&M, sizeof(int));
-	//os.write((char*)&N, sizeof(int));
-	//os.write((char*)&nz, sizeof(int));
-	//int *I_ptr = I.data(), *J_ptr = J.data();
-	//os.write(reinterpret_cast<const char*> (I_ptr), sizeof(int) * N+1);
-	//os.write(reinterpret_cast<const char*> (J_ptr), sizeof(int) * nz);
-	//float *val_ptr = val.data(), *rhs_ptr = rhs.data();
-	//os.write(reinterpret_cast<const char*> (val_ptr), sizeof(float) * nz);
-	//os.write(reinterpret_cast<const char*> (rhs_ptr), sizeof(float) * N);
-	//os.close();
+	std::vector<double> xcublas(Araw.N);
 
 	auto ans = runCusparseCublasCG(I, J, val, rhs, xcublas, Araw.M, Araw.N, nz, res, maxit);
 

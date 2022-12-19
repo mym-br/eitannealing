@@ -91,22 +91,19 @@ def compute_residuals(folder: str) -> list[ResultData]:
 # %%
 # compute residuals for input folder
 instances_res = compute_residuals(folder)
-instances_res
 # %%
 # create dataframe with results
-df_data = {key: [*val.values()] for (key, val) in instances_res.items()}
 df_columns = list(max(instances_res.values(), key=lambda x: len(x)).keys())
+df_data = {
+    key: [val[x] if x in val else None for x in df_columns]
+    for (key, val) in instances_res.items()
+}
 df_res = pd.DataFrame.from_dict(df_data, orient='index', columns=df_columns)
-df_res = df_res.reset_index().rename(columns={'index': 'instance'})
-df_res
-# %%
-# save residual results
-df_res.to_csv(f"{pathlib.Path(folder).name}_res.csv", index=False)
 
 # %%
 # define columns for compilation processing
 columns = [
-    "Filename", "N", "NNZ", "Serial Analyzer", "Serial Execution",
+    "Path", "N", "NNZ", "Serial Analyzer", "Serial Execution",
     "Serial Iterations", "Cuda Analyzer", "Cuda Execution", "Cuda Iterations",
     "Consolidated Cuda Analyzer", "Consolidated Cuda Execution",
     "Consolidated Cuda Iterations"
@@ -118,19 +115,29 @@ if "ccudacg" in df_columns:
     ]
 if "cusparse" in df_columns:
     columns += ["CUBLAS Analyzer", "CUBLAS Execution", "CUBLAS Iterations"]
-columns
 
 #%%
 # Read compilation file to dataframe
 df_comp = pd.read_csv(os.path.join(folder, "results", "compilation.txt"),
                       delimiter='\t',
                       names=columns)
-df_comp
 # %%
 # Calculate mean of executions
-df_comp = df_comp.groupby('Filename').mean().sort_values(by="N")
-df_comp
+df_comp['Filename'] = df_comp['Path'].apply(lambda x: pathlib.Path(x).stem)
+df_comp_avg = df_comp.drop(
+    columns=['Path']).groupby('Filename').mean().sort_values(by="N")
+df_comp_avg
 # %%
 # save compilation results
-df_comp.to_csv(f"{pathlib.Path(folder).name}_comp.csv")
+df_comp_avg.to_csv(f"{pathlib.Path(folder).name}_comp.csv")
 #%%
+# merge dataframes to add size data do residual df
+df_res_merged = pd.merge(df_res,
+                         df_comp_avg[["N", "NNZ"]],
+                         left_index=True,
+                         right_index=True).sort_values(by="N")
+# %%
+# save residual results
+df_res_merged.to_csv(f"{pathlib.Path(folder).name}_res.csv", index=False)
+df_res_merged
+# %%

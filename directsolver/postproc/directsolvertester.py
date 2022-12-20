@@ -113,11 +113,13 @@ def main():
     parser.add_argument("rhs", help="path to right hand side eit files folder")
     parser.add_argument("results", help="path to save results files")
     parser.add_argument("--repetitions",
-                        help="number of executions per instance")
+                        help="number of executions per instance",
+                        type=int,
+                        default=10)
     parser.add_argument("--compilation", help="name for the compilation file")
     args = parser.parse_args()
 
-    repetitions = args.repetitions if args.repetitions else DEFAULT_REPETITIONS
+    repetitions = args.repetitions
 
     eit_mtx_files = preprocess_mtx_files(args.eit,
                                          MTX_INSTANCES_SETS["eit"],
@@ -133,9 +135,14 @@ def main():
 
     results_folder = args.results
 
-    logging.basicConfig(filename=os.path.join(results_folder, 'log.log'),
+    logging.basicConfig(level=logging.INFO,
                         encoding='utf-8',
-                        level=logging.DEBUG)
+                        format="%(asctime)s [%(levelname)s] %(message)s",
+                        handlers=[
+                            logging.FileHandler(
+                                os.path.join(results_folder, 'log.log')),
+                            logging.StreamHandler()
+                        ])
 
     compilation_filename = args.compilation if args.compilation else DEFAULT_COMPILATION_FILENAME
 
@@ -144,7 +151,8 @@ def main():
     with alive_bar(repetitions * len(eit_files)) as bar:
         bar.text = f'-> Running EIT mtx instances (step 1/3), please wait...'
         for mtx, rhs in eit_files:
-            for _ in range(repetitions):
+            successes = 0
+            while (successes < repetitions):
                 try:
                     run_instance(executable=args.directsolver,
                                  mtx=mtx,
@@ -153,20 +161,21 @@ def main():
                                  results_folder=results_folder,
                                  compilation_filename=compilation_filename,
                                  rhs=rhs)
+                    successes = successes + 1
+                    bar()
                 except subprocess.CalledProcessError as err:
                     logging.error(
                         f'{err}\nstdout:{err.stdout}\nstderr:{err.stderr}\n\n')
                     total_errors = total_errors + 1
-                finally:
-                    bar()
-    print(f'Step 1 concluded with {total_errors} errors')
+    logging.info(f'Step 1 concluded with {total_errors} errors')
 
     # run suitesparse instances
     total_errors = 0
     with alive_bar(repetitions * len(suitesparse_files)) as bar:
         bar.text = f'-> Running suitesparse mtx instances (step 2/3), please wait...'
         for mtx in suitesparse_files:
-            for _ in range(repetitions):
+            successes = 0
+            while (successes < repetitions):
                 try:
                     run_instance(
                         executable=args.directsolver,
@@ -176,13 +185,13 @@ def main():
                         results_folder=results_folder,
                         compilation_filename=compilation_filename,
                     )
+                    successes = successes + 1
+                    bar()
                 except subprocess.CalledProcessError as err:
                     logging.error(
                         f'{err}\nstdout:{err.stdout}\nstderr:{err.stderr}\n\n')
                     total_errors = total_errors + 1
-                finally:
-                    bar()
-    print(f'Step 2 concluded with {total_errors} errors')
+    logging.info(f'Step 2 concluded with {total_errors} errors')
 
 
 if __name__ == "__main__":

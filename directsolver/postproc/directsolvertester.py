@@ -1,5 +1,6 @@
 #%%
 import os
+import logging
 import pathlib
 import argparse
 import subprocess
@@ -103,6 +104,7 @@ def run_instance(executable: str,
 
 #%%
 def main():
+
     parser = argparse.ArgumentParser()
     parser.add_argument("directsolver", help="path to directsolver executable")
     parser.add_argument("eit", help="path to eit mtx files folder")
@@ -131,9 +133,14 @@ def main():
 
     results_folder = args.results
 
+    logging.basicConfig(filename=os.path.join(results_folder, 'log.log'),
+                        encoding='utf-8',
+                        level=logging.DEBUG)
+
     compilation_filename = args.compilation if args.compilation else DEFAULT_COMPILATION_FILENAME
 
     # run eit instances
+    total_errors = 0
     with alive_bar(repetitions * len(eit_files)) as bar:
         bar.text = f'-> Running EIT mtx instances (step 1/3), please wait...'
         for mtx, rhs in eit_files:
@@ -147,11 +154,15 @@ def main():
                                  compilation_filename=compilation_filename,
                                  rhs=rhs)
                 except subprocess.CalledProcessError as err:
-                    print(err)
+                    logging.error(
+                        f'{err}\nstdout:{err.stdout}\nstderr:{err.stderr}\n\n')
+                    total_errors = total_errors + 1
                 finally:
                     bar()
+    print(f'Step 1 concluded with {total_errors} errors')
 
     # run suitesparse instances
+    total_errors = 0
     with alive_bar(repetitions * len(suitesparse_files)) as bar:
         bar.text = f'-> Running suitesparse mtx instances (step 2/3), please wait...'
         for mtx in suitesparse_files:
@@ -166,9 +177,12 @@ def main():
                         compilation_filename=compilation_filename,
                     )
                 except subprocess.CalledProcessError as err:
-                    print(err)
+                    logging.error(
+                        f'{err}\nstdout:{err.stdout}\nstderr:{err.stderr}\n\n')
+                    total_errors = total_errors + 1
                 finally:
                     bar()
+    print(f'Step 2 concluded with {total_errors} errors')
 
 
 if __name__ == "__main__":

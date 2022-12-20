@@ -291,7 +291,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	//// dependency's count
 	//int * dependenciesSize = new int[depsSizeArr.size()];
 	// preconditioner data
-	int * pdata = new int[total];
+	double * pdata = new double[total];
 
 	//// copy arrays
 	//for (int i = 0; i < depsArrRow.size(); i++) dependencyRowDataIndex[i] = depsArrRow[i];

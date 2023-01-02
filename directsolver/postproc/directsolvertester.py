@@ -6,6 +6,7 @@ import argparse
 import subprocess
 from typing import Optional
 from alive_progress import alive_bar
+from check_executions import get_instance_executions, count_total_exections
 
 
 #%%
@@ -146,13 +147,21 @@ def main():
 
     compilation_filename = args.compilation if args.compilation else DEFAULT_COMPILATION_FILENAME
 
+    # check for existing results
+    executions = get_instance_executions(
+        os.path.join(results_folder, compilation_filename))
+    total_eit_executions = count_total_exections(executions,
+                                                 MTX_INSTANCES_SETS["eit"])
+    total_suitesparse_executions = count_total_exections(
+        executions, MTX_INSTANCES_SETS["suitesparse"])
+
     # run eit instances
     total_errors = 0
-    with alive_bar(repetitions * len(eit_files)) as bar:
+    with alive_bar(repetitions * len(eit_files) - total_eit_executions) as bar:
         bar.text = f'-> Running EIT mtx instances (step 1/3), please wait...'
         for mtx, rhs in eit_files:
             successes = 0
-            while (successes < repetitions):
+            while (successes < repetitions - executions[mtx.stem]):
                 try:
                     run_instance(executable=args.directsolver,
                                  mtx=mtx,
@@ -171,11 +180,12 @@ def main():
 
     # run suitesparse instances
     total_errors = 0
-    with alive_bar(repetitions * len(suitesparse_files)) as bar:
+    with alive_bar(repetitions * len(suitesparse_files) -
+                   total_suitesparse_executions) as bar:
         bar.text = f'-> Running suitesparse mtx instances (step 2/3), please wait...'
         for mtx in suitesparse_files:
             successes = 0
-            while (successes < repetitions):
+            while (successes < repetitions - executions[mtx.stem]):
                 try:
                     run_instance(
                         executable=args.directsolver,

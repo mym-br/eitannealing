@@ -76,6 +76,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <chrono>
+#include <iostream>
 
 #include <cuda_runtime.h>
 
@@ -296,6 +298,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    auto t1 = std::chrono::high_resolution_clock::now();
     checkCudaErrors(cusolverSpCreate(&handle));
     checkCudaErrors(cusparseCreate(&cusparseHandle));
 
@@ -476,55 +479,58 @@ int main(int argc, char *argv[])
                                     cudaMemcpyHostToDevice, stream));
     checkCudaErrors(cudaMemcpyAsync(d_Q, h_Q, sizeof(int) * rowsA,
                                     cudaMemcpyHostToDevice, stream));
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_analyser = t2 - t1;
+    std::cout << "Cusolver analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 
-    printf("step 5: solve A*x = b on CPU \n");
-    start = second();
+    // printf("step 5: solve A*x = b on CPU \n");
+    // start = second();
 
-    /* solve B*z = Q*b */
-    if (0 == strcmp(opts.testFunc, "chol"))
-    {
-        checkCudaErrors(cusolverSpDcsrlsvcholHost(
-            handle, rowsA, nnzA, descrA, h_csrValB, h_csrRowPtrB, h_csrColIndB,
-            h_Qb, tol, reorder, h_z, &singularity));
-    }
-    else if (0 == strcmp(opts.testFunc, "lu"))
-    {
-        checkCudaErrors(cusolverSpDcsrlsvluHost(
-            handle, rowsA, nnzA, descrA, h_csrValB, h_csrRowPtrB, h_csrColIndB,
-            h_Qb, tol, reorder, h_z, &singularity));
-    }
-    else if (0 == strcmp(opts.testFunc, "qr"))
-    {
-        checkCudaErrors(cusolverSpDcsrlsvqrHost(
-            handle, rowsA, nnzA, descrA, h_csrValB, h_csrRowPtrB, h_csrColIndB,
-            h_Qb, tol, reorder, h_z, &singularity));
-    }
-    else
-    {
-        fprintf(stderr, "Error: %s is unknown function\n", opts.testFunc);
-        return 1;
-    }
+    // /* solve B*z = Q*b */
+    // if (0 == strcmp(opts.testFunc, "chol"))
+    // {
+    //     checkCudaErrors(cusolverSpDcsrlsvcholHost(
+    //         handle, rowsA, nnzA, descrA, h_csrValB, h_csrRowPtrB, h_csrColIndB,
+    //         h_Qb, tol, reorder, h_z, &singularity));
+    // }
+    // else if (0 == strcmp(opts.testFunc, "lu"))
+    // {
+    //     checkCudaErrors(cusolverSpDcsrlsvluHost(
+    //         handle, rowsA, nnzA, descrA, h_csrValB, h_csrRowPtrB, h_csrColIndB,
+    //         h_Qb, tol, reorder, h_z, &singularity));
+    // }
+    // else if (0 == strcmp(opts.testFunc, "qr"))
+    // {
+    //     checkCudaErrors(cusolverSpDcsrlsvqrHost(
+    //         handle, rowsA, nnzA, descrA, h_csrValB, h_csrRowPtrB, h_csrColIndB,
+    //         h_Qb, tol, reorder, h_z, &singularity));
+    // }
+    // else
+    // {
+    //     fprintf(stderr, "Error: %s is unknown function\n", opts.testFunc);
+    //     return 1;
+    // }
 
-    /* Q*x = z */
-    for (int row = 0; row < rowsA; row++)
-    {
-        h_x[h_Q[row]] = h_z[row];
-    }
+    // /* Q*x = z */
+    // for (int row = 0; row < rowsA; row++)
+    // {
+    //     h_x[h_Q[row]] = h_z[row];
+    // }
 
-    if (0 <= singularity)
-    {
-        printf("WARNING: the matrix is singular at row %d under tol (%E)\n",
-               singularity, tol);
-    }
+    // if (0 <= singularity)
+    // {
+    //     printf("WARNING: the matrix is singular at row %d under tol (%E)\n",
+    //            singularity, tol);
+    // }
 
-    stop = second();
-    time_solve_cpu = stop - start;
+    // stop = second();
+    // time_solve_cpu = stop - start;
 
-    printf("step 6: evaluate residual r = b - A*x (result on CPU)\n");
-    checkCudaErrors(cudaMemcpyAsync(d_r, d_b, sizeof(double) * rowsA,
-                                    cudaMemcpyDeviceToDevice, stream));
-    checkCudaErrors(cudaMemcpyAsync(d_x, h_x, sizeof(double) * colsA,
-                                    cudaMemcpyHostToDevice, stream));
+    // printf("step 6: evaluate residual r = b - A*x (result on CPU)\n");
+    // checkCudaErrors(cudaMemcpyAsync(d_r, d_b, sizeof(double) * rowsA,
+    //                                 cudaMemcpyDeviceToDevice, stream));
+    // checkCudaErrors(cudaMemcpyAsync(d_x, h_x, sizeof(double) * colsA,
+    //                                 cudaMemcpyHostToDevice, stream));
 
     /* Wrap raw data into cuSPARSE generic API objects */
     cusparseSpMatDescr_t matA = NULL;
@@ -565,20 +571,21 @@ int main(int argc, char *argv[])
     /* wait until h_r is ready */
     checkCudaErrors(cudaDeviceSynchronize());
 
-    b_inf = vec_norminf(rowsA, h_b);
-    x_inf = vec_norminf(colsA, h_x);
-    r_inf = vec_norminf(rowsA, h_r);
-    A_inf = csr_mat_norminf(rowsA, colsA, nnzA, descrA, h_csrValA, h_csrRowPtrA,
-                            h_csrColIndA);
+    // b_inf = vec_norminf(rowsA, h_b);
+    // x_inf = vec_norminf(colsA, h_x);
+    // r_inf = vec_norminf(rowsA, h_r);
+    // A_inf = csr_mat_norminf(rowsA, colsA, nnzA, descrA, h_csrValA, h_csrRowPtrA,
+    //                         h_csrColIndA);
 
-    printf("(CPU) |b - A*x| = %E \n", r_inf);
-    printf("(CPU) |A| = %E \n", A_inf);
-    printf("(CPU) |x| = %E \n", x_inf);
-    printf("(CPU) |b| = %E \n", b_inf);
-    printf("(CPU) |b - A*x|/(|A|*|x| + |b|) = %E \n",
-           r_inf / (A_inf * x_inf + b_inf));
+    // printf("(CPU) |b - A*x| = %E \n", r_inf);
+    // printf("(CPU) |A| = %E \n", A_inf);
+    // printf("(CPU) |x| = %E \n", x_inf);
+    // printf("(CPU) |b| = %E \n", b_inf);
+    // printf("(CPU) |b - A*x|/(|A|*|x| + |b|) = %E \n",
+    //        r_inf / (A_inf * x_inf + b_inf));
 
     printf("step 7: solve A*x = b on GPU\n");
+    t1 = std::chrono::high_resolution_clock::now();
     start = second();
 
     /* solve B*z = Q*b */
@@ -616,6 +623,8 @@ int main(int argc, char *argv[])
 
     stop = second();
     time_solve_gpu = stop - start;
+    t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_executor = t2 - t1;
 
     printf("step 8: evaluate residual r = b - A*x (result on GPU)\n");
     checkCudaErrors(cudaMemcpyAsync(d_r, d_b, sizeof(double) * rowsA,
@@ -639,6 +648,7 @@ int main(int argc, char *argv[])
     if (0 != strcmp(opts.testFunc, "lu"))
     {
         // only cholesky and qr have GPU version
+        std::cout << "Cusolver executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us. Final residual is " << r_inf << "." << std::endl;
         printf("(GPU) |b - A*x| = %E \n", r_inf);
         printf("(GPU) |A| = %E \n", A_inf);
         printf("(GPU) |x| = %E \n", x_inf);
@@ -649,6 +659,12 @@ int main(int argc, char *argv[])
 
     fprintf(stdout, "timing %s: CPU = %10.6f sec , GPU = %10.6f sec\n",
             opts.testFunc, time_solve_cpu, time_solve_gpu);
+
+    // Append execution times to compilation file args::get(resultsfname)
+    std::ofstream outfile("compilation_cusolver.txt", std::ios_base::app);
+    outfile << opts.sparse_mat_filename << "\t" << rowsA << "\t" << nnzA
+            << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << "\t" << 1
+            << std::endl;
 
     if (0 != strcmp(opts.testFunc, "lu"))
     {

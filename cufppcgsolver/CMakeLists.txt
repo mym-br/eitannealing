@@ -1,14 +1,11 @@
-cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project(directsolver)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules) 
+cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
+project(cufppcgsolver LANGUAGES C CXX CUDA)
 find_package(Eigen3 REQUIRED)
-find_package(Threads REQUIRED)
-find_package(CUDA QUIET REQUIRED)
+find_package(CUDAToolkit REQUIRED)
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src ../src ../src/complex)
 
-set(directsolver_SRCS 
+set(cufppcgsolver_SRCS 
   src/main.cpp
   src/conversions.cpp
   src/mm/mmio.c
@@ -28,8 +25,6 @@ set(directsolver_SRCS
   ../src/cuda/solver-cpcgcg.cu
   ../src/cuda/solvercuda.cu
   ../src/cuda/solvercuda.cpp
-  #../src/cuda/solvercublas.cu
-  #../src/cuda/solvercublas.cpp
   ../src/problem.cpp
   ../src/threedim/initproblem3D.cpp
   ../src/threedim/nodecoeficients3D.cpp
@@ -37,10 +32,6 @@ set(directsolver_SRCS
   ../src/twodim/nodecoeficients2D.cpp
 
 )
-
-if(WIN32)
-    set(ADDITIONAL_LIBRARIES wsock32)
-endif()
 
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
@@ -51,21 +42,23 @@ elseif(MSVC)
 endif()
 
 if(CUSPARSE)
-	set(libs ${CMAKE_THREAD_LIBS_INIT} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
-	cuda_add_executable(directsolver ${directsolver_SRCS} ../src/cuda/solvercublas.cu ../src/cuda/solvercublas.cpp src/cudacg.cu)
-	target_compile_definitions(directsolver PRIVATE CUBLASCUSPARSE)
+	set(libs CUDA::cudart CUDA::cublas CUDA::cusparse)
+	add_executable(cufppcgsolver ${cufppcgsolver_SRCS} ../src/cuda/solvercublas.cu ../src/cuda/solvercublas.cpp src/cudacg.cu)
+	target_compile_definitions(cufppcgsolver PRIVATE CUBLASCUSPARSE)
 else()
-	set(libs ${CMAKE_THREAD_LIBS_INIT})
-	cuda_add_executable(directsolver ${directsolver_SRCS})
+	add_executable(cufppcgsolver ${cufppcgsolver_SRCS})
 endif()
-set_property(TARGET directsolver PROPERTY CXX_STANDARD 17)
-set_property(TARGET directsolver PROPERTY CXX_STANDARD_REQUIRED ON)
-set_property(TARGET directsolver PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-target_link_libraries(directsolver ${libs} ${ADDITIONAL_LIBRARIES})
+set_property(TARGET cufppcgsolver PROPERTY CXX_STANDARD 17)
+set_property(TARGET cufppcgsolver PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET cufppcgsolver PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+target_link_libraries(cufppcgsolver ${libs})
 if(KERNELTIMING)
-	target_compile_definitions(directsolver PRIVATE CGTIMING)
+	target_compile_definitions(cufppcgsolver PRIVATE CGTIMING)
 endif()
 if(COOPERATIVEGROUPS)
-	target_compile_definitions(directsolver PRIVATE CGROUPS)
+	target_compile_definitions(cufppcgsolver PRIVATE CGROUPS)
+  set_target_properties(cufppcgsolver PROPERTIES CUDA_ARCHITECTURES "60;61;70;75")
 	set(CMAKE_CUDA_FLAGS "-gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=compute_70 -gencode arch=compute_75,code=compute_75")
+else()
+  set_target_properties(cufppcgsolver PROPERTIES CUDA_ARCHITECTURES OFF)
 endif()

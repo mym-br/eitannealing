@@ -3,7 +3,7 @@ project(cufppcgsolver LANGUAGES C CXX CUDA)
 find_package(Eigen3 REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
-include_directories(${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src ../src ../src/complex)
+include_directories(${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src src/cusolver ../src ../src/complex)
 
 set(cufppcgsolver_SRCS 
   src/main.cpp
@@ -45,6 +45,9 @@ if(CUSPARSE)
 	set(libs CUDA::cudart CUDA::cublas CUDA::cusparse)
 	add_executable(cufppcgsolver ${cufppcgsolver_SRCS} ../src/cuda/solvercublas.cu ../src/cuda/solvercublas.cpp src/cudacg.cu)
 	target_compile_definitions(cufppcgsolver PRIVATE CUBLASCUSPARSE)
+
+  add_executable(cuSolverSp_LinearSolver src/cusolver/main.cpp src/cusolver/mmio.c src/cusolver/mmio_wrapper.cpp)
+  target_link_libraries(cuSolverSp_LinearSolver PRIVATE CUDA::cudart CUDA::cusolver)
 else()
 	add_executable(cufppcgsolver ${cufppcgsolver_SRCS})
 endif()

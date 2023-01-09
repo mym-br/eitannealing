@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <iostream>
+#include <chrono>
+#include <fstream>
 
 #include "../args/args.hxx"
 #include "mkl_pardiso.h"
@@ -151,6 +153,7 @@ int main(int argc, char *argv[])
     /* .. Reordering and Symbolic Factorization. This step also allocates */
     /* all memory that is necessary for the factorization. */
     /* -------------------------------------------------------------------- */
+    auto t1 = std::chrono::high_resolution_clock::now();
     phase = 11;
     PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
             &n, a, ia, ja, &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
@@ -174,6 +177,9 @@ int main(int argc, char *argv[])
         exit(2);
     }
     printf("\nFactorization completed ... ");
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_analyser = t2 - t1;
+    std::cout << "Pardiso analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
     /* -------------------------------------------------------------------- */
     /* .. Back substitution and iterative refinement. */
     /* -------------------------------------------------------------------- */
@@ -184,6 +190,7 @@ int main(int argc, char *argv[])
     {
         b[i] = 1;
     }
+    t1 = std::chrono::high_resolution_clock::now();
     PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
             &n, a, ia, ja, &idum, &nrhs, iparm, &msglvl, b, x, &error);
     if (error != 0)
@@ -191,13 +198,10 @@ int main(int argc, char *argv[])
         printf("\nERROR during solution: " IFORMAT, error);
         exit(3);
     }
+    t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_executor = t2 - t1;
+    std::cout << "Pardiso executor on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << " us." << std::endl;
     printf("\nSolve completed ... ");
-    printf("\nThe solution of the system is: ");
-    for (i = 0; i < n; i++)
-    {
-        printf("\n x [" IFORMAT "] = % f", i, x[i]);
-    }
-    printf("\n");
     /* -------------------------------------------------------------------- */
     /* .. Termination and release of memory. */
     /* -------------------------------------------------------------------- */
@@ -205,6 +209,14 @@ int main(int argc, char *argv[])
     PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
             &n, &ddum, ia, ja, &idum, &nrhs,
             iparm, &msglvl, &ddum, &ddum, &error);
+
+    // Append execution times to compilation file args::get(resultsfname)
+    std::ofstream outfile("compilation_pardiso.txt", std::ios_base::app);
+    outfile << fileName << "\t" << n << "\t" << nnz
+            << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << "\t" << 1
+            << std::endl;
+    outfile.close();
+
     return 0;
 }
 

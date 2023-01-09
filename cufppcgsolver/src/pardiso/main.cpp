@@ -40,10 +40,17 @@
 #include "mkl_types.h"
 #include "mmio.h"
 
+/* avoid Windows warnings (for example: strcpy, fscanf, etc.) */
+#if defined(_WIN32)
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 template <typename T_ELEM>
 MKL_INT loadMMSparseMatrix(char *filename, char elem_type, bool csrFormat, MKL_INT *m,
                            MKL_INT *n, MKL_INT *nnz, T_ELEM **aVal, MKL_INT **aRowInd,
                            MKL_INT **aColInd, bool extendSymMatrix, bool transposeMatrix);
+
+void saveDenseVectorMtx(const std::string filename, double *vec, int n);
 
 // Define the format to printf MKL_INT values
 #if !defined(MKL_ILP64)
@@ -59,7 +66,9 @@ int main(int argc, char *argv[])
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::CompletionFlag completion(parser, {"complete"});
     args::ValueFlag<std::string> bfname(parser, "filename", "b vector file", {'b'});
+    args::ValueFlag<std::string> xfname(parser, "filename", "Output x filename prefix", {"output"});
     args::Positional<std::string> Afname(parser, "filename", "A matrix file. Supported files: .mtx or .msh (with automatic conversion)");
+    args::ValueFlag<std::string> resultsfname(parser, "compilation", "Results compilation filename prefix (append)", {"compilation"});
     try
     {
         parser.ParseCLI(argc, argv);
@@ -185,10 +194,71 @@ int main(int argc, char *argv[])
     /* -------------------------------------------------------------------- */
     phase = 33;
     iparm[7] = 2; /* Max numbers of iterative refinement steps. */
-    /* Set right hand side to one. */
-    for (i = 0; i < n; i++)
+    /* Set right hand side. */
+    if (bfname)
     {
-        b[i] = 1;
+        FILE *f;
+        MM_typecode matcode;
+
+        // Open vector file
+        if ((f = fopen(args::get(bfname).c_str(), "r")) == NULL)
+        {
+            std::cerr << "Could not read file " << args::get(bfname) << std::endl;
+            return 1;
+        }
+        if (mm_read_banner(f, &matcode) != 0)
+        {
+            std::cerr << "Could not process Matrix Market banner.\n"
+                      << std::endl;
+            return 1;
+        }
+
+        // Check vector type
+        if (mm_is_complex(matcode))
+        {
+            std::cerr << "Sorry, this application does not support Market Market type: [" << mm_typecode_to_str(matcode) << "]" << std::endl;
+            return 1;
+        }
+
+        // Get vector size
+        int ret_code, M, N, nz;
+        if (
+            (mm_is_coordinate(matcode) && (ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0) ||
+            (mm_is_array(matcode) && (ret_code = mm_read_mtx_array_size(f, &M, &N)) != 0) ||
+            N != 1)
+        {
+            std::cerr << "Incorrect vector size";
+            return 1;
+        }
+        std::cout << "Detected b vector with size " << M << "x" << N << std::endl;
+
+        // Read vector to Eigen type
+        int row, col;
+        double val;
+        if (mm_is_coordinate(matcode))
+        {
+            std::fill(b, b + M, 0);
+            for (int i = 0; i < nz; i++)
+            {
+                fscanf(f, "%d %d %lg\n", &row, &col, &val);
+                b[row - 1] = val; /* adjust from 1-based to 0-based */
+            }
+        }
+        else
+        {
+            for (int i = 0; i < M; i++)
+            {
+                fscanf(f, "%lg\n", &val);
+                b[i] = val;
+            }
+        }
+    }
+    else
+    {
+        for (i = 0; i < n; i++)
+        {
+            b[i] = 1;
+        }
     }
     t1 = std::chrono::high_resolution_clock::now();
     PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
@@ -210,12 +280,18 @@ int main(int argc, char *argv[])
             &n, &ddum, ia, ja, &idum, &nrhs,
             iparm, &msglvl, &ddum, &ddum, &error);
 
-    // Append execution times to compilation file args::get(resultsfname)
-    std::ofstream outfile("compilation_pardiso.txt", std::ios_base::app);
-    outfile << fileName << "\t" << n << "\t" << nnz
-            << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << "\t" << 1
-            << std::endl;
-    outfile.close();
+    if (xfname)
+        saveDenseVectorMtx(args::get(xfname) + "_pardiso.mtx", x, (int)n);
+
+    if (resultsfname)
+    {
+        // Append execution times to compilation file args::get(resultsfname)
+        std::ofstream outfile(args::get(resultsfname), std::ios_base::app);
+        outfile << fileName << "\t" << n << "\t" << nnz
+                << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << "\t" << 1
+                << std::endl;
+        outfile.close();
+    }
 
     return 0;
 }
@@ -617,3 +693,14 @@ template MKL_INT loadMMSparseMatrix<double>(
     MKL_INT **aRowInd,
     MKL_INT **aColInd,
     bool extendSymMatrix, bool transposeMatrix);
+
+void saveDenseVectorMtx(const std::string filename, double *vec, int n)
+{
+    std::ofstream myfile;
+    myfile.open(filename);
+    myfile << "%%MatrixMarket matrix array real general" << std::endl
+           << n << " 1" << std::endl;
+    for (int i = 0; i < n; i++)
+        myfile << vec[i] << std::endl;
+    myfile.close();
+}

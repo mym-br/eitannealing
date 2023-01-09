@@ -31,7 +31,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <iostream>
 
+#include "../args/args.hxx"
 #include "mkl_pardiso.h"
 #include "mkl_types.h"
 #include "mmio.h"
@@ -48,34 +50,48 @@ MKL_INT loadMMSparseMatrix(char *filename, char elem_type, bool csrFormat, MKL_I
 #define IFORMAT "%lli"
 #endif
 
-int main(void)
+int main(int argc, char *argv[])
 {
+    /* Parse arguments */
+    args::ArgumentParser parser("This is a performance test program for the pardiso solver.", "No comments.");
+    args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
+    args::CompletionFlag completion(parser, {"complete"});
+    args::ValueFlag<std::string> bfname(parser, "filename", "b vector file", {'b'});
+    args::Positional<std::string> Afname(parser, "filename", "A matrix file. Supported files: .mtx or .msh (with automatic conversion)");
+    try
+    {
+        parser.ParseCLI(argc, argv);
+    }
+    catch (args::Completion e)
+    {
+        std::cout << e.what();
+        return 0;
+    }
+    catch (args::Help)
+    {
+        std::cout << parser;
+        return 0;
+    }
+    catch (args::ParseError e)
+    {
+        std::cerr << e.what() << std::endl
+                  << parser;
+        return 1;
+    }
+
     /* Matrix data. */
     MKL_INT m, n, nnz;
     MKL_INT *ia, *ja;
     double *a;
     MKL_INT mtype = -2; /* Real symmetric matrix */
+    std::string fileName = args::get(Afname);
 
-    if (loadMMSparseMatrix<double>("lap2D_5pt_n100.mtx", 'd', true, &m,
+    if (loadMMSparseMatrix<double>((char *)fileName.c_str(), 'd', true, &m,
                                    &n, &nnz, &a, &ia,
                                    &ja, false, true))
     {
         exit(EXIT_FAILURE);
     }
-
-    // std::cout << "n = " << n << ", m = " << m << ", nnz = " << nnz << "." << std::endl;
-    // std::cout << "ia = { ";
-    // for (int i = 0; i < n + 1; i++)
-    //     std::cout << ia[i] << ", ";
-    // std::cout << "};" << std::endl;
-    // std::cout << "ja = { ";
-    // for (int i = 0; i < nnz; i++)
-    //     std::cout << ja[i] << ", ";
-    // std::cout << "};" << std::endl;
-    // std::cout << "a = { ";
-    // for (int i = 0; i < nnz; i++)
-    //     std::cout << a[i] << ", ";
-    // std::cout << "};" << std::endl;
 
     /* RHS and solution vectors. */
     double *b, *x;

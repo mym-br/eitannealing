@@ -127,4 +127,4 @@ if(${CUDA_FOUND})
 endif()
 
 add_subdirectory(tests)
-add_subdirectory(cufppcgsolver)
+add_subdirectory(directsolver)

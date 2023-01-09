@@ -4,12 +4,15 @@ find_package(Eigen3 REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 find_package(MKL CONFIG REQUIRED)
 
-include_directories(${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src src/cusolver ../src ../src/complex)
+include_directories(${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src/common ../src ../src/complex)
+
+set(common_SRCS
+  src/common/mm/mmio.c
+)
 
 set(cufppcgsolver_SRCS 
-  src/main.cpp
-  src/conversions.cpp
-  src/mm/mmio.c
+  src/cufppcgsolver/main.cpp
+  src/cufppcgsolver/conversions.cpp
   ../src/incomplete_cholesky.cpp
   ../src/solver.cpp
   ../src/cuda/matrix-cpjds.cpp
@@ -31,7 +34,15 @@ set(cufppcgsolver_SRCS
   ../src/threedim/nodecoeficients3D.cpp
   ../src/twodim/initproblem2D.cpp
   ../src/twodim/nodecoeficients2D.cpp
+)
 
+set(cusolver_SRCS 
+  src/cusolver/main.cpp
+  src/cusolver/mmio_wrapper.cpp
+)
+
+set(pardiso_SRCS 
+  src/pardiso/main.cpp
 )
 
 include(CheckCXXCompilerFlag)
@@ -44,7 +55,7 @@ endif()
 
 if(CUSPARSE)
 	set(libs CUDA::cudart CUDA::cublas CUDA::cusparse)
-	add_executable(cufppcgsolver ${cufppcgsolver_SRCS} ../src/cuda/solvercublas.cu ../src/cuda/solvercublas.cpp src/cudacg.cu)
+	add_executable(cufppcgsolver ${cufppcgsolver_SRCS} ${common_SRCS} ../src/cuda/solvercublas.cu ../src/cuda/solvercublas.cpp src/cufppcgsolver/cudacg.cu)
 	target_compile_definitions(cufppcgsolver PRIVATE CUBLASCUSPARSE)
 else()
 	add_executable(cufppcgsolver ${cufppcgsolver_SRCS})
@@ -65,15 +76,14 @@ else()
 endif()
 
 if(CUSOLVER)
-  add_executable(cuSolverSp_LinearSolver src/cusolver/main.cpp src/cusolver/mmio.c src/cusolver/mmio_wrapper.cpp)
-  target_link_libraries(cuSolverSp_LinearSolver PRIVATE CUDA::cudart CUDA::cusolver)
+  add_executable(cusolver ${cusolver_SRCS} ${common_SRCS})
+  target_link_libraries(cusolver PRIVATE CUDA::cudart CUDA::cusolver)
 endif()
 if(PARDISO)
-  add_executable(sparse_directsolvers-pardiso_sym src/pardiso/main.cpp src/pardiso/mmio.c)
-  set_property(TARGET sparse_directsolvers-pardiso_sym PROPERTY CXX_STANDARD 17)
-  set_property(TARGET sparse_directsolvers-pardiso_sym PROPERTY CXX_STANDARD_REQUIRED ON)
-  # set_property(TARGET sparse_directsolvers-pardiso_sym PROPERTY LINKER_LANGUAGE ${TEST_LANG})
-  target_include_directories(sparse_directsolvers-pardiso_sym PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_INCLUDE_DIRECTORIES>)
-  target_compile_options(sparse_directsolvers-pardiso_sym PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_COMPILE_OPTIONS>)
-  target_link_libraries(sparse_directsolvers-pardiso_sym PUBLIC $<LINK_ONLY:MKL::MKL>)
+  add_executable(pardiso ${pardiso_SRCS} ${common_SRCS})
+  set_property(TARGET pardiso PROPERTY CXX_STANDARD 17)
+  set_property(TARGET pardiso PROPERTY CXX_STANDARD_REQUIRED ON)
+  target_include_directories(pardiso PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_INCLUDE_DIRECTORIES>)
+  target_compile_options(pardiso PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_COMPILE_OPTIONS>)
+  target_link_libraries(pardiso PUBLIC $<LINK_ONLY:MKL::MKL>)
 endif()

@@ -35,10 +35,10 @@
 #include <chrono>
 #include <fstream>
 
-#include "../args/args.hxx"
+#include "args/args.hxx"
 #include "mkl_pardiso.h"
 #include "mkl_types.h"
-#include "mmio.h"
+#include "mm/mmio.h"
 
 /* avoid Windows warnings (for example: strcpy, fscanf, etc.) */
 #if defined(_WIN32)

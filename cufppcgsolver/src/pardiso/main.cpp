@@ -39,7 +39,7 @@
 template <typename T_ELEM>
 MKL_INT loadMMSparseMatrix(char *filename, char elem_type, bool csrFormat, MKL_INT *m,
                            MKL_INT *n, MKL_INT *nnz, T_ELEM **aVal, MKL_INT **aRowInd,
-                           MKL_INT **aColInd, MKL_INT extendSymMatrix);
+                           MKL_INT **aColInd, bool extendSymMatrix, bool transposeMatrix);
 
 // Define the format to printf MKL_INT values
 #if !defined(MKL_ILP64)
@@ -58,7 +58,7 @@ int main(void)
 
     if (loadMMSparseMatrix<double>("lap2D_5pt_n100.mtx", 'd', true, &m,
                                    &n, &nnz, &a, &ia,
-                                   &ja, true))
+                                   &ja, false, true))
     {
         exit(EXIT_FAILURE);
     }
@@ -325,7 +325,7 @@ MKL_INT loadMMSparseMatrix(
     T_ELEM **aVal,
     MKL_INT **aRowInd,
     MKL_INT **aColInd,
-    MKL_INT extendSymMatrix)
+    bool extendSymMatrix, bool transposeMatrix)
 {
     MM_typecode matcode;
     double *tempVal;
@@ -387,8 +387,8 @@ MKL_INT loadMMSparseMatrix(
         // copy the elements regular and transposed locations
         for (j = 0, i = 0; i < (*nnz); i++)
         {
-            tempRowInd[j] = (MKL_INT)tcol[i];
-            tempColInd[j] = (MKL_INT)trow[i];
+            tempRowInd[j] = (MKL_INT)trow[i];
+            tempColInd[j] = (MKL_INT)tcol[i];
             if (mm_is_real(matcode) || mm_is_integer(matcode))
             {
                 tempVal[j] = tval[i];
@@ -399,7 +399,38 @@ MKL_INT loadMMSparseMatrix(
                 tempVal[2 * j + 1] = tval[2 * i + 1];
             }
             j++;
+            if (trow[i] != tcol[i])
+            {
+                tempRowInd[j] = (MKL_INT)tcol[i];
+                tempColInd[j] = (MKL_INT)trow[i];
+                if (mm_is_real(matcode) || mm_is_integer(matcode))
+                {
+                    if (mm_is_skew(matcode))
+                    {
+                        tempVal[j] = -tval[i];
+                    }
+                    else
+                    {
+                        tempVal[j] = tval[i];
+                    }
+                }
+                else
+                {
+                    if (mm_is_hermitian(matcode))
+                    {
+                        tempVal[2 * j] = tval[2 * i];
+                        tempVal[2 * j + 1] = -tval[2 * i + 1];
+                    }
+                    else
+                    {
+                        tempVal[2 * j] = tval[2 * i];
+                        tempVal[2 * j + 1] = tval[2 * i + 1];
+                    }
+                }
+                j++;
+            }
         }
+        (*nnz) += count;
         // free temporary storage
         free(trow);
         free(tcol);
@@ -407,10 +438,12 @@ MKL_INT loadMMSparseMatrix(
     }
     else
     {
+        tempRowInd = (MKL_INT *)malloc(*nnz * sizeof(MKL_INT));
+        tempColInd = (MKL_INT *)malloc(*nnz * sizeof(MKL_INT));
         for (i = 0; i < *nnz; i++)
         {
-            tempRowInd[i] = (MKL_INT)trow[i];
-            tempColInd[i] = (MKL_INT)tcol[i];
+            tempRowInd[i] = (MKL_INT)(transposeMatrix ? tcol[i] : trow[i]);
+            tempColInd[i] = (MKL_INT)(transposeMatrix ? trow[i] : tcol[i]);
         }
         tempVal = tval;
     }
@@ -555,4 +588,4 @@ template MKL_INT loadMMSparseMatrix<double>(
     double **aVal,
     MKL_INT **aRowInd,
     MKL_INT **aColInd,
-    MKL_INT extendSymMatrix);
+    bool extendSymMatrix, bool transposeMatrix);

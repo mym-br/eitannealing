@@ -83,9 +83,12 @@
 
 #include "cusolverSp.h"
 #include "cusparse.h"
+#include "mmio.h"
 
 #include "helper_cuda.h"
 #include "helper_cusolver.h"
+
+void saveDenseVectorMtx(const std::string filename, double *vec, int n);
 
 template <typename T_ELEM>
 int loadMMSparseMatrix(char *filename, char elem_type, bool csrFormat, int *m,
@@ -105,6 +108,9 @@ void UsageSP(void)
     printf("              symamd (Approximate Minimum Degree)\n");
     printf("              metis  (nested dissection)\n");
     printf("-file=<filename> : filename containing a matrix in MM format\n");
+    printf("-rhs=<filename> : filename containing rhs vector in MM format\n");
+    printf("-output=<filename> : filename containing x solution in MM format\n");
+    printf("-compilation=<filename> : filename containing timing data\n");
     printf("-device=<device_id> : <device_id> if want to run on specific GPU\n");
 
     exit(0);
@@ -176,6 +182,54 @@ void parseCommandLineArguments(int argc, char *argv[], struct testOpts &opts)
             UsageSP();
         }
     }
+
+    if (checkCmdLineFlag(argc, (const char **)argv, "rhs"))
+    {
+        char *fileName = 0;
+        getCmdLineArgumentString(argc, (const char **)argv, "rhs", &fileName);
+
+        if (fileName)
+        {
+            opts.rhs_filename = fileName;
+        }
+        else
+        {
+            printf("\nIncorrect filename passed to -rhs \n ");
+            UsageSP();
+        }
+    }
+
+    if (checkCmdLineFlag(argc, (const char **)argv, "output"))
+    {
+        char *fileName = 0;
+        getCmdLineArgumentString(argc, (const char **)argv, "output", &fileName);
+
+        if (fileName)
+        {
+            opts.x_output_filename = fileName;
+        }
+        else
+        {
+            printf("\nIncorrect filename passed to -output \n ");
+            UsageSP();
+        }
+    }
+
+    if (checkCmdLineFlag(argc, (const char **)argv, "compilation"))
+    {
+        char *fileName = 0;
+        getCmdLineArgumentString(argc, (const char **)argv, "compilation", &fileName);
+
+        if (fileName)
+        {
+            opts.compilation_filename = fileName;
+        }
+        else
+        {
+            printf("\nIncorrect filename passed to -compilation \n ");
+            UsageSP();
+        }
+    }
 }
 
 int main(int argc, char *argv[])
@@ -201,6 +255,7 @@ int main(int argc, char *argv[])
     double *h_b = NULL;  /* b = ones(n,1) */
     double *h_Qb = NULL; /* Q*b */
     double *h_r = NULL;  /* r = b - A*x */
+    double *h_rhs = NULL;
 
     int *h_Q = NULL; /* <int> n */
                      /* reorder to reduce zero fill-in */
@@ -247,7 +302,6 @@ int main(int argc, char *argv[])
     int issym = 0;
 
     double start, stop;
-    double time_solve_cpu;
     double time_solve_gpu;
 
     parseCommandLineArguments(argc, argv, opts);
@@ -296,6 +350,68 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "Error: only support square matrix\n");
         return 1;
+    }
+
+    h_rhs = (double *)malloc(sizeof(double) * rowsA);
+    if (opts.sparse_mat_filename == NULL)
+    {
+        for (int i = 0; i < rowsA; i++)
+            h_rhs[i] = 1.0;
+    }
+    else
+    {
+        FILE *f;
+        MM_typecode matcode;
+        if ((f = fopen(opts.rhs_filename, "r")) == NULL)
+        {
+            fprintf(stderr, "Error: could not read rhs file %s\n", opts.rhs_filename);
+            return 1;
+        }
+        if (mm_read_banner(f, &matcode) != 0)
+        {
+            std::cerr << "Could not process Matrix Market banner.\n"
+                      << std::endl;
+            return 1;
+        }
+        // Check vector type
+        if (mm_is_complex(matcode))
+        {
+            std::cerr << "Sorry, this application does not support Market Market type: [" << mm_typecode_to_str(matcode) << "]" << std::endl;
+            return 1;
+        }
+
+        // Get vector size
+        int ret_code, M, N, nz;
+        if (
+            (mm_is_coordinate(matcode) && (ret_code = mm_read_mtx_crd_size(f, &M, &N, &nz)) != 0) ||
+            (mm_is_array(matcode) && (ret_code = mm_read_mtx_array_size(f, &M, &N)) != 0) ||
+            N != 1)
+        {
+            std::cerr << "Incorrect vector size";
+            return 1;
+        }
+        std::cout << "Detected b vector with size " << M << "x" << N << std::endl;
+
+        // Read vector to Eigen type
+        int row, col;
+        double val;
+        if (mm_is_coordinate(matcode))
+        {
+            std::fill(h_rhs, h_rhs + M, 0);
+            for (int i = 0; i < nz; i++)
+            {
+                fscanf(f, "%d %d %lg\n", &row, &col, &val);
+                h_rhs[row - 1] = val; /* adjust from 1-based to 0-based */
+            }
+        }
+        else
+        {
+            for (int i = 0; i < M; i++)
+            {
+                fscanf(f, "%lg\n", &val);
+                h_rhs[i] = val;
+            }
+        }
     }
 
     auto t1 = std::chrono::high_resolution_clock::now();
@@ -444,10 +560,10 @@ int main(int argc, char *argv[])
         h_csrValB[j] = h_csrValA[h_mapBfromA[j]];
     }
 
-    printf("step 3: b(j) = 1 + j/n \n");
+    printf("step 3: b(j) = rhs(j) \n");
     for (int row = 0; row < rowsA; row++)
     {
-        h_b[row] = 1.0 + ((double)row) / ((double)rowsA);
+        h_b[row] = h_rhs[row];
     }
 
     /* h_Qb = b(Q) */
@@ -657,14 +773,17 @@ int main(int argc, char *argv[])
                r_inf / (A_inf * x_inf + b_inf));
     }
 
-    fprintf(stdout, "timing %s: CPU = %10.6f sec , GPU = %10.6f sec\n",
-            opts.testFunc, time_solve_cpu, time_solve_gpu);
+    fprintf(stdout, "timing %s: GPU = %10.6f sec\n",
+            opts.testFunc, time_solve_gpu);
 
-    // Append execution times to compilation file args::get(resultsfname)
-    std::ofstream outfile("compilation_cusolver.txt", std::ios_base::app);
-    outfile << opts.sparse_mat_filename << "\t" << rowsA << "\t" << nnzA
-            << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << "\t" << 1
-            << std::endl;
+    if (opts.compilation_filename != NULL)
+    {
+        // Append execution times to compilation file args::get(resultsfname)
+        std::ofstream outfile(opts.compilation_filename, std::ios_base::app);
+        outfile << opts.sparse_mat_filename << "\t" << rowsA << "\t" << nnzA
+                << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << "\t" << std::chrono::duration_cast<std::chrono::microseconds>(time_executor).count() << "\t" << 1
+                << std::endl;
+    }
 
     if (0 != strcmp(opts.testFunc, "lu"))
     {
@@ -673,6 +792,10 @@ int main(int argc, char *argv[])
         for (int j = rowsA - 10; j < rowsA; j++)
         {
             printf("x[%d] = %E\n", j, h_x[j]);
+        }
+        if (opts.x_output_filename != NULL)
+        {
+            saveDenseVectorMtx(std::string(opts.x_output_filename) + "_cusolver.mtx", h_x, rowsA);
         }
     }
 
@@ -819,4 +942,15 @@ int main(int argc, char *argv[])
     }
 
     return 0;
+}
+
+void saveDenseVectorMtx(const std::string filename, double *vec, int n)
+{
+    std::ofstream myfile;
+    myfile.open(filename);
+    myfile << "%%MatrixMarket matrix array real general" << std::endl
+           << n << " 1" << std::endl;
+    for (int i = 0; i < n; i++)
+        myfile << vec[i] << std::endl;
+    myfile.close();
 }

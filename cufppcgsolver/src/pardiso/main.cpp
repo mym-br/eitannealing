@@ -37,9 +37,9 @@
 #include "mmio.h"
 
 template <typename T_ELEM>
-int loadMMSparseMatrix(char *filename, char elem_type, bool csrFormat, int *m,
-                       int *n, int *nnz, T_ELEM **aVal, int **aRowInd,
-                       int **aColInd, int extendSymMatrix);
+MKL_INT loadMMSparseMatrix(char *filename, char elem_type, bool csrFormat, MKL_INT *m,
+                           MKL_INT *n, MKL_INT *nnz, T_ELEM **aVal, MKL_INT **aRowInd,
+                           MKL_INT **aColInd, MKL_INT extendSymMatrix);
 
 // Define the format to printf MKL_INT values
 #if !defined(MKL_ILP64)
@@ -51,42 +51,36 @@ int loadMMSparseMatrix(char *filename, char elem_type, bool csrFormat, int *m,
 int main(void)
 {
     /* Matrix data. */
-    MKL_INT n = 8;
-    MKL_INT ia[9] = {1, 5, 8, 10, 12, 15, 17, 18, 19};
-    MKL_INT ja[18] =
-        {1, 3, 6, 7,
-         2, 3, 5,
-         3, 8,
-         4, 7,
-         5, 6, 7,
-         6, 8,
-         7,
-         8};
-    double a[18] =
-        {7.0, 1.0, 2.0, 7.0,
-         -4.0, 8.0, 2.0,
-         1.0, 5.0,
-         7.0, 9.0,
-         5.0, 1.0, 5.0,
-         -1.0, 5.0,
-         11.0,
-         5.0};
+    MKL_INT m, n, nnz;
+    MKL_INT *ia, *ja;
+    double *a;
     MKL_INT mtype = -2; /* Real symmetric matrix */
 
-    int im, in, innz;
-    int *iia, *ija;
-    double *iva;
-
-    /* Test for mtx format matrix loading */
-    if (loadMMSparseMatrix<double>("C:/Users/aksato.LABGEOCOMP/Documents/eitannealing/build/cufppcgsolver/Release/lap2D_5pt_n100.mtx", 'd', true, &im,
-                                   &in, &innz, &iva, &iia,
-                                   &ija, true))
+    if (loadMMSparseMatrix<double>("lap2D_5pt_n100.mtx", 'd', true, &m,
+                                   &n, &nnz, &a, &ia,
+                                   &ja, true))
     {
         exit(EXIT_FAILURE);
     }
 
+    // std::cout << "n = " << n << ", m = " << m << ", nnz = " << nnz << "." << std::endl;
+    // std::cout << "ia = { ";
+    // for (int i = 0; i < n + 1; i++)
+    //     std::cout << ia[i] << ", ";
+    // std::cout << "};" << std::endl;
+    // std::cout << "ja = { ";
+    // for (int i = 0; i < nnz; i++)
+    //     std::cout << ja[i] << ", ";
+    // std::cout << "};" << std::endl;
+    // std::cout << "a = { ";
+    // for (int i = 0; i < nnz; i++)
+    //     std::cout << a[i] << ", ";
+    // std::cout << "};" << std::endl;
+
     /* RHS and solution vectors. */
-    double b[8], x[8];
+    double *b, *x;
+    b = (double *)malloc(n * sizeof(double));
+    x = (double *)malloc(n * sizeof(double));
     MKL_INT nrhs = 1; /* Number of right hand sides. */
     /* Internal solver memory pointer pt, */
     /* 32-bit: int pt[64]; 64-bit: long int pt[64] */
@@ -199,11 +193,11 @@ int main(void)
 }
 
 static void compress_index(
-    const int *Ind,
-    int nnz,
-    int m,
-    int *Ptr,
-    int base)
+    const MKL_INT *Ind,
+    MKL_INT nnz,
+    MKL_INT m,
+    MKL_INT *Ptr,
+    MKL_INT base)
 {
     int i;
 
@@ -227,9 +221,9 @@ static void compress_index(
 
 struct cooFormat
 {
-    int i;
-    int j;
-    int p; // permutation
+    MKL_INT i;
+    MKL_INT j;
+    MKL_INT p; // permutation
 };
 
 int cmp_cooFormat_csr(struct cooFormat *s, struct cooFormat *t)
@@ -244,7 +238,7 @@ int cmp_cooFormat_csr(struct cooFormat *s, struct cooFormat *t)
     }
     else
     {
-        return s->j - t->j;
+        return (int)(s->j - t->j);
     }
 }
 
@@ -260,7 +254,7 @@ int cmp_cooFormat_csc(struct cooFormat *s, struct cooFormat *t)
     }
     else
     {
-        return s->i - t->i;
+        return (int)(s->i - t->i);
     }
 }
 
@@ -273,24 +267,24 @@ static FUNPTR2 fptr_array[2] = {
 };
 
 static int verify_pattern(
-    int m,
-    int nnz,
-    int *csrRowPtr,
-    int *csrColInd)
+    MKL_INT m,
+    MKL_INT nnz,
+    MKL_INT *csrRowPtr,
+    MKL_INT *csrColInd)
 {
-    int i, col, start, end, base_index;
+    MKL_INT i, col, start, end, base_index;
     int error_found = 0;
 
     if (nnz != (csrRowPtr[m] - csrRowPtr[0]))
     {
-        fprintf(stderr, "Error (nnz check failed): (csrRowPtr[%d]=%d - csrRowPtr[%d]=%d) != (nnz=%d)\n", 0, csrRowPtr[0], m, csrRowPtr[m], nnz);
+        fprintf(stderr, "Error (nnz check failed): (csrRowPtr[%d]=%lld - csrRowPtr[%lld]=%lld) != (nnz=%lld)\n", 0, csrRowPtr[0], m, csrRowPtr[m], nnz);
         error_found = 1;
     }
 
     base_index = csrRowPtr[0];
     if ((0 != base_index) && (1 != base_index))
     {
-        fprintf(stderr, "Error (base index check failed): base index = %d\n", base_index);
+        fprintf(stderr, "Error (base index check failed): base index = %lld\n", base_index);
         error_found = 1;
     }
 
@@ -300,19 +294,19 @@ static int verify_pattern(
         end = csrRowPtr[i + 1] - base_index;
         if (start > end)
         {
-            fprintf(stderr, "Error (corrupted row): csrRowPtr[%d] (=%d) > csrRowPtr[%d] (=%d)\n", i, start + base_index, i + 1, end + base_index);
+            fprintf(stderr, "Error (corrupted row): csrRowPtr[%lld] (=%lld) > csrRowPtr[%lld] (=%lld)\n", i, start + base_index, i + 1, end + base_index);
             error_found = 1;
         }
         for (col = start; col < end; col++)
         {
             if (csrColInd[col] < base_index)
             {
-                fprintf(stderr, "Error (column vs. base index check failed): csrColInd[%d] < %d\n", col, base_index);
+                fprintf(stderr, "Error (column vs. base index check failed): csrColInd[%lld] < %lld\n", col, base_index);
                 error_found = 1;
             }
             if ((col < (end - 1)) && (csrColInd[col] >= csrColInd[col + 1]))
             {
-                fprintf(stderr, "Error (sorting of the column indecis check failed): (csrColInd[%d]=%d) >= (csrColInd[%d]=%d)\n", col, csrColInd[col], col + 1, csrColInd[col + 1]);
+                fprintf(stderr, "Error (sorting of the column indecis check failed): (csrColInd[%lld]=%lld) >= (csrColInd[%lld]=%lld)\n", col, csrColInd[col], col + 1, csrColInd[col + 1]);
                 error_found = 1;
             }
         }
@@ -321,34 +315,38 @@ static int verify_pattern(
 }
 
 template <typename T_ELEM>
-int loadMMSparseMatrix(
+MKL_INT loadMMSparseMatrix(
     char *filename,
     char elem_type,
     bool csrFormat,
-    int *m,
-    int *n,
-    int *nnz,
+    MKL_INT *m,
+    MKL_INT *n,
+    MKL_INT *nnz,
     T_ELEM **aVal,
-    int **aRowInd,
-    int **aColInd,
-    int extendSymMatrix)
+    MKL_INT **aRowInd,
+    MKL_INT **aColInd,
+    MKL_INT extendSymMatrix)
 {
     MM_typecode matcode;
     double *tempVal;
-    int *tempRowInd, *tempColInd;
+    MKL_INT *tempRowInd, *tempColInd;
     double *tval;
     int *trow, *tcol;
-    int *csrRowPtr, *cscColPtr;
-    int i, j, error, base, count;
+    MKL_INT *csrRowPtr, *cscColPtr;
+    MKL_INT i, j, error, base, count;
     struct cooFormat *work;
 
     /* read the matrix */
-    error = mm_read_mtx_crd(filename, m, n, nnz, &trow, &tcol, &tval, &matcode);
+    int i_m, i_n, i_nnz;
+    error = mm_read_mtx_crd(filename, &i_m, &i_n, &i_nnz, &trow, &tcol, &tval, &matcode);
     if (error)
     {
         fprintf(stderr, "!!!! can not open file: '%s'\n", filename);
         return 1;
     }
+    *m = (MKL_INT)i_m;
+    *n = (MKL_INT)i_n;
+    *nnz = (MKL_INT)i_nnz;
 
     /* start error checking */
     if (mm_is_complex(matcode) && ((elem_type != 'z') && (elem_type != 'c')))
@@ -376,8 +374,8 @@ int loadMMSparseMatrix(
             }
         }
         // allocate space for the symmetrized matrix
-        tempRowInd = (int *)malloc((*nnz + count) * sizeof(int));
-        tempColInd = (int *)malloc((*nnz + count) * sizeof(int));
+        tempRowInd = (MKL_INT *)malloc((*nnz + count) * sizeof(MKL_INT));
+        tempColInd = (MKL_INT *)malloc((*nnz + count) * sizeof(MKL_INT));
         if (mm_is_real(matcode) || mm_is_integer(matcode))
         {
             tempVal = (double *)malloc((*nnz + count) * sizeof(double));
@@ -389,8 +387,8 @@ int loadMMSparseMatrix(
         // copy the elements regular and transposed locations
         for (j = 0, i = 0; i < (*nnz); i++)
         {
-            tempRowInd[j] = trow[i];
-            tempColInd[j] = tcol[i];
+            tempRowInd[j] = (MKL_INT)tcol[i];
+            tempColInd[j] = (MKL_INT)trow[i];
             if (mm_is_real(matcode) || mm_is_integer(matcode))
             {
                 tempVal[j] = tval[i];
@@ -401,38 +399,7 @@ int loadMMSparseMatrix(
                 tempVal[2 * j + 1] = tval[2 * i + 1];
             }
             j++;
-            if (trow[i] != tcol[i])
-            {
-                tempRowInd[j] = tcol[i];
-                tempColInd[j] = trow[i];
-                if (mm_is_real(matcode) || mm_is_integer(matcode))
-                {
-                    if (mm_is_skew(matcode))
-                    {
-                        tempVal[j] = -tval[i];
-                    }
-                    else
-                    {
-                        tempVal[j] = tval[i];
-                    }
-                }
-                else
-                {
-                    if (mm_is_hermitian(matcode))
-                    {
-                        tempVal[2 * j] = tval[2 * i];
-                        tempVal[2 * j + 1] = -tval[2 * i + 1];
-                    }
-                    else
-                    {
-                        tempVal[2 * j] = tval[2 * i];
-                        tempVal[2 * j + 1] = tval[2 * i + 1];
-                    }
-                }
-                j++;
-            }
         }
-        (*nnz) += count;
         // free temporary storage
         free(trow);
         free(tcol);
@@ -440,8 +407,11 @@ int loadMMSparseMatrix(
     }
     else
     {
-        tempRowInd = trow;
-        tempColInd = tcol;
+        for (i = 0; i < *nnz; i++)
+        {
+            tempRowInd[i] = (MKL_INT)trow[i];
+            tempColInd[i] = (MKL_INT)tcol[i];
+        }
         tempVal = tval;
     }
     // life time of (trow, tcol, tval) is over.
@@ -482,12 +452,12 @@ int loadMMSparseMatrix(
     // setup base
     // check if there is any row/col 0, if so base-0
     // check if there is any row/col equal to matrix dimension m/n, if so base-1
-    int base0 = 0;
-    int base1 = 0;
+    MKL_INT base0 = 0;
+    MKL_INT base1 = 0;
     for (i = 0; i < (*nnz); i++)
     {
-        const int row = tempRowInd[i];
-        const int col = tempColInd[i];
+        const MKL_INT row = tempRowInd[i];
+        const MKL_INT col = tempColInd[i];
         if ((0 == row) || (0 == col))
         {
             base0 = 1;
@@ -513,24 +483,24 @@ int loadMMSparseMatrix(
     if (csrFormat)
     {
         /* CSR format (assuming row-major format) */
-        csrRowPtr = (int *)malloc(((*m) + 1) * sizeof(csrRowPtr[0]));
+        csrRowPtr = (MKL_INT *)malloc(((*m) + 1) * sizeof(csrRowPtr[0]));
         if (!csrRowPtr)
             return 1;
         compress_index(tempRowInd, *nnz, *m, csrRowPtr, base);
 
         *aRowInd = csrRowPtr;
-        *aColInd = (int *)malloc((*nnz) * sizeof(int));
+        *aColInd = (MKL_INT *)malloc((*nnz) * sizeof(MKL_INT));
     }
     else
     {
         /* CSC format (assuming column-major format) */
-        cscColPtr = (int *)malloc(((*n) + 1) * sizeof(cscColPtr[0]));
+        cscColPtr = (MKL_INT *)malloc(((*n) + 1) * sizeof(cscColPtr[0]));
         if (!cscColPtr)
             return 1;
         compress_index(tempColInd, *nnz, *n, cscColPtr, base);
 
         *aColInd = cscColPtr;
-        *aRowInd = (int *)malloc((*nnz) * sizeof(int));
+        *aRowInd = (MKL_INT *)malloc((*nnz) * sizeof(MKL_INT));
     }
 
     /* transfrom the matrix values of type double into one of the cusparse library types */
@@ -550,7 +520,7 @@ int loadMMSparseMatrix(
     }
 
     /* check for corruption */
-    int error_found;
+    MKL_INT error_found;
     if (csrFormat)
     {
         error_found = verify_pattern(*m, *nnz, *aRowInd, *aColInd);
@@ -575,14 +545,14 @@ int loadMMSparseMatrix(
 }
 
 /* specific instantiation */
-template int loadMMSparseMatrix<double>(
+template MKL_INT loadMMSparseMatrix<double>(
     char *filename,
     char elem_type,
     bool csrFormat,
-    int *m,
-    int *n,
-    int *nnz,
+    MKL_INT *m,
+    MKL_INT *n,
+    MKL_INT *nnz,
     double **aVal,
-    int **aRowInd,
-    int **aColInd,
-    int extendSymMatrix);
+    MKL_INT **aRowInd,
+    MKL_INT **aColInd,
+    MKL_INT extendSymMatrix);

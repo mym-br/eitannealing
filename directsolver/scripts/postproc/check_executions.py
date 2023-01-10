@@ -4,6 +4,9 @@ import pandas as pd
 
 #%%
 def get_instance_executions(compilation_file_path: str) -> dict[str, int]:
+    if not pathlib.Path(compilation_file_path).exists():
+        return {}
+
     df = pd.read_csv(
         compilation_file_path,
         delimiter='\t',

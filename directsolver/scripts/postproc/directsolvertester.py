@@ -161,7 +161,7 @@ def main():
         bar.text = f'-> Running EIT mtx instances (step 1/3), please wait...'
         for mtx, rhs in eit_files:
             successes = 0
-            while (successes < repetitions - executions[mtx.stem]):
+            while (successes < repetitions - executions.get(mtx.stem, 0)):
                 try:
                     run_instance(executable=args.directsolver,
                                  mtx=mtx,
@@ -185,7 +185,7 @@ def main():
         bar.text = f'-> Running suitesparse mtx instances (step 2/3), please wait...'
         for mtx in suitesparse_files:
             successes = 0
-            while (successes < repetitions - executions[mtx.stem]):
+            while (successes < repetitions - executions.get(mtx.stem, 0)):
                 try:
                     run_instance(
                         executable=args.directsolver,

@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
     args::CompletionFlag completion(parser, {"complete"});
     args::ValueFlag<std::string> bfname(parser, "filename", "b vector file", {'b'});
     args::ValueFlag<std::string> xfname(parser, "filename", "Output x filename prefix", {"output"});
+    args::ValueFlag<int> maxits(parser, "number", "Maximum number of CG iterations", {"maxits"});
     args::Positional<std::string> Afname(parser, "filename", "A matrix file. Supported files: .mtx or .msh (with automatic conversion)");
     args::ValueFlag<std::string> resultsfname(parser, "compilation", "Results compilation filename prefix (append)", {"compilation"});
     try

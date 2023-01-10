@@ -81,6 +81,7 @@
 
 #include <cuda_runtime.h>
 
+#include "args/args.hxx"
 #include "cusolverSp.h"
 #include "cusparse.h"
 #include "mmio.h"
@@ -94,143 +95,6 @@ template <typename T_ELEM>
 int loadMMSparseMatrix(char *filename, char elem_type, bool csrFormat, int *m,
                        int *n, int *nnz, T_ELEM **aVal, int **aRowInd,
                        int **aColInd, int extendSymMatrix);
-
-void UsageSP(void)
-{
-    printf("<options>\n");
-    printf("-h          : display this help\n");
-    printf("-R=<name>   : choose a linear solver\n");
-    printf("              chol (cholesky factorization), this is default\n");
-    printf("              qr   (QR factorization)\n");
-    printf("              lu   (LU factorization)\n");
-    printf("-P=<name>    : choose a reordering\n");
-    printf("              symrcm (Reverse Cuthill-McKee)\n");
-    printf("              symamd (Approximate Minimum Degree)\n");
-    printf("              metis  (nested dissection)\n");
-    printf("-file=<filename> : filename containing a matrix in MM format\n");
-    printf("-rhs=<filename> : filename containing rhs vector in MM format\n");
-    printf("-output=<filename> : filename containing x solution in MM format\n");
-    printf("-compilation=<filename> : filename containing timing data\n");
-    printf("-device=<device_id> : <device_id> if want to run on specific GPU\n");
-
-    exit(0);
-}
-
-void parseCommandLineArguments(int argc, char *argv[], struct testOpts &opts)
-{
-    memset(&opts, 0, sizeof(opts));
-
-    if (checkCmdLineFlag(argc, (const char **)argv, "-h"))
-    {
-        UsageSP();
-    }
-
-    if (checkCmdLineFlag(argc, (const char **)argv, "R"))
-    {
-        char *solverType = NULL;
-        getCmdLineArgumentString(argc, (const char **)argv, "R", &solverType);
-
-        if (solverType)
-        {
-            if ((STRCASECMP(solverType, "chol") != 0) &&
-                (STRCASECMP(solverType, "lu") != 0) &&
-                (STRCASECMP(solverType, "qr") != 0))
-            {
-                printf("\nIncorrect argument passed to -R option\n");
-                UsageSP();
-            }
-            else
-            {
-                opts.testFunc = solverType;
-            }
-        }
-    }
-
-    if (checkCmdLineFlag(argc, (const char **)argv, "P"))
-    {
-        char *reorderType = NULL;
-        getCmdLineArgumentString(argc, (const char **)argv, "P", &reorderType);
-
-        if (reorderType)
-        {
-            if ((STRCASECMP(reorderType, "symrcm") != 0) &&
-                (STRCASECMP(reorderType, "symamd") != 0) &&
-                (STRCASECMP(reorderType, "metis") != 0))
-            {
-                printf("\nIncorrect argument passed to -P option\n");
-                UsageSP();
-            }
-            else
-            {
-                opts.reorder = reorderType;
-            }
-        }
-    }
-
-    if (checkCmdLineFlag(argc, (const char **)argv, "file"))
-    {
-        char *fileName = 0;
-        getCmdLineArgumentString(argc, (const char **)argv, "file", &fileName);
-
-        if (fileName)
-        {
-            opts.sparse_mat_filename = fileName;
-        }
-        else
-        {
-            printf("\nIncorrect filename passed to -file \n ");
-            UsageSP();
-        }
-    }
-
-    if (checkCmdLineFlag(argc, (const char **)argv, "rhs"))
-    {
-        char *fileName = 0;
-        getCmdLineArgumentString(argc, (const char **)argv, "rhs", &fileName);
-
-        if (fileName)
-        {
-            opts.rhs_filename = fileName;
-        }
-        else
-        {
-            printf("\nIncorrect filename passed to -rhs \n ");
-            UsageSP();
-        }
-    }
-
-    if (checkCmdLineFlag(argc, (const char **)argv, "output"))
-    {
-        char *fileName = 0;
-        getCmdLineArgumentString(argc, (const char **)argv, "output", &fileName);
-
-        if (fileName)
-        {
-            opts.x_output_filename = fileName;
-        }
-        else
-        {
-            printf("\nIncorrect filename passed to -output \n ");
-            UsageSP();
-        }
-    }
-
-    if (checkCmdLineFlag(argc, (const char **)argv, "compilation"))
-    {
-        char *fileName = 0;
-        getCmdLineArgumentString(argc, (const char **)argv, "compilation", &fileName);
-
-        if (fileName)
-        {
-            opts.compilation_filename = fileName;
-        }
-        else
-        {
-            printf("\nIncorrect filename passed to -compilation \n ");
-            UsageSP();
-        }
-    }
-}
 
 int main(int argc, char *argv[])
 {
@@ -304,7 +168,43 @@ int main(int argc, char *argv[])
     double start, stop;
     double time_solve_gpu;
 
-    parseCommandLineArguments(argc, argv, opts);
+    /* Parse arguments */
+    args::ArgumentParser parser("This is a performance test program for the cusolver solver.", "No comments.");
+    args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
+    args::CompletionFlag completion(parser, {"complete"});
+    args::ValueFlag<std::string> bfname(parser, "filename", "b vector file", {'b'});
+    args::ValueFlag<std::string> xfname(parser, "filename", "Output x filename prefix", {"output"});
+    args::ValueFlag<int> maxits(parser, "number", "Maximum number of CG iterations", {"maxits"});
+    args::Positional<std::string> Afname(parser, "filename", "A matrix file. Supported files: .mtx or .msh (with automatic conversion)");
+    args::ValueFlag<std::string> resultsfname(parser, "compilation", "Results compilation filename prefix (append)", {"compilation"});
+    try
+    {
+        parser.ParseCLI(argc, argv);
+    }
+    catch (args::Completion e)
+    {
+        std::cout << e.what();
+        return 0;
+    }
+    catch (args::Help)
+    {
+        std::cout << parser;
+        return 0;
+    }
+    catch (args::ParseError e)
+    {
+        std::cerr << e.what() << std::endl
+                  << parser;
+        return 1;
+    }
+
+    opts.sparse_mat_filename = (char *)args::get(Afname).c_str();
+    opts.rhs_filename = bfname ? (char *)args::get(bfname).c_str() : NULL;
+    opts.x_output_filename = xfname ? (char *)args::get(xfname).c_str() : NULL;
+    opts.compilation_filename = resultsfname ? (char *)args::get(resultsfname).c_str() : NULL;
+    opts.testFunc = NULL;
+    opts.reorder = NULL;
+    opts.lda = 0;
 
     if (NULL == opts.testFunc)
     {

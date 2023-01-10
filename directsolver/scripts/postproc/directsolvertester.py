@@ -65,6 +65,11 @@ MTX_INSTANCES_SETS = {
     ])
 }
 
+DEFAULT_DIRECT_SOLVER = "cufppcgsolver.exe"
+DIRECT_SOLVERS_EXECUTABLES = [
+    DEFAULT_DIRECT_SOLVER, "cusolver.exe", "pardiso.exe"
+]
+
 
 def preprocess_mtx_files(folder: str,
                          expected_instances: set[str],
@@ -103,11 +108,22 @@ def run_instance(executable: str,
         f.write(result.stdout)
 
 
+def find_executables(folder: str):
+    print(os.getcwd())
+    print([f for f in pathlib.Path(folder).iterdir()])
+    executables = [
+        f for f in pathlib.Path(folder).iterdir()
+        if f.suffix == ".exe" and f.name in DIRECT_SOLVERS_EXECUTABLES
+    ]
+    return executables
+
+
 #%%
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("directsolver", help="path to directsolver executable")
+    parser.add_argument("directsolver",
+                        help="path with directsolver executables")
     parser.add_argument("eit", help="path to eit mtx files folder")
     parser.add_argument("suitesparse",
                         help="path to suitesparse mtx files folder")
@@ -136,6 +152,8 @@ def main():
 
     results_folder = args.results
 
+    executables = find_executables(args.directsolver)
+
     logging.basicConfig(level=logging.INFO,
                         encoding='utf-8',
                         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -146,6 +164,11 @@ def main():
                         ])
 
     compilation_filename = args.compilation if args.compilation else DEFAULT_COMPILATION_FILENAME
+    exec_compilation_filename = {
+        exec: f"{pathlib.Path(compilation_filename).stem}_{exec[:-4]}.txt"
+        if exec != DEFAULT_DIRECT_SOLVER else compilation_filename
+        for exec in DIRECT_SOLVERS_EXECUTABLES
+    }
 
     # check for existing results
     executions = get_instance_executions(
@@ -163,13 +186,16 @@ def main():
             successes = 0
             while (successes < repetitions - executions.get(mtx.stem, 0)):
                 try:
-                    run_instance(executable=args.directsolver,
-                                 mtx=mtx,
-                                 res=None,
-                                 maxits=200,
-                                 results_folder=results_folder,
-                                 compilation_filename=compilation_filename,
-                                 rhs=rhs)
+                    for executable in executables:
+                        run_instance(
+                            executable=executable,
+                            mtx=mtx,
+                            res=None,
+                            maxits=200,
+                            results_folder=results_folder,
+                            compilation_filename=exec_compilation_filename[
+                                executable.name],
+                            rhs=rhs)
                     successes = successes + 1
                     bar()
                 except subprocess.CalledProcessError as err:
@@ -187,14 +213,16 @@ def main():
             successes = 0
             while (successes < repetitions - executions.get(mtx.stem, 0)):
                 try:
-                    run_instance(
-                        executable=args.directsolver,
-                        mtx=mtx,
-                        res=0.001,
-                        maxits=2000,
-                        results_folder=results_folder,
-                        compilation_filename=compilation_filename,
-                    )
+                    for executable in executables:
+                        run_instance(
+                            executable=executable,
+                            mtx=mtx,
+                            res=0.001,
+                            maxits=2000,
+                            results_folder=results_folder,
+                            compilation_filename=exec_compilation_filename[
+                                executable.name],
+                        )
                     successes = successes + 1
                     bar()
                 except subprocess.CalledProcessError as err:

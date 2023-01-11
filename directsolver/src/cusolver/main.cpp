@@ -174,6 +174,7 @@ int main(int argc, char *argv[])
     args::CompletionFlag completion(parser, {"complete"});
     args::ValueFlag<std::string> bfname(parser, "filename", "b vector file", {'b'});
     args::ValueFlag<std::string> xfname(parser, "filename", "Output x filename prefix", {"output"});
+    args::ValueFlag<double> res(parser, "number", "Residual for CG convergence", {"res"});
     args::ValueFlag<int> maxits(parser, "number", "Maximum number of CG iterations", {"maxits"});
     args::Positional<std::string> Afname(parser, "filename", "A matrix file. Supported files: .mtx or .msh (with automatic conversion)");
     args::ValueFlag<std::string> resultsfname(parser, "compilation", "Results compilation filename prefix (append)", {"compilation"});
@@ -253,7 +254,7 @@ int main(int argc, char *argv[])
     }
 
     h_rhs = (double *)malloc(sizeof(double) * rowsA);
-    if (opts.sparse_mat_filename == NULL)
+    if (opts.rhs_filename == NULL)
     {
         for (int i = 0; i < rowsA; i++)
             h_rhs[i] = 1.0;

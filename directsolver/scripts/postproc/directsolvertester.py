@@ -129,13 +129,14 @@ def batch_run_instances(instance_files: list[pathlib.Path],
                         maxits: Optional[int] = 200,
                         res: Optional[float] = None):
     total_errors = 0
-    with alive_bar(repetitions * len(instance_files) -
+    with alive_bar(repetitions * len(instance_files) * len(executables) -
                    total_executions) as bar:
         bar.text = bar_text
         for mtx, rhs in instance_files:
-            for _ in range(repetitions - executions.get(mtx.stem, 0)):
-                try:
-                    for executable in executables:
+            for executable in executables:
+                for _ in range(repetitions -
+                               executions[executable.name].get(mtx.stem, 0)):
+                    try:
                         run_instance(
                             executable=executable,
                             mtx=mtx,
@@ -145,12 +146,13 @@ def batch_run_instances(instance_files: list[pathlib.Path],
                             compilation_filename=exec_compilation_filename[
                                 executable.name],
                             rhs=rhs)
-                except subprocess.CalledProcessError as err:
-                    logging.error(
-                        f'{err}\nstdout:{err.stdout}\nstderr:{err.stderr}\n\n')
-                    total_errors = total_errors + 1
-                finally:
-                    bar()
+                    except subprocess.CalledProcessError as err:
+                        logging.error(
+                            f'{err}\nstdout:{err.stdout}\nstderr:{err.stderr}\n\n'
+                        )
+                        total_errors = total_errors + 1
+                    finally:
+                        bar()
     return total_errors
 
 
@@ -223,18 +225,26 @@ def main():
 
     compilation_filename = args.compilation if args.compilation else DEFAULT_COMPILATION_FILENAME
     exec_compilation_filename: dict[str, str] = {
-        exec: f"{pathlib.Path(compilation_filename).stem}_{exec[:-4]}.txt"
-        if exec != DEFAULT_DIRECT_SOLVER else compilation_filename
-        for exec in DIRECT_SOLVERS_EXECUTABLES
+        exec.name:
+        f"{pathlib.Path(compilation_filename).stem}_{exec.name[:-4]}.txt"
+        if exec.name != DEFAULT_DIRECT_SOLVER else compilation_filename
+        for exec in executables
     }
 
     # check for existing results
-    executions = get_instance_executions(
-        os.path.join(results_folder, compilation_filename))
-    total_eit_executions = count_total_exections(executions,
-                                                 MTX_INSTANCES_SETS["eit"])
-    total_suitesparse_executions = count_total_exections(
-        executions, MTX_INSTANCES_SETS["suitesparse"])
+    executions = {
+        exec.name: get_instance_executions(
+            os.path.join(results_folder, exec_compilation_filename[exec.name]))
+        for exec in executables
+    }
+    total_eit_executions = sum([
+        count_total_exections(execs, MTX_INSTANCES_SETS["eit"])
+        for execs in executions.values()
+    ])
+    total_suitesparse_executions = sum([
+        count_total_exections(execs, MTX_INSTANCES_SETS["suitesparse"])
+        for execs in executions.values()
+    ])
 
     # run eit instances
     eit_total_errors = batch_run_instances(

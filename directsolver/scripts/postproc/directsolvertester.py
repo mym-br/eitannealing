@@ -118,6 +118,42 @@ def find_executables(folder: str):
     return executables
 
 
+def batch_run_instances(instance_files: list[pathlib.Path],
+                        executables: list[pathlib.Path],
+                        repetitions: int,
+                        total_executions: int,
+                        executions: dict[str, int],
+                        exec_compilation_filename: dict[str, str],
+                        results_folder: str,
+                        bar_text: str,
+                        maxits: Optional[int] = 200,
+                        res: Optional[float] = None):
+    total_errors = 0
+    with alive_bar(repetitions * len(instance_files) -
+                   total_executions) as bar:
+        bar.text = bar_text
+        for mtx, rhs in instance_files:
+            for _ in range(repetitions - executions.get(mtx.stem, 0)):
+                try:
+                    for executable in executables:
+                        run_instance(
+                            executable=executable,
+                            mtx=mtx,
+                            res=res,
+                            maxits=maxits,
+                            results_folder=results_folder,
+                            compilation_filename=exec_compilation_filename[
+                                executable.name],
+                            rhs=rhs)
+                except subprocess.CalledProcessError as err:
+                    logging.error(
+                        f'{err}\nstdout:{err.stdout}\nstderr:{err.stderr}\n\n')
+                    total_errors = total_errors + 1
+                finally:
+                    bar()
+    return total_errors
+
+
 #%%
 def main():
 
@@ -133,10 +169,24 @@ def main():
                         help="number of executions per instance",
                         type=int,
                         default=10)
+    parser.add_argument("--res",
+                        help="residual for the CG solvers",
+                        type=float)
+    parser.add_argument("--maxits",
+                        help="maximum number of iterations for CG solvers",
+                        type=int)
     parser.add_argument("--compilation", help="name for the compilation file")
+    parser.add_argument('--skip-cusolver',
+                        help="skip execution of cusolver solver",
+                        action=argparse.BooleanOptionalAction)
+    parser.add_argument('--skip-pardiso',
+                        help="skip execution of pardiso solver",
+                        action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
     repetitions = args.repetitions
+
+    res = args.res
 
     eit_mtx_files = preprocess_mtx_files(args.eit,
                                          MTX_INSTANCES_SETS["eit"],
@@ -146,13 +196,21 @@ def main():
                                          is_rhs=True,
                                          set_name='eit rhs')
     eit_files = list(zip(sorted(eit_mtx_files), sorted(eit_rhs_files)))
-    suitesparse_files = preprocess_mtx_files(args.suitesparse,
-                                             MTX_INSTANCES_SETS["suitesparse"],
-                                             set_name='suitsparse')
+
+    suitesparse_mtx_files = preprocess_mtx_files(
+        args.suitesparse,
+        MTX_INSTANCES_SETS["suitesparse"],
+        set_name='suitsparse')
+    suitesparse_files = list(
+        zip(suitesparse_mtx_files, [None] * len(suitesparse_mtx_files)))
 
     results_folder = args.results
 
     executables = find_executables(args.directsolver)
+    if args.skip_cusolver:
+        executables = [i for i in executables if i.name != "cusolver.exe"]
+    if args.skip_pardiso:
+        executables = [i for i in executables if i.name != "pardiso.exe"]
 
     logging.basicConfig(level=logging.INFO,
                         encoding='utf-8',
@@ -164,7 +222,7 @@ def main():
                         ])
 
     compilation_filename = args.compilation if args.compilation else DEFAULT_COMPILATION_FILENAME
-    exec_compilation_filename = {
+    exec_compilation_filename: dict[str, str] = {
         exec: f"{pathlib.Path(compilation_filename).stem}_{exec[:-4]}.txt"
         if exec != DEFAULT_DIRECT_SOLVER else compilation_filename
         for exec in DIRECT_SOLVERS_EXECUTABLES
@@ -179,57 +237,32 @@ def main():
         executions, MTX_INSTANCES_SETS["suitesparse"])
 
     # run eit instances
-    total_errors = 0
-    with alive_bar(repetitions * len(eit_files) - total_eit_executions) as bar:
-        bar.text = f'-> Running EIT mtx instances (step 1/3), please wait...'
-        for mtx, rhs in eit_files:
-            successes = 0
-            while (successes < repetitions - executions.get(mtx.stem, 0)):
-                try:
-                    for executable in executables:
-                        run_instance(
-                            executable=executable,
-                            mtx=mtx,
-                            res=None,
-                            maxits=200,
-                            results_folder=results_folder,
-                            compilation_filename=exec_compilation_filename[
-                                executable.name],
-                            rhs=rhs)
-                    successes = successes + 1
-                    bar()
-                except subprocess.CalledProcessError as err:
-                    logging.error(
-                        f'{err}\nstdout:{err.stdout}\nstderr:{err.stderr}\n\n')
-                    total_errors = total_errors + 1
-    logging.info(f'Step 1 concluded with {total_errors} errors')
+    eit_total_errors = batch_run_instances(
+        eit_files,
+        executables,
+        repetitions,
+        total_eit_executions,
+        executions,
+        exec_compilation_filename,
+        results_folder,
+        '-> Running EIT mtx instances (step 1/3), please wait...',
+        res=res,
+        maxits=args.maxits)
+    logging.info(f'Step 1 concluded with {eit_total_errors} errors')
 
     # run suitesparse instances
-    total_errors = 0
-    with alive_bar(repetitions * len(suitesparse_files) -
-                   total_suitesparse_executions) as bar:
-        bar.text = f'-> Running suitesparse mtx instances (step 2/3), please wait...'
-        for mtx in suitesparse_files:
-            successes = 0
-            while (successes < repetitions - executions.get(mtx.stem, 0)):
-                try:
-                    for executable in executables:
-                        run_instance(
-                            executable=executable,
-                            mtx=mtx,
-                            res=0.001,
-                            maxits=2000,
-                            results_folder=results_folder,
-                            compilation_filename=exec_compilation_filename[
-                                executable.name],
-                        )
-                    successes = successes + 1
-                    bar()
-                except subprocess.CalledProcessError as err:
-                    logging.error(
-                        f'{err}\nstdout:{err.stdout}\nstderr:{err.stderr}\n\n')
-                    total_errors = total_errors + 1
-    logging.info(f'Step 2 concluded with {total_errors} errors')
+    suitesparse_total_errors = batch_run_instances(
+        suitesparse_files,
+        executables,
+        repetitions,
+        total_suitesparse_executions,
+        executions,
+        exec_compilation_filename,
+        results_folder,
+        '-> Running suitesparse mtx instances (step 2/3), please wait...',
+        res,
+        maxits=args.maxits)
+    logging.info(f'Step 2 concluded with {suitesparse_total_errors} errors')
 
 
 if __name__ == "__main__":

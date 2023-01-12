@@ -260,7 +260,7 @@ def main():
         exec_compilation_filename,
         results_folder,
         '-> Running suitesparse mtx instances (step 2/3), please wait...',
-        res,
+        res=res,
         maxits=args.maxits)
     logging.info(f'Step 2 concluded with {suitesparse_total_errors} errors')
 

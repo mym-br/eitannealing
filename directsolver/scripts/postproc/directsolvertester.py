@@ -65,10 +65,8 @@ MTX_INSTANCES_SETS = {
     ])
 }
 
-DEFAULT_DIRECT_SOLVER = "cufppcgsolver.exe"
-DIRECT_SOLVERS_EXECUTABLES = [
-    DEFAULT_DIRECT_SOLVER, "cusolver.exe", "pardiso.exe"
-]
+DEFAULT_DIRECT_SOLVER = "cufppcgsolver"
+DIRECT_SOLVERS_EXECUTABLES = [DEFAULT_DIRECT_SOLVER, "cusolver", "pardiso"]
 
 
 def preprocess_mtx_files(folder: str,
@@ -113,7 +111,7 @@ def find_executables(folder: str):
     print([f for f in pathlib.Path(folder).iterdir()])
     executables = [
         f for f in pathlib.Path(folder).iterdir()
-        if f.suffix == ".exe" and f.name in DIRECT_SOLVERS_EXECUTABLES
+        if f.stem in DIRECT_SOLVERS_EXECUTABLES
     ]
     return executables
 
@@ -138,7 +136,7 @@ def batch_run_instances(instance_files: list[pathlib.Path],
                                executions[executable.name].get(mtx.stem, 0)):
                     try:
                         run_instance(
-                            executable=executable,
+                            executable=executable.absolute(),
                             mtx=mtx,
                             res=res,
                             maxits=maxits,
@@ -210,9 +208,9 @@ def main():
 
     executables = find_executables(args.directsolver)
     if args.skip_cusolver:
-        executables = [i for i in executables if i.name != "cusolver.exe"]
+        executables = [i for i in executables if i.stem != "cusolver"]
     if args.skip_pardiso:
-        executables = [i for i in executables if i.name != "pardiso.exe"]
+        executables = [i for i in executables if i.stem != "pardiso"]
 
     logging.basicConfig(level=logging.INFO,
                         encoding='utf-8',

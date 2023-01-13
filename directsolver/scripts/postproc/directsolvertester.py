@@ -107,8 +107,6 @@ def run_instance(executable: str,
 
 
 def find_executables(folder: str):
-    print(os.getcwd())
-    print([f for f in pathlib.Path(folder).iterdir()])
     executables = [
         f for f in pathlib.Path(folder).iterdir()
         if f.stem in DIRECT_SOLVERS_EXECUTABLES

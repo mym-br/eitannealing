@@ -4,7 +4,7 @@ find_package(Eigen3 REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 find_package(MKL CONFIG REQUIRED)
 
-include_directories(${EIGEN3_INCLUDE_DIR} ${CUDA_INCLUDE_DIRS} src/common ../src ../src/complex)
+include_directories(${EIGEN3_INCLUDE_DIR} ${CUDAToolkit_INCLUDE_DIRS} src/common ../src ../src/complex)
 
 set(common_SRCS
   src/common/mm/mmio.c
@@ -58,7 +58,7 @@ if(CUSPARSE)
 	add_executable(cufppcgsolver ${cufppcgsolver_SRCS} ${common_SRCS} ../src/cuda/solvercublas.cu ../src/cuda/solvercublas.cpp src/cufppcgsolver/cudacg.cu)
 	target_compile_definitions(cufppcgsolver PRIVATE CUBLASCUSPARSE)
 else()
-	add_executable(cufppcgsolver ${cufppcgsolver_SRCS})
+	add_executable(cufppcgsolver ${cufppcgsolver_SRCS} ${common_SRCS})
 endif()
 set_property(TARGET cufppcgsolver PROPERTY CXX_STANDARD 17)
 set_property(TARGET cufppcgsolver PROPERTY CXX_STANDARD_REQUIRED ON)

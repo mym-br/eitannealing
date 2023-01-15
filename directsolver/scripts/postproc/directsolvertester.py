@@ -223,7 +223,7 @@ def main():
     exec_compilation_filename: dict[str, str] = {
         exec.name:
         f"{pathlib.Path(compilation_filename).stem}_{exec.name[:-4]}.txt"
-        if exec.name != DEFAULT_DIRECT_SOLVER else compilation_filename
+        if exec.stem != DEFAULT_DIRECT_SOLVER else compilation_filename
         for exec in executables
     }
 

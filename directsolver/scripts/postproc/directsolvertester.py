@@ -174,6 +174,8 @@ def main():
                         help="maximum number of iterations for CG solvers",
                         type=int)
     parser.add_argument("--compilation", help="name for the compilation file")
+    parser.add_argument("--executable",
+                        help="name of main executable file without extension")
     parser.add_argument('--skip-cusolver',
                         help="skip execution of cusolver solver",
                         action=argparse.BooleanOptionalAction)
@@ -203,6 +205,14 @@ def main():
         zip(suitesparse_mtx_files, [None] * len(suitesparse_mtx_files)))
 
     results_folder = args.results
+
+    if args.executable:
+        global DIRECT_SOLVERS_EXECUTABLES
+        global DEFAULT_DIRECT_SOLVER
+        DEFAULT_DIRECT_SOLVER = args.executable
+        DIRECT_SOLVERS_EXECUTABLES = [
+            args.executable, *DIRECT_SOLVERS_EXECUTABLES[1:]
+        ]
 
     executables = find_executables(args.directsolver)
     if args.skip_cusolver:

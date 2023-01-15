@@ -242,7 +242,7 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 #endif // CGTIMING
 #ifdef CGTIMING
 		cudaEventSynchronize(stopTotal); cudaEventSynchronize(stopTri); cudaEventSynchronize(stopSpmv);
-		double msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
+		float msTotal, msTri, msSpmv;  msTotal = msTri = msSpmv = 0;
 		cudaEventElapsedTime(&msTotal, startTotal, stopTotal); cudaEventElapsedTime(&msTri, startTri, stopTri); cudaEventElapsedTime(&msSpmv, startSpmv, stopSpmv);
 		totalItTime += (double)(1e3 * msTotal);
 		totalTriangularTime += (double)(1e3 * msTri);

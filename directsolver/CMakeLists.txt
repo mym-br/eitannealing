@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 project(cufppcgsolver LANGUAGES C CXX CUDA)
 find_package(Eigen3 REQUIRED)
-find_package(CUDAToolkit REQUIRED)
-find_package(MKL CONFIG REQUIRED)
+find_package(CUDAToolkit)
+find_package(MKL CONFIG)
 
 include_directories(${EIGEN3_INCLUDE_DIR} ${CUDAToolkit_INCLUDE_DIRS} src/common ../src ../src/complex)
 
@@ -36,6 +36,12 @@ set(cufppcgsolver_SRCS
   ../src/twodim/nodecoeficients2D.cpp
 )
 
+set(cufppcgsolver_cuda_SRCS 
+  ../src/cuda/solvercublas.cu
+  ../src/cuda/solvercublas.cpp
+  src/cufppcgsolver/cudacg.cu
+)
+
 set(cusolver_SRCS 
   src/cusolver/main.cpp
   src/cusolver/mmio_wrapper.cpp
@@ -53,33 +59,44 @@ elseif(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
 endif()
 
-if(CUSPARSE)
-	set(libs CUDA::cudart CUDA::cublas CUDA::cusparse)
-	add_executable(cufppcgsolver ${cufppcgsolver_SRCS} ${common_SRCS} ../src/cuda/solvercublas.cu ../src/cuda/solvercublas.cpp src/cufppcgsolver/cudacg.cu)
-	target_compile_definitions(cufppcgsolver PRIVATE CUBLASCUSPARSE)
-else()
-	add_executable(cufppcgsolver ${cufppcgsolver_SRCS} ${common_SRCS})
-endif()
-set_property(TARGET cufppcgsolver PROPERTY CXX_STANDARD 17)
-set_property(TARGET cufppcgsolver PROPERTY CXX_STANDARD_REQUIRED ON)
-set_property(TARGET cufppcgsolver PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-target_link_libraries(cufppcgsolver ${libs})
-if(KERNELTIMING)
-	target_compile_definitions(cufppcgsolver PRIVATE CGTIMING)
-endif()
-if(COOPERATIVEGROUPS)
-	target_compile_definitions(cufppcgsolver PRIVATE CGROUPS)
-  set_target_properties(cufppcgsolver PROPERTIES CUDA_ARCHITECTURES "60;61;70;75")
-	set(CMAKE_CUDA_FLAGS "-gencode arch=compute_60,code=sm_60 -gencode arch=compute_61,code=sm_61 -gencode arch=compute_70,code=compute_70 -gencode arch=compute_75,code=compute_75")
-else()
-  set_target_properties(cufppcgsolver PROPERTIES CUDA_ARCHITECTURES OFF)
+
+if(CUDAToolkit_FOUND)
+  set(cufppcgsolver_SRCS ${cufppcgsolver_SRCS} ${cufppcgsolver_cuda_SRCS})
 endif()
 
-if(CUSOLVER)
+add_executable(cufppcgsolver ${cufppcgsolver_SRCS} ${common_SRCS})
+add_executable(cufppcgsolver_cgtiming ${cufppcgsolver_SRCS} ${common_SRCS})
+
+set_target_properties(
+  cufppcgsolver
+  cufppcgsolver_cgtiming
+    PROPERTIES 
+    CXX_STANDARD 17
+      CXX_STANDARD_REQUIRED ON
+      CUDA_SEPARABLE_COMPILATION ON
+)
+if(CUDAToolkit_FOUND)
+  set(libs CUDA::cudart CUDA::cublas CUDA::cusparse)
+  target_compile_definitions(cufppcgsolver PRIVATE CUBLASCUSPARSE)
+  target_compile_definitions(cufppcgsolver_cgtiming PRIVATE CUBLASCUSPARSE)
+  if(NOCOOPERATIVEGROUPS)
+      set_target_properties(cufppcgsolver cufppcgsolver_cgtiming PROPERTIES CUDA_ARCHITECTURES OFF)
+    else()
+      target_compile_definitions(cufppcgsolver PRIVATE CGROUPS)
+      target_compile_definitions(cufppcgsolver_cgtiming PRIVATE CGROUPS)
+      set_target_properties(cufppcgsolver cufppcgsolver_cgtiming PROPERTIES CUDA_ARCHITECTURES "60;61;70;75")
+  endif()
+endif()
+target_compile_definitions(cufppcgsolver_cgtiming PRIVATE CGTIMING)
+
+target_link_libraries(cufppcgsolver ${libs})
+target_link_libraries(cufppcgsolver_cgtiming ${libs})
+
+if(CUDAToolkit_FOUND)
   add_executable(cusolver ${cusolver_SRCS} ${common_SRCS})
   target_link_libraries(cusolver PRIVATE CUDA::cudart CUDA::cusolver)
 endif()
-if(PARDISO)
+if(MKL_FOUND)
   add_executable(pardiso ${pardiso_SRCS} ${common_SRCS})
   set_property(TARGET pardiso PROPERTY CXX_STANDARD 17)
   set_property(TARGET pardiso PROPERTY CXX_STANDARD_REQUIRED ON)

@@ -14,12 +14,12 @@
 
 Number::Number(double val) {
 	// CUDA device memory allocation
-	cudaMalloc((void**)& this->data, sizeof (double));
+	cudaMalloc((void**)& this->data, (size_t) sizeof (double));
 	// CUDA memory copy
 	cudaMemcpy(this->data, &val, (size_t) sizeof (double), cudaMemcpyHostToDevice);
 }
 Number::~Number() {
-	cudaFree(data);
+	cudaFree(this->data);
 }
 void Number::copy(Number * src) {
 	// CUDA memory copy
@@ -31,9 +31,9 @@ void Number::copy(Number * src, cudaStream_t stream) {
 }
 
 double Number::transf2CPU() {
-	double *val = new double[1];
-	cudaMemcpy(val, data, (size_t)sizeof(double), cudaMemcpyDeviceToHost);
-	return val[0];
+	double val;
+	cudaMemcpy(&val, this->data, (size_t)sizeof(double), cudaMemcpyDeviceToHost);
+	return val;
 }
 
 #endif

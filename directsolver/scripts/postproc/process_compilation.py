@@ -60,7 +60,7 @@ def parse_compilation_files(compilation_file_paths: list[str]):
     return [set_index_stem(d) for d in filter_eit_suitsparse(df)]
 
 
-# #%%
+#%%
 # import matplotlib.pyplot as plt
 
 # df_eit, df_suitsparse = parse_compilation_files([
@@ -68,35 +68,45 @@ def parse_compilation_files(compilation_file_paths: list[str]):
 #     "D:/aksato/ResearchResults/EITResults/EIT2022/MtxCudaTests6-GoogleCloud-2022/results/compilation_cusolver.txt",
 #     "D:/aksato/ResearchResults/EITResults/EIT2022/MtxCudaTests6-GoogleCloud-2022/results/compilation_pardiso.txt",
 # ])
-# execution_times = [t for t in df_eit.columns if "Execution" in t]
-# df_eit.plot(x='N', y=execution_times, kind='line')
+# #%%
+# # Figure 8 plot
+# ax = df_eit.plot(x='N',
+#                  y=[
+#                      "Serial Execution", "Consolidated Cuda Execution",
+#                      "Coop. Groups Cuda Execution"
+#                  ],
+#                  kind='line')
+# ax.set_yscale('log')
+# plt.legend(['Eigen3', 'ParallelPCG', 'CuFPPCGSolver'])
 # plt.show()
 # # %%
-# df_eit.plot(x='N',
-#             y=[t for t in execution_times if "Cusolver" not in t],
-#             kind='line')
+# # Figure 9 plot
+# df_speedups = df_eit.copy()
+# df_speedups["Consolidated Cuda Speedup"] = df_speedups[
+#     "Serial Execution"] / df_speedups["Consolidated Cuda Execution"]
+# df_speedups["Coop. Groups Cuda Speedup"] = df_speedups[
+#     "Serial Execution"] / df_speedups["Coop. Groups Cuda Execution"]
+# df_speedups.plot(x='N',
+#                  y=["Consolidated Cuda Speedup", "Coop. Groups Cuda Speedup"],
+#                  kind='line')
+# plt.legend(['ParallelPCG', 'CuFPPCGSolver'])
 # plt.show()
 # # %%
-# df_eit.plot(x='N',
-#             y=[
-#                 t for t in execution_times
-#                 if "Cusolver" not in t and "Serial" not in t
-#             ],
-#             kind='line')
+# # Figure 11 plot
+# ax = df_eit.plot(
+#     x="N",
+#     y=["Serial Execution", "Coop. Groups Cuda Execution", "CUBLAS Execution"],
+#     kind="line")
+# # ax.set_yscale('log')
+# plt.legend(["Eigen3", "CuFPPCGSolver", "NVIDIA"])
 # plt.show()
 # # %%
-# df_eit.plot(x='N',
-#             y=["Consolidated Cuda Execution", "Coop. Groups Cuda Execution", "Pardiso Execution"],
-#             kind='line')
+# # Figure 12 plot
+# ax = df_eit.plot(
+#     x="N",
+#     y=["Serial Analyzer", "Coop. Groups Cuda Analyzer", "CUBLAS Analyzer"],
+#     kind="line")
+# # ax.set_yscale('log')
+# plt.legend(["Eigen3", "CuFPPCGSolver", "NVIDIA"])
 # plt.show()
-# # %%
-# df_copy = df_eit.copy()
-# df_copy["Coop. Groups Cuda Execution 10 its"] = 10*df_copy["Coop. Groups Cuda Execution"]/df_copy["Cuda Iterations"]
-# df_copy["Coop. Groups Cuda Execution 20 its"] = 20*df_copy["Coop. Groups Cuda Execution"]/df_copy["Cuda Iterations"]
-# df_copy["Coop. Groups Cuda Execution 30 its"] = 30*df_copy["Coop. Groups Cuda Execution"]/df_copy["Cuda Iterations"]
-# df_copy["Coop. Groups Cuda Execution 40 its"] = 40*df_copy["Coop. Groups Cuda Execution"]/df_copy["Cuda Iterations"]
-# df_copy["Coop. Groups Cuda Execution 50 its"] = 50*df_copy["Coop. Groups Cuda Execution"]/df_copy["Cuda Iterations"]
-# df_copy.plot(x='N', y=["Coop. Groups Cuda Execution 10 its","Coop. Groups Cuda Execution 20 its","Coop. Groups Cuda Execution 30 its","Coop. Groups Cuda Execution 40 its","Coop. Groups Cuda Execution 50 its",
-# "Pardiso Execution"], kind='line')
-# plt.show()
-# # %%
+# #%%

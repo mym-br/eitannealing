@@ -282,17 +282,50 @@ def main():
         maxits=args.maxits)
     logging.info(f'Step 2 concluded with {suitesparse_total_errors} errors')
 
-    # Generate dataframes from results compilations
+    # Generate data files for latex pgfplots
     logging.info(
         f'Postprocessing results to generate dataframes and plots (step 3/3)')
     df_eit_compilation, df_suitsparse_compilation = parse_compilation_files([
         os.path.join(results_folder, c)
         for c in list(exec_compilation_filename.values())
     ])
-    df_eit_compilation.to_csv(
-        os.path.join(results_folder, "df_eit_compilation.csv"))
-    df_suitsparse_compilation.to_csv(
-        os.path.join(results_folder, "df_suitsparse_compilation.csv"))
+
+    df_exectimes = df_eit_compilation[[
+        "N", "NNZ", "Serial Execution", "Consolidated Cuda Execution",
+        "Coop. Groups Cuda Execution", "CUBLAS Execution"
+    ]]
+    df_exectimes["Consolidated Cuda Speedup"] = df_exectimes[
+        "Serial Execution"] / df_exectimes["Consolidated Cuda Execution"]
+    df_exectimes["Coop. Groups Cuda Speedup"] = df_exectimes[
+        "Serial Execution"] / df_exectimes["Coop. Groups Cuda Execution"]
+
+    df_exectimes.to_csv(os.path.join(results_folder, "exectimes.dat"),
+                        sep="\t",
+                        header=[
+                            "Size", "Nnz", "Serial", "ConsolidatedCuda",
+                            "ConsolidatedCudaCG", "Cublas",
+                            "SpeedupConsolidatedCuda",
+                            "SpeedupConsolidatedCudaCG"
+                        ])
+
+    df_suitsparsetimes = df_suitsparse_compilation.loc[[
+        "bcsstk16", "Kuu", "bundle1", "crystm02", "Pres_Poisson", "gyro_m",
+        "crystm03", "wathen100", "wathen120", "gridgena"
+    ]][[
+        "N", "NNZ", "Serial Execution", "Coop. Groups Cuda Execution",
+        "CUBLAS Execution"
+    ]].rename_axis('Cases')
+    df_suitsparsetimes.to_csv(os.path.join(results_folder,
+                                           "suitsparsetimes.dat"),
+                              sep="\t",
+                              header=[
+                                  "Size",
+                                  "Nnz",
+                                  "Serial",
+                                  "ConsolidatedCudaCG",
+                                  "Cublas",
+                              ])
+
     logging.info(f'Step 3 concluded')
 
 

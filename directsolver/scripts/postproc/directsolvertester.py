@@ -7,6 +7,7 @@ import subprocess
 from typing import Optional
 from alive_progress import alive_bar
 from check_executions import get_instance_executions, count_total_exections
+from process_compilation import parse_compilation_files
 
 
 #%%
@@ -280,6 +281,19 @@ def main():
         res=res,
         maxits=args.maxits)
     logging.info(f'Step 2 concluded with {suitesparse_total_errors} errors')
+
+    # Generate dataframes from results compilations
+    logging.info(
+        f'Postprocessing results to generate dataframes and plots (step 3/3)')
+    df_eit_compilation, df_suitsparse_compilation = parse_compilation_files([
+        os.path.join(results_folder, c)
+        for c in list(exec_compilation_filename.values())
+    ])
+    df_eit_compilation.to_csv(
+        os.path.join(results_folder, "df_eit_compilation.csv"))
+    df_suitsparse_compilation.to_csv(
+        os.path.join(results_folder, "df_suitsparse_compilation.csv"))
+    logging.info(f'Step 3 concluded')
 
 
 if __name__ == "__main__":

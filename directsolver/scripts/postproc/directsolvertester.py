@@ -84,7 +84,7 @@ def preprocess_mtx_files(folder: str,
 def run_instance(executable: str,
                  mtx: pathlib.Path,
                  res: Optional[float],
-                 maxits: float,
+                 maxits: int,
                  results_folder: str,
                  compilation_filename: str,
                  rhs: Optional[pathlib.Path] = None):
@@ -114,15 +114,16 @@ def find_executables(folder: str):
     return executables
 
 
-def batch_run_instances(instance_files: list[pathlib.Path],
+def batch_run_instances(instance_files: list[tuple[pathlib.Path, pathlib.Path]]
+                        | list[tuple[pathlib.Path, None]],
                         executables: list[pathlib.Path],
                         repetitions: int,
                         total_executions: int,
-                        executions: dict[str, int],
+                        executions: dict[str, dict[str, int]],
                         exec_compilation_filename: dict[str, str],
                         results_folder: str,
                         bar_text: str,
-                        maxits: Optional[int] = 200,
+                        maxits: int = 200,
                         res: Optional[float] = None):
     total_errors = 0
     with alive_bar(repetitions * len(instance_files) * len(executables) -
@@ -134,7 +135,7 @@ def batch_run_instances(instance_files: list[pathlib.Path],
                                executions[executable.name].get(mtx.stem, 0)):
                     try:
                         run_instance(
-                            executable=executable.absolute(),
+                            executable=str(executable.absolute()),
                             mtx=mtx,
                             res=res,
                             maxits=maxits,

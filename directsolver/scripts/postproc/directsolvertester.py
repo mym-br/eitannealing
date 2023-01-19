@@ -8,6 +8,7 @@ from typing import Optional
 from alive_progress import alive_bar
 from check_executions import get_instance_executions, count_total_exections
 from process_compilation import parse_compilation_files
+from process_output_file import process_all_kernels
 
 
 #%%
@@ -325,6 +326,17 @@ def main():
                                   "ConsolidatedCudaCG",
                                   "Cublas",
                               ])
+
+    if (DEFAULT_DIRECT_SOLVER == "cufppcgsolver_cgtiming"):
+        df_kerneltimes = process_all_kernels(results_folder)
+        df_kerneltimes = df_kerneltimes.join(df_eit_compilation[[
+            "N",
+            "NNZ",
+        ]]).sort_values(by="N")
+        df_kerneltimes.to_csv(
+            os.path.join(results_folder, "kerneltimes.dat"),
+            sep="\t",
+        )
 
     logging.info(f'Step 3 concluded')
 

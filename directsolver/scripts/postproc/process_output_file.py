@@ -4,7 +4,6 @@ import pathlib
 import pandas as pd
 
 
-# %%
 def get_log_files(folder: str):
     return [
         f for f in pathlib.Path(folder).iterdir() if f.suffix == ".txt"
@@ -67,22 +66,3 @@ def process_single_kernel(file: pathlib.Path):
 def process_all_kernels(folder: str):
     log_files = get_log_files(folder)
     return pd.concat([process_single_kernel(f) for f in log_files])
-
-
-#%%
-# results_folder = "D:/aksato/ResearchResults/EITResults/EIT2022/MtxCudaTests6-GoogleCloud-2022/results"
-# results_folder = r"C:\Users\aksato.LABGEOCOMP\Documents\eitannealing\build\directsolver\Release\resultsCGTIMING"
-# #%%
-# log_files = get_log_files(results_folder)
-# log_files
-# #%%
-# log_file = log_files[0]
-# kernel_times_raw = get_kernel_times(log_file)
-# kernel_times_raw
-# # %%
-# df_times = process_kernel_times(kernel_times_raw, log_file.stem)
-# df_times
-# # %%
-# df_avg_times = average_kernel_times(df_times)
-# df_avg_times
-# # %%

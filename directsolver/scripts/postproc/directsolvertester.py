@@ -291,22 +291,54 @@ def main():
         for c in list(exec_compilation_filename.values())
     ])
 
+    df_eit_compilation["Consolidated Cuda Speedup"] = df_eit_compilation[
+        "Serial Execution"] / df_eit_compilation["Consolidated Cuda Execution"]
+    df_eit_compilation["Coop. Groups Cuda Speedup"] = df_eit_compilation[
+        "Serial Execution"] / df_eit_compilation["Coop. Groups Cuda Execution"]
+    df_eit_compilation[
+        "Coop. Groups Cuda Execution 10 its"] = 10 * df_eit_compilation[
+            "Coop. Groups Cuda Execution"] / df_eit_compilation[
+                "Coop. Groups Cuda Iterations"]
+    df_eit_compilation[
+        "Coop. Groups Cuda Execution 20 its"] = 20 * df_eit_compilation[
+            "Coop. Groups Cuda Execution"] / df_eit_compilation[
+                "Coop. Groups Cuda Iterations"]
+    df_eit_compilation[
+        "Coop. Groups Cuda Execution 30 its"] = 30 * df_eit_compilation[
+            "Coop. Groups Cuda Execution"] / df_eit_compilation[
+                "Coop. Groups Cuda Iterations"]
     df_exectimes = df_eit_compilation[[
-        "N", "NNZ", "Serial Execution", "Consolidated Cuda Execution",
-        "Coop. Groups Cuda Execution", "CUBLAS Execution"
+        "N",
+        "NNZ",
+        "Serial Execution",
+        "Consolidated Cuda Execution",
+        "Coop. Groups Cuda Execution",
+        "CUBLAS Execution",
+        "Cusolver Execution",
+        "Pardiso Execution",
+        "Consolidated Cuda Speedup",
+        "Coop. Groups Cuda Speedup",
+        "Coop. Groups Cuda Execution 10 its",
+        "Coop. Groups Cuda Execution 20 its",
+        "Coop. Groups Cuda Execution 30 its",
     ]]
-    df_exectimes["Consolidated Cuda Speedup"] = df_exectimes[
-        "Serial Execution"] / df_exectimes["Consolidated Cuda Execution"]
-    df_exectimes["Coop. Groups Cuda Speedup"] = df_exectimes[
-        "Serial Execution"] / df_exectimes["Coop. Groups Cuda Execution"]
 
     df_exectimes.to_csv(os.path.join(results_folder, "exectimes.dat"),
                         sep="\t",
                         header=[
-                            "Size", "Nnz", "Serial", "ConsolidatedCuda",
-                            "ConsolidatedCudaCG", "Cublas",
+                            "Size",
+                            "Nnz",
+                            "Serial",
+                            "ConsolidatedCuda",
+                            "ConsolidatedCudaCG",
+                            "Cublas",
+                            "Cusolver",
+                            "Pardiso",
                             "SpeedupConsolidatedCuda",
-                            "SpeedupConsolidatedCudaCG"
+                            "SpeedupConsolidatedCudaCG",
+                            "ConsolidatedCudaCG10its",
+                            "ConsolidatedCudaCG20its",
+                            "ConsolidatedCudaCG30its",
                         ])
 
     df_suitsparsetimes = df_suitsparse_compilation.loc[[
@@ -315,7 +347,7 @@ def main():
     ]][[
         "N", "NNZ", "Serial Execution", "Coop. Groups Cuda Execution",
         "CUBLAS Execution"
-    ]].rename_axis('Cases')
+    ]].rename_axis('Case')
     df_suitsparsetimes.to_csv(os.path.join(results_folder,
                                            "suitsparsetimes.dat"),
                               sep="\t",
@@ -331,8 +363,8 @@ def main():
         df_kerneltimes = process_all_kernels(results_folder)
         df_kerneltimes = df_kerneltimes.join(df_eit_compilation[[
             "N",
-            "NNZ",
-        ]]).sort_values(by="N")
+        ]]).sort_values(by="N").rename({'N': 'Size'}, axis=1)
+        df_kerneltimes[['Size']] = df_kerneltimes[['Size']].astype(int)
         df_kerneltimes.to_csv(
             os.path.join(results_folder, "kerneltimes.dat"),
             sep="\t",

@@ -135,6 +135,10 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 	}
 	cudaMalloc(&buffer, bufferSize);
 
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_analyser = t2 - t1;
+	std::cout << "Cublas analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
+	t1 = std::chrono::high_resolution_clock::now();
 	/* Preconditioned Conjugate Gradient using ILU.
 	--------------------------------------------
 	Follows the description by Golub & Van Loan, "Matrix Computations 3rd ed.", Algorithm 10.3.1  */
@@ -153,9 +157,6 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 									  d_row, d_col, infoILU,
 									  CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer);
 
-	auto t2 = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> time_analyser = t2 - t1;
-	std::cout << "Cublas analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
   
 	/* perform triangular solve analysis */
 	cusparseStatus = cusparseDcsrsv2_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -172,7 +173,6 @@ std::tuple<long, long, int> runCusparseCublasCG(std::vector<int> &I, std::vector
 	cudaMemcpy(d_r, rhs.data(), N * sizeof(double), cudaMemcpyHostToDevice);
 	cudaMemcpy(d_x, x.data(), N * sizeof(double), cudaMemcpyHostToDevice);
 
-	t1 = std::chrono::high_resolution_clock::now();
 	int k = 0;
 	cublasDdot(cublasHandle, N, d_r, 1, d_r, 1, &r1);
 

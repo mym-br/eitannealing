@@ -317,21 +317,20 @@ std::tuple<long, long, int> runEigenCGTest(raw_matrix &Araw, raw_vector &braw, r
 	matrix A(Araw.M, Araw.N);
 	A.setFromTriplets(tripletList.begin(), tripletList.end());
 	A.makeCompressed();
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_analyser = t2 - t1;
+	std::cout << "Serial analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 	// Create preconditioner
+	t1 = std::chrono::high_resolution_clock::now();
 	SparseIncompleteLLT L(A);
 	// Create solver
 	CG_Solver solver(A, b, L, res, false);
-	auto t2 = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> time_analyser = t2 - t1;
 	// saveVals("A.mtx", A, true);
 	// matrix Lprint = L.matrixL();  saveVals("L.mtx", Lprint, false);
 	// Eigen::SparseMatrix<double> bPrint(Araw.N, 1); for (int i = 0; i < b.size(); i++) bPrint.coeffRef(i, 0) = b[i]; saveVals("b.mtx", bPrint);
-	std::cout << "Serial analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
-
 	std::cout << "Starting CG with res = " << res << " and max iterations = " << maxit << std::endl;
 	res = res > 0 ? res * res : -1;
 	// Create solver
-	t1 = std::chrono::high_resolution_clock::now();
 	solver.init();
 
 	// Execute solver iterations
@@ -384,12 +383,13 @@ std::tuple<long, long, int> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, ra
 	for (int i = 0; i < braw.size(); i++)
 		bdata[i] = braw[i];
 	Vector *b = CGCUDA_Solver::createCurrentVector(bdata.get(), *mgr, stiffness->matrixData.n, braw.size());
-	// Create preconditioner
-	double lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
-	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, res, solverType);
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> time_analyser = t2 - t1;
 	std::cout << "Cuda analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
+	// Create preconditioner
+	t1 = std::chrono::high_resolution_clock::now();
+	double lINFinityNorm = CGCUDA_Solver::createPreconditioner(*stiffness, stiffness->cpuData.data);
+	CGCUDA_Solver solvercuda(stiffness.get(), mgr.get(), b, lINFinityNorm, res, solverType);
 	//// Output cpjds matrices and vector to mtx files
 	// Eigen::SparseMatrix<double> mPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.data); saveVals("Acpjds.mtx", mPrint, true);
 	// Eigen::SparseMatrix<double> precondPrint = CGCUDA_Solver::getCpjdsStiffness(*stiffness, stiffness->cpuData.precond); saveVals("Lcpjds.mtx", precondPrint);
@@ -412,7 +412,6 @@ std::tuple<long, long, int> runCudaCGTest(raw_matrix &Araw, raw_vector &braw, ra
 	std::cout << "Starting " << solverLabel << " with res = " << res << " and max iterations = " << maxit << std::endl;
 	res = res > 0 ? res * res : -1;
 	// Create solver
-	t1 = std::chrono::high_resolution_clock::now();
 	solvercuda.init();
 	// Execute solver iterations
 	int totalIts = solvercuda.getIteration();

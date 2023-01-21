@@ -160,42 +160,6 @@ int main(int argc, char *argv[])
     {
         pt[i] = 0;
     }
-    /* -------------------------------------------------------------------- */
-    /* .. Reordering and Symbolic Factorization. This step also allocates */
-    /* all memory that is necessary for the factorization. */
-    /* -------------------------------------------------------------------- */
-    auto t1 = std::chrono::high_resolution_clock::now();
-    phase = 11;
-    PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-            &n, a, ia, ja, &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
-    if (error != 0)
-    {
-        printf("\nERROR during symbolic factorization: " IFORMAT, error);
-        exit(1);
-    }
-    printf("\nReordering completed ... ");
-    printf("\nNumber of nonzeros in factors = " IFORMAT, iparm[17]);
-    printf("\nNumber of factorization MFLOPS = " IFORMAT, iparm[18]);
-    /* -------------------------------------------------------------------- */
-    /* .. Numerical factorization. */
-    /* -------------------------------------------------------------------- */
-    phase = 22;
-    PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
-            &n, a, ia, ja, &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
-    if (error != 0)
-    {
-        printf("\nERROR during numerical factorization: " IFORMAT, error);
-        exit(2);
-    }
-    printf("\nFactorization completed ... ");
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> time_analyser = t2 - t1;
-    std::cout << "Pardiso analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
-    /* -------------------------------------------------------------------- */
-    /* .. Back substitution and iterative refinement. */
-    /* -------------------------------------------------------------------- */
-    phase = 33;
-    iparm[7] = 2; /* Max numbers of iterative refinement steps. */
     /* Set right hand side. */
     if (bfname)
     {
@@ -262,7 +226,43 @@ int main(int argc, char *argv[])
             b[i] = 1;
         }
     }
+    /* -------------------------------------------------------------------- */
+    /* .. Reordering and Symbolic Factorization. This step also allocates */
+    /* all memory that is necessary for the factorization. */
+    /* -------------------------------------------------------------------- */
+    auto t1 = std::chrono::high_resolution_clock::now();
+    phase = 11;
+    PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
+            &n, a, ia, ja, &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
+    if (error != 0)
+    {
+        printf("\nERROR during symbolic factorization: " IFORMAT, error);
+        exit(1);
+    }
+    printf("\nReordering completed ... ");
+    printf("\nNumber of nonzeros in factors = " IFORMAT, iparm[17]);
+    printf("\nNumber of factorization MFLOPS = " IFORMAT, iparm[18]);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_analyser = t2 - t1;
+    std::cout << "Pardiso analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
+    /* -------------------------------------------------------------------- */
+    /* .. Numerical factorization. */
+    /* -------------------------------------------------------------------- */
     t1 = std::chrono::high_resolution_clock::now();
+    phase = 22;
+    PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
+            &n, a, ia, ja, &idum, &nrhs, iparm, &msglvl, &ddum, &ddum, &error);
+    if (error != 0)
+    {
+        printf("\nERROR during numerical factorization: " IFORMAT, error);
+        exit(2);
+    }
+    printf("\nFactorization completed ... ");
+    /* -------------------------------------------------------------------- */
+    /* .. Back substitution and iterative refinement. */
+    /* -------------------------------------------------------------------- */
+    phase = 33;
+    iparm[7] = 2; /* Max numbers of iterative refinement steps. */
     PARDISO(pt, &maxfct, &mnum, &mtype, &phase,
             &n, a, ia, ja, &idum, &nrhs, iparm, &msglvl, b, x, &error);
     if (error != 0)

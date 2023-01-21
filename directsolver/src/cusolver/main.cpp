@@ -496,9 +496,6 @@ int main(int argc, char *argv[])
                                     cudaMemcpyHostToDevice, stream));
     checkCudaErrors(cudaMemcpyAsync(d_Q, h_Q, sizeof(int) * rowsA,
                                     cudaMemcpyHostToDevice, stream));
-    auto t2 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> time_analyser = t2 - t1;
-    std::cout << "Cusolver analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 
     // printf("step 5: solve A*x = b on CPU \n");
     // start = second();
@@ -600,6 +597,10 @@ int main(int argc, char *argv[])
     // printf("(CPU) |b| = %E \n", b_inf);
     // printf("(CPU) |b - A*x|/(|A|*|x| + |b|) = %E \n",
     //        r_inf / (A_inf * x_inf + b_inf));
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_analyser = t2 - t1;
+    std::cout << "Cusolver analyser on A used " << std::chrono::duration_cast<std::chrono::microseconds>(time_analyser).count() << " us." << std::endl;
 
     printf("step 7: solve A*x = b on GPU\n");
     t1 = std::chrono::high_resolution_clock::now();

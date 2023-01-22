@@ -41,15 +41,46 @@ DEFAULT_COMPILATION_FILENAME = 'compilation.txt'
 MTX_INSTANCES_SETS = {
     "eit":
     set([
-        "malhaadpt-1-15", "malhaadpt-1-40", "malhaadpt-1-65", "malhaadpt-1-90",
-        "malhaadpt-1-115", "malhaadpt-1-140", "malhaadpt-1-165",
-        "malhaadpt-1-190", "malhaadpt-1-215", "malhaadpt-1-240",
-        "malhaadpt-1-265", "malhaadpt-1-290", "malhaadpt-1-315",
-        "malhaadpt-1-340", "malhaadpt-1-365", "malhaadpt-1-390",
-        "malhaadpt-1-415", "malhaadpt-1-440", "malhaadpt-1-465",
-        "malhaadpt-1-490", "malhaadpt-1-515", "malhaadpt-1-540",
-        "malhaadpt-1-565", "malhaadpt-1-590", "malhaadpt-1-615",
-        "malhaadpt-1-640", "malhaadpt-1-665", "malhaadpt-1-690"
+        "malhaadpt-1-115",
+        "malhaadpt-1-140",
+        "malhaadpt-1-15",
+        "malhaadpt-1-165",
+        "malhaadpt-1-190",
+        "malhaadpt-1-215",
+        "malhaadpt-1-240",
+        "malhaadpt-1-265",
+        "malhaadpt-1-290",
+        "malhaadpt-1-315",
+        "malhaadpt-1-340",
+        "malhaadpt-1-365",
+        "malhaadpt-1-390",
+        "malhaadpt-1-40",
+        "malhaadpt-1-415",
+        "malhaadpt-1-440",
+        "malhaadpt-1-465",
+        "malhaadpt-1-490",
+        "malhaadpt-1-515",
+        "malhaadpt-1-540",
+        "malhaadpt-1-565",
+        "malhaadpt-1-590",
+        "malhaadpt-1-615",
+        "malhaadpt-1-640",
+        "malhaadpt-1-65",
+        "malhaadpt-1-665",
+        "malhaadpt-1-690",
+        "malhaadpt-1-715",
+        "malhaadpt-1-740",
+        "malhaadpt-1-765",
+        "malhaadpt-1-790",
+        "malhaadpt-1-815",
+        "malhaadpt-1-840",
+        "malhaadpt-1-865",
+        "malhaadpt-1-890",
+        "malhaadpt-1-90",
+        "malhaadpt-1-915",
+        "malhaadpt-1-940",
+        "malhaadpt-1-965",
+        "malhaadpt-1-990",
     ]),
     "suitesparse":
     set([
@@ -185,6 +216,15 @@ def main():
     parser.add_argument('--skip-pardiso',
                         help="skip execution of pardiso solver",
                         action=argparse.BooleanOptionalAction)
+    parser.add_argument('--skip-execution',
+                        help="skip execution step, only postproc",
+                        action=argparse.BooleanOptionalAction)
+    parser.add_argument('--eit-only',
+                        help="only process eit instances",
+                        action=argparse.BooleanOptionalAction)
+    parser.add_argument('--suitsparse-only',
+                        help="only process suitsparse instances",
+                        action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
     repetitions = args.repetitions
@@ -240,48 +280,61 @@ def main():
         for exec in executables
     }
 
-    # check for existing results
-    executions = {
-        exec.name: get_instance_executions(
-            os.path.join(results_folder, exec_compilation_filename[exec.name]))
-        for exec in executables
-    }
-    total_eit_executions = sum([
-        count_total_exections(execs, MTX_INSTANCES_SETS["eit"])
-        for execs in executions.values()
-    ])
-    total_suitesparse_executions = sum([
-        count_total_exections(execs, MTX_INSTANCES_SETS["suitesparse"])
-        for execs in executions.values()
-    ])
+    if not args.skip_execution:
+        # check for existing results
+        executions = {
+            exec.name: get_instance_executions(
+                os.path.join(results_folder,
+                             exec_compilation_filename[exec.name]))
+            for exec in executables
+        }
+        total_eit_executions = sum([
+            count_total_exections(execs, MTX_INSTANCES_SETS["eit"])
+            for execs in executions.values()
+        ])
+        total_suitesparse_executions = sum([
+            count_total_exections(execs, MTX_INSTANCES_SETS["suitesparse"])
+            for execs in executions.values()
+        ])
 
-    # run eit instances
-    eit_total_errors = batch_run_instances(
-        eit_files,
-        executables,
-        repetitions,
-        total_eit_executions,
-        executions,
-        exec_compilation_filename,
-        results_folder,
-        '-> Running EIT mtx instances (step 1/3), please wait...',
-        res=res,
-        maxits=args.maxits)
-    logging.info(f'Step 1 concluded with {eit_total_errors} errors')
+        # run eit instances
+        if not args.suitsparse_only:
+            eit_total_errors = batch_run_instances(
+                eit_files,
+                executables,
+                repetitions,
+                total_eit_executions,
+                executions,
+                exec_compilation_filename,
+                results_folder,
+                '-> Running EIT mtx instances (step 1/3), please wait...',
+                res=res,
+                maxits=args.maxits)
+            logging.info(f'Step 1 concluded with {eit_total_errors} errors')
+        else:
+            logging.info(f'Step 1 skipped')
 
-    # run suitesparse instances
-    suitesparse_total_errors = batch_run_instances(
-        suitesparse_files,
-        executables,
-        repetitions,
-        total_suitesparse_executions,
-        executions,
-        exec_compilation_filename,
-        results_folder,
-        '-> Running suitesparse mtx instances (step 2/3), please wait...',
-        res=res,
-        maxits=args.maxits)
-    logging.info(f'Step 2 concluded with {suitesparse_total_errors} errors')
+        # run suitesparse instances
+        if not args.eit_only:
+            suitesparse_total_errors = batch_run_instances(
+                suitesparse_files,
+                executables,
+                repetitions,
+                total_suitesparse_executions,
+                executions,
+                exec_compilation_filename,
+                results_folder,
+                '-> Running suitesparse mtx instances (step 2/3), please wait...',
+                res=res,
+                maxits=args.maxits)
+            logging.info(
+                f'Step 2 concluded with {suitesparse_total_errors} errors')
+        else:
+            logging.info(f'Step 2 skipped')
+    else:
+        logging.info(
+            f'Skipping step 1 and 2 (executions of eit and suitsparse instances'
+        )
 
     # Generate data files for latex pgfplots
     logging.info(
@@ -291,84 +344,97 @@ def main():
         for c in list(exec_compilation_filename.values())
     ])
 
-    df_eit_compilation["Consolidated Cuda Speedup"] = df_eit_compilation[
-        "Serial Execution"] / df_eit_compilation["Consolidated Cuda Execution"]
-    df_eit_compilation["Coop. Groups Cuda Speedup"] = df_eit_compilation[
-        "Serial Execution"] / df_eit_compilation["Coop. Groups Cuda Execution"]
-    df_eit_compilation[
-        "Coop. Groups Cuda Execution 10 its"] = 10 * df_eit_compilation[
-            "Coop. Groups Cuda Execution"] / df_eit_compilation[
-                "Coop. Groups Cuda Iterations"]
-    df_eit_compilation[
-        "Coop. Groups Cuda Execution 20 its"] = 20 * df_eit_compilation[
-            "Coop. Groups Cuda Execution"] / df_eit_compilation[
-                "Coop. Groups Cuda Iterations"]
-    df_eit_compilation[
-        "Coop. Groups Cuda Execution 30 its"] = 30 * df_eit_compilation[
-            "Coop. Groups Cuda Execution"] / df_eit_compilation[
-                "Coop. Groups Cuda Iterations"]
-    df_exectimes = df_eit_compilation[[
-        "N",
-        "NNZ",
-        "Serial Execution",
-        "Consolidated Cuda Execution",
-        "Coop. Groups Cuda Execution",
-        "CUBLAS Execution",
-        "Cusolver Execution",
-        "Pardiso Execution",
-        "Consolidated Cuda Speedup",
-        "Coop. Groups Cuda Speedup",
-        "Coop. Groups Cuda Execution 10 its",
-        "Coop. Groups Cuda Execution 20 its",
-        "Coop. Groups Cuda Execution 30 its",
-    ]]
-
-    df_exectimes.to_csv(os.path.join(results_folder, "exectimes.dat"),
-                        sep="\t",
-                        header=[
-                            "Size",
-                            "Nnz",
-                            "Serial",
-                            "ConsolidatedCuda",
-                            "ConsolidatedCudaCG",
-                            "Cublas",
-                            "Cusolver",
-                            "Pardiso",
-                            "SpeedupConsolidatedCuda",
-                            "SpeedupConsolidatedCudaCG",
-                            "ConsolidatedCudaCG10its",
-                            "ConsolidatedCudaCG20its",
-                            "ConsolidatedCudaCG30its",
-                        ])
-
-    df_suitsparsetimes = df_suitsparse_compilation.loc[[
-        "bcsstk16", "Kuu", "bundle1", "crystm02", "Pres_Poisson", "gyro_m",
-        "crystm03", "wathen100", "wathen120", "gridgena"
-    ]][[
-        "N", "NNZ", "Serial Execution", "Coop. Groups Cuda Execution",
-        "CUBLAS Execution"
-    ]].rename_axis('Case')
-    df_suitsparsetimes.to_csv(os.path.join(results_folder,
-                                           "suitsparsetimes.dat"),
-                              sep="\t",
-                              header=[
-                                  "Size",
-                                  "Nnz",
-                                  "Serial",
-                                  "ConsolidatedCudaCG",
-                                  "Cublas",
-                              ])
-
-    if (DEFAULT_DIRECT_SOLVER == "cufppcgsolver_cgtiming"):
-        df_kerneltimes = process_all_kernels(results_folder)
-        df_kerneltimes = df_kerneltimes.join(df_eit_compilation[[
+    if not args.suitsparse_only:
+        # Generate eit execution times data file for latex paper
+        df_eit_compilation["Consolidated Cuda Speedup"] = df_eit_compilation[
+            "Serial Execution"] / df_eit_compilation[
+                "Consolidated Cuda Execution"]
+        df_eit_compilation["Coop. Groups Cuda Speedup"] = df_eit_compilation[
+            "Serial Execution"] / df_eit_compilation[
+                "Coop. Groups Cuda Execution"]
+        df_eit_compilation[
+            "Coop. Groups Cuda Execution 10 its"] = 10 * df_eit_compilation[
+                "Coop. Groups Cuda Execution"] / df_eit_compilation[
+                    "Coop. Groups Cuda Iterations"]
+        df_eit_compilation[
+            "Coop. Groups Cuda Execution 20 its"] = 20 * df_eit_compilation[
+                "Coop. Groups Cuda Execution"] / df_eit_compilation[
+                    "Coop. Groups Cuda Iterations"]
+        df_eit_compilation[
+            "Coop. Groups Cuda Execution 30 its"] = 30 * df_eit_compilation[
+                "Coop. Groups Cuda Execution"] / df_eit_compilation[
+                    "Coop. Groups Cuda Iterations"]
+        df_exectimes = df_eit_compilation[[
             "N",
-        ]]).sort_values(by="N").rename({'N': 'Size'}, axis=1)
-        df_kerneltimes[['Size']] = df_kerneltimes[['Size']].astype(int)
-        df_kerneltimes.to_csv(
-            os.path.join(results_folder, "kerneltimes.dat"),
-            sep="\t",
-        )
+            "NNZ",
+            "Serial Execution",
+            "Consolidated Cuda Execution",
+            "Coop. Groups Cuda Execution",
+            "CUBLAS Execution",
+            "Cusolver Execution",
+            "Pardiso Execution",
+            "Consolidated Cuda Speedup",
+            "Coop. Groups Cuda Speedup",
+            "Serial Analyzer",
+            "Coop. Groups Cuda Analyzer",
+            "CUBLAS Analyzer",
+            "Coop. Groups Cuda Execution 10 its",
+            "Coop. Groups Cuda Execution 20 its",
+            "Coop. Groups Cuda Execution 30 its",
+        ]]
+
+        df_exectimes.to_csv(os.path.join(results_folder, "exectimes.dat"),
+                            sep="\t",
+                            header=[
+                                "Size",
+                                "Nnz",
+                                "Serial",
+                                "ConsolidatedCuda",
+                                "ConsolidatedCudaCG",
+                                "Cublas",
+                                "Cusolver",
+                                "Pardiso",
+                                "SpeedupConsolidatedCuda",
+                                "SpeedupConsolidatedCudaCG",
+                                "SerialPrep",
+                                "ConsolidatedCudaCGPrep",
+                                "CublasPrep",
+                                "ConsolidatedCudaCG10its",
+                                "ConsolidatedCudaCG20its",
+                                "ConsolidatedCudaCG30its",
+                            ])
+
+        # Generate kernel times data file for latex paper
+        if (DEFAULT_DIRECT_SOLVER == "cufppcgsolver_cgtiming"):
+            df_kerneltimes = process_all_kernels(results_folder)
+            df_kerneltimes = df_kerneltimes.join(df_eit_compilation[[
+                "N",
+            ]]).sort_values(by="N").rename({'N': 'Size'}, axis=1)
+            df_kerneltimes[['Size']] = df_kerneltimes[['Size']].astype(int)
+            df_kerneltimes.to_csv(
+                os.path.join(results_folder, "kerneltimes.dat"),
+                sep="\t",
+            )
+
+    if not args.eit_only:
+        # Generate suitsparse execution times data file for latex paper
+        df_suitsparsetimes = df_suitsparse_compilation.loc[[
+            "bcsstk16", "Kuu", "bundle1", "crystm02", "Pres_Poisson", "gyro_m",
+            "crystm03", "wathen100", "wathen120", "gridgena"
+        ]][[
+            "N", "NNZ", "Serial Execution", "Coop. Groups Cuda Execution",
+            "CUBLAS Execution"
+        ]].rename_axis('Case')
+        df_suitsparsetimes.to_csv(os.path.join(results_folder,
+                                               "suitsparsetimes.dat"),
+                                  sep="\t",
+                                  header=[
+                                      "Size",
+                                      "Nnz",
+                                      "Serial",
+                                      "ConsolidatedCudaCG",
+                                      "Cublas",
+                                  ])
 
     logging.info(f'Step 3 concluded')
 

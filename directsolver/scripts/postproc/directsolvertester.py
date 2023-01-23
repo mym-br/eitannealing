@@ -417,6 +417,8 @@ def main():
 
     if not args.eit_only:
         # Generate suitsparse execution times data file for latex paper
+        df_suitsparse_compilation.index = df_suitsparse_compilation.index.map(
+            lambda x: x.replace("_", r"\_"))
         df_suitsparsetimes = df_suitsparse_compilation.loc[[
             "bcsstk16", "Kuu", "bundle1", "crystm02", "Pres_Poisson", "gyro_m",
             "crystm03", "wathen100", "wathen120", "gridgena"

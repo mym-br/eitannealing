@@ -416,12 +416,41 @@ def main():
             )
 
     if not args.eit_only:
+        # Create table for full suitsparse execution times
+        df_suitsparse_compilation["Coop. Groups Cuda Speedup"] = (
+            df_suitsparse_compilation["Serial Execution"] /
+            df_suitsparse_compilation["Coop. Groups Cuda Execution"]).round(1)
+        df_suitsparse_compilation[['N']] = df_suitsparse_compilation[[
+            'N'
+        ]].astype(int)
+        df_suitsparse_compilation[['NNZ']] = df_suitsparse_compilation[[
+            'NNZ'
+        ]].astype(int)
+        df_suitsparse_compilation[['Coop. Groups Cuda Iterations'
+                                   ]] = df_suitsparse_compilation[[
+                                       'Coop. Groups Cuda Iterations'
+                                   ]].astype(int)
+        df_suitsparsetable = df_suitsparse_compilation[[
+            "N", "NNZ", "Serial Execution", "Coop. Groups Cuda Execution",
+            "Coop. Groups Cuda Iterations", "Coop. Groups Cuda Speedup"
+        ]].rename_axis('Case')
+        # df_suitsparsetable.to_csv(
+        #     os.path.join(results_folder, "suitsparsetable.dat"),
+        #     sep="\t",
+        #     header=["Size", "Nnz", "Eigen3", "CuFPPCGS", "Its", "Speedup"])
+        with open(os.path.join(results_folder, "suitsparsetable.tex"),
+                  'w') as f:
+            f.write(
+                df_suitsparsetable.to_latex(header=[
+                    "Size", "Nnz", "Eigen3", "CuFPPCGS.", "Its", "Speedup"
+                ]))
+
         # Generate suitsparse execution times data file for latex paper
         df_suitsparse_compilation.index = df_suitsparse_compilation.index.map(
             lambda x: x.replace("_", r"\_"))
         df_suitsparsetimes = df_suitsparse_compilation.loc[[
-            "bcsstk16", "Kuu", "bundle1", "crystm02", "Pres_Poisson", "gyro_m",
-            "crystm03", "wathen100", "wathen120", "gridgena"
+            "bcsstk16", "Kuu", "bundle1", "crystm02", "Pres\\_Poisson",
+            "gyro\\_m", "crystm03", "wathen100", "wathen120", "gridgena"
         ]][[
             "N", "NNZ", "Serial Execution", "Coop. Groups Cuda Execution",
             "CUBLAS Execution"

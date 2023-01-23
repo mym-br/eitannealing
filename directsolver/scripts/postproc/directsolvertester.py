@@ -274,8 +274,7 @@ def main():
 
     compilation_filename = args.compilation if args.compilation else DEFAULT_COMPILATION_FILENAME
     exec_compilation_filename: dict[str, str] = {
-        exec.name:
-        f"{pathlib.Path(compilation_filename).stem}_{exec.name[:-4]}.txt"
+        exec.name: f"{pathlib.Path(compilation_filename).stem}_{exec.stem}.txt"
         if exec.stem != DEFAULT_DIRECT_SOLVER else compilation_filename
         for exec in executables
     }

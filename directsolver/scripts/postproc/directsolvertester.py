@@ -416,34 +416,6 @@ def main():
             )
 
     if not args.eit_only:
-        # Create table for full suitsparse execution times
-        df_suitsparse_compilation["Coop. Groups Cuda Speedup"] = (
-            df_suitsparse_compilation["Serial Execution"] /
-            df_suitsparse_compilation["Coop. Groups Cuda Execution"]).round(1)
-        df_suitsparse_compilation[['N']] = df_suitsparse_compilation[[
-            'N'
-        ]].astype(int)
-        df_suitsparse_compilation[['NNZ']] = df_suitsparse_compilation[[
-            'NNZ'
-        ]].astype(int)
-        df_suitsparse_compilation[['Coop. Groups Cuda Iterations'
-                                   ]] = df_suitsparse_compilation[[
-                                       'Coop. Groups Cuda Iterations'
-                                   ]].astype(int)
-        df_suitsparsetable = df_suitsparse_compilation[[
-            "N", "NNZ", "Serial Execution", "Coop. Groups Cuda Execution",
-            "Coop. Groups Cuda Iterations", "Coop. Groups Cuda Speedup"
-        ]].rename_axis('Case')
-        # df_suitsparsetable.to_csv(
-        #     os.path.join(results_folder, "suitsparsetable.dat"),
-        #     sep="\t",
-        #     header=["Size", "Nnz", "Eigen3", "CuFPPCGS", "Its", "Speedup"])
-        with open(os.path.join(results_folder, "suitsparsetable.tex"),
-                  'w') as f:
-            f.write(
-                df_suitsparsetable.to_latex(header=[
-                    "Size", "Nnz", "Eigen3", "CuFPPCGS.", "Its", "Speedup"
-                ]))
 
         # Generate suitsparse execution times data file for latex paper
         df_suitsparse_compilation.index = df_suitsparse_compilation.index.map(
@@ -466,6 +438,28 @@ def main():
                                       "Cublas",
                                   ])
 
+        # Create table for full suitsparse execution times
+        df_suitsparse_compilation.index = df_suitsparse_compilation.index.map(
+            lambda x: x.replace(r"\_", "_"))
+        size_columns = ['N', 'NNZ']
+        df_suitsparse_compilation[size_columns] = df_suitsparse_compilation[
+            size_columns].astype(int)
+        exec_columns = [
+            "Serial Execution", "CUBLAS Execution", "Pardiso Execution",
+            "Coop. Groups Cuda Execution"
+        ]
+        for col in exec_columns:
+            df_suitsparse_compilation[col] = df_suitsparse_compilation.apply(
+                lambda x: "{:,}".format(x[col]), axis=1)
+        df_suitsparsetable = df_suitsparse_compilation[[
+            "N", "NNZ", "CUBLAS Execution", "Pardiso Execution",
+            "Coop. Groups Cuda Execution"
+        ]].rename_axis('Case')
+        with open(os.path.join(results_folder, "suitsparsetable.tex"),
+                  'w') as f:
+            f.write(
+                df_suitsparsetable.to_latex(
+                    header=["Size", "Nnz", "NVIDIA", "PARDISO", "CuFPPCGS."]))
     logging.info(f'Step 3 concluded')
 
 

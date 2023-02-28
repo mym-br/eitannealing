@@ -28,7 +28,7 @@ set_property(TARGET test_eigen_complex PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_eigen_complex PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_eigen_complex ${corelibs})
 
-add_executable(test_lb_solution test_lb_solution.cpp $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine>)
+add_executable(test_lb_solution test_lb_solution.cpp $<TARGET_OBJECTS:eit_core>)
 set_property(TARGET test_lb_solution PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_lb_solution PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_lb_solution ${corelibs})

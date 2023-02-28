@@ -129,7 +129,7 @@ template<class num_engine> class LB_Solver_A {
 	  /*
         // std::vector requires a copy constructor for resizes.
         //  This is just a non-working placeholder, call reserve() so resize is never used.
-        /*LB_Solver_A ( const LB_Solver_A &s):
+        LB_Solver_A ( const LB_Solver_A &s):
          Aii(s.Aii), Aic(s.Aic), precond(s.precond), lowerSafe(true), a(s.a), x0(vector::Zero(s.Aii.rows())){
             std::cerr << "LB_Solver_A copy constructor invoked. This should never happen (wrong container size?)\n";
             std::exit(-1);

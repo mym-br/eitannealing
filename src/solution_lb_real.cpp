@@ -1,7 +1,14 @@
-#include "solution_lb_impl.h"
 #include "observations.h"
 #include "gradientnormregularisation.h"
 #include "solution_lb_real.h"
+
+#ifndef max
+#define max(x,y) ((x)>(y)?(x):(y))
+#endif
+
+#ifndef min
+#define min(x,y) ((x)<(y)?(x):(y))
+#endif
 
 //#define USE_PREVIOUS_DATA
 #ifdef USE_PREVIOUS_DATA
@@ -59,9 +66,6 @@ const float base[] = {
 };
 
 #endif /* USE_PREVIOUS_DATA */
-
-// Declare template specialization
-template class solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler>;
 
 // Shuffler specialization for real admitance
 template <>
@@ -160,3 +164,15 @@ std::vector<double> solution_lb_gen<LB_Solver, double, realobservations, gradien
 
 	return res;
 }
+
+// Declare template specializations
+template class solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler>;
+// FIXME: Intel Compiler somehow needs explicit declarations of those methods. GCC doesn't. Which one is right?
+template solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler>::solution_lb_gen(std::shared_ptr<problem>, realobservations const&, std::shared_ptr<gradientNormRegularisation>, std::vector<double>&&);
+template solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler>::solution_lb_gen(std::shared_ptr<problem>, realobservations const&, std::shared_ptr<gradientNormRegularisation>);
+template void solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler>::saturate();
+template solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler> *solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler>::shuffle(shuffleData *data, const shuffler &sh) const;
+template void solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler>::improve();
+template bool solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler>::compareWith(solution_lb_gen<LB_Solver, double, realobservations, gradientNormRegularisation, realMatrixBuilder, shuffleData, shuffler> &, float, float);
+
+#include "solution_lb_impl.h"

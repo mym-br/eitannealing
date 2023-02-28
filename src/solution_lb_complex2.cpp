@@ -93,18 +93,19 @@ std::vector<std::complex<double> > solution_lb_gen<LB_Solver_Complex2, std::comp
 		node2 = p->getNode2Coefficient(adj.second);
 
 		// Order nodes
-		if(shufflereal)
+		if(shufflereal) {
 			if(res[node1].real()>res[node2].real()) {
 				int aux = node1;
 				node1 = node2;;
 				node2 = aux;
 			}
-		else
+		} else {
 			if(res[node1].imag()>res[node2].imag()) {
 				int aux = node1;
 				node1 = node2;;
 				node2 = aux;
 			}
+		}
 		double v1p, v2p, v1, v2;
 		if(shufflereal) {
 			v1p = v1 = res[node1].real();

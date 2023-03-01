@@ -11,14 +11,6 @@
 #include "util/standard_deviation.hpp"
 #include "util/heap_siftdown.hpp"
 
-#ifndef max
-#define max(x,y) ((x)>(y)?(x):(y))
-#endif
-
-#ifndef min
-#define min(x,y) ((x)<(y)?(x):(y))
-#endif
-
 template <class solver, class admittance, class observations, class regularizer, class matBuilder, class shuffleData, class shuffler>
 void solution_lb_gen<solver, admittance, observations, regularizer, matBuilder, shuffleData, shuffler> ::improve()
 {

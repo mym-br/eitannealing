@@ -1,19 +1,12 @@
 #include "observations.h"
 #include "gradientnormregularisation.h"
-#include "solution_lb_complex2.h"
 #include "util/EigenSymmQuadratic.h"
 #include "util/standard_deviation.hpp"
-
-#ifndef max
-#define max(x,y) ((x)>(y)?(x):(y))
-#endif
-
-#ifndef min
-#define min(x,y) ((x)<(y)?(x):(y))
-#endif
+#include <algorithm>
+#include "solution_lb_complex2.h"
 
 // Population variance specialization for complex values
-template<> double population_variance<std::vector<std::complex<double> >::iterator>(std::vector<std::complex<double> >::iterator start, std::vector<std::complex<double> >::iterator end)
+template <> double population_variance<std::vector<std::complex<double> >::iterator>(std::vector<std::complex<double> >::iterator start, std::vector<std::complex<double> >::iterator end)
 {
     struct moments {
         double re_s;
@@ -29,7 +22,6 @@ template<> double population_variance<std::vector<std::complex<double> >::iterat
     moments m = std::accumulate(start, end, moments{0, 0, 0, 0});
     return (n*(m.re_ss + m.im_ss) - m.re_s*m.re_s - m.im_s*m.im_s)/(n*n);
 }
-
 
 static float mincond_I = (float)minperm;
 static float maxcond_I = (float)maxperm;
@@ -114,7 +106,7 @@ std::vector<std::complex<double> > solution_lb_gen<LB_Solver_Complex2, std::comp
 			v1p = v1 = res[node1].imag();
 			v2p = v2 = res[node2].imag();
 		}
-		double a = max( min(v1-minc, maxc-v2), min(maxc-v1, v2-minc));
+		double a = std::max( std::min(v1-minc, maxc-v2), std::min(maxc-v1, v2-minc));
 
 		double delta;
 		do {
@@ -207,15 +199,10 @@ double complexGradientNormRegularisation::getRegularisation(const std::complex<d
 	return re + im;
 }
 
-// Declare template specialization
-template class solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler>;
-// FIXME: Intel Compiler somehow needs explicit declarations of those methods. GCC doesn't. Which one is right?
-template solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler>::solution_lb_gen(std::shared_ptr<problem>, complexobservations const&, std::shared_ptr<complexGradientNormRegularisation>, std::vector< std::complex<double> >&&);
-template solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler>::solution_lb_gen(std::shared_ptr<problem>, complexobservations const&, std::shared_ptr<complexGradientNormRegularisation>);
-template void solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler>::saturate();
-template solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler> *solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler>::shuffle(shuffleData *data, const shuffler &sh) const;
-template void solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler>::improve();
-template bool solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler>::compareWith(solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation, complexMatrixBuilder, shuffleData, shuffler> &, float, float);
-
 #include "solution_lb_impl.h"
+
+template class solution_lb_gen<LB_Solver_Complex2, std::complex<double>, complexobservations, complexGradientNormRegularisation,
+complexMatrixBuilder, shuffleData, shuffler>;
+
+
 

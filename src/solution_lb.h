@@ -35,7 +35,7 @@
  */
 
 
-template <class solver, class admittance, class observations, class regularizer, class matBuilder, class shuffleData, class shuffler> class solution_lb_gen {
+template <class solver, class admittance, class observations, class regularizer, class matBuilder, class solShuffleData, class solShuffler> class solution_lb_gen {
 	protected:
 
 			std::vector<admittance> sol;
@@ -72,7 +72,7 @@ template <class solver, class admittance, class observations, class regularizer,
 
 			std::vector<admittance> getNewRandomSolution(int size);
 
-			std::vector<admittance> getShuffledSolution(shuffleData *data, const shuffler &sh) const;
+			std::vector<admittance> getShuffledSolution(solShuffleData *data, const solShuffler &sh) const;
 
 			// shuffle constructor
 			solution_lb_gen(std::vector<admittance> &&sol, const solution_lb_gen &base);
@@ -87,7 +87,7 @@ template <class solver, class admittance, class observations, class regularizer,
 		bool compareWith(solution_lb_gen &target, float kt, float prob);
 		//bool compareWithMinIt(solution &target, float kt, int minit);
 		//bool compareWithMaxE2(solution &target, float kt, double e2);
-		solution_lb_gen *shuffle(shuffleData *data, const shuffler &sh) const;
+		solution_lb_gen *shuffle(solShuffleData *data, const solShuffler &sh) const;
 
 		void improve();
 

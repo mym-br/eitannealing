@@ -124,7 +124,7 @@ if(${CUDA_FOUND})
     set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
     set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
     set_target_properties(eitcuda PROPERTIES CUDA_ARCHITECTURES OFF)
+    add_subdirectory(directsolver)
 endif()
 
 add_subdirectory(tests)
-add_subdirectory(directsolver)

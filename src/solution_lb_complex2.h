@@ -21,7 +21,6 @@ private:
     std::unique_ptr<matrix> regularizationMatrix;
     void buildMatrix();
     int coefficientMap(int node);
-    std::set<int> lastElectrodeNodes;
 	std::shared_ptr<problem> input;
 public:
   	complexGradientNormRegularisation(std::shared_ptr<problem> _input);

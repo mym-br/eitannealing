@@ -5,10 +5,10 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
 find_package(Threads REQUIRED)
 find_package(absl COMPONENTS container)
-find_package(CUDA 10)
+find_package(CUDA 11)
 if(CUDA_FOUND)
-  if(${CUDA_VERSION_MAJOR} GREATER 10) # FIXME: Cuda support is rotting fast
-    message(WARNING "Cuda version greater than 10 is not supported. Cuda Target will be skipped.")
+  if(${CUDA_VERSION_MAJOR} GREATER 11) # FIXME: Cuda support is rotting fast
+    message(WARNING "Cuda version greater than 11 is not supported. Cuda Target will be skipped.")
     unset(CUDA_FOUND)
   endif()
 endif()
@@ -123,7 +123,8 @@ if(${CUDA_FOUND})
     target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} ${ADDITIONAL_LIBRARIES})
     set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
     set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+    set_target_properties(eitcuda PROPERTIES CUDA_ARCHITECTURES OFF)
+    add_subdirectory(directsolver)
 endif()
 
 add_subdirectory(tests)
-add_subdirectory(directsolver)

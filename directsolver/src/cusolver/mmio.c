@@ -6,6 +6,10 @@
 *
 */
 
+/* avoid Windows warnings (for example: strcpy, fscanf, etc.) */
+#if defined(_WIN32)  
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -58,7 +62,7 @@ int mm_read_unsymmetric_sparse(const char *fname, int *M_, int *N_, int *nz_,
     *N_ = N;
     *nz_ = nz;
  
-    /* reseve memory for matrices */
+    /* reserve memory for matrices */
  
     I = (int *) malloc(nz * sizeof(int));
     J = (int *) malloc(nz * sizeof(int));
@@ -74,7 +78,9 @@ int mm_read_unsymmetric_sparse(const char *fname, int *M_, int *N_, int *nz_,
  
     for (i=0; i<nz; i++)
     {
-        fscanf(f, "%d %d %lg\n", &I[i], &J[i], &val[i]);
+        if (fscanf(f, "%d %d %lg\n", &I[i], &J[i], &val[i]) != 3) {
+            return -1;
+        }
         I[i]--;  /* adjust from 1-based to 0-based */
         J[i]--;
     }
@@ -129,7 +135,7 @@ int mm_read_banner(FILE *f, MM_typecode *matcode)
 
 
     /* second field describes whether this is a sparse matrix (in coordinate
-            storgae) or a dense array */
+            storage) or a dense array */
 
 
     if (strcmp(crd, MM_SPARSE_STR) == 0)
@@ -204,10 +210,10 @@ int mm_read_mtx_crd_size(FILE *f, int *M, int *N, int *nz )
     /* line[] is either blank or has M,N, nz */
     if (sscanf(line, "%d %d %d", M, N, nz) == 3)
         return 0;
-        
+
     else
     do
-    { 
+    {
         num_items_read = fscanf(f, "%d %d %d", M, N, nz); 
         if (num_items_read == EOF) return MM_PREMATURE_EOF;
     }
@@ -223,22 +229,22 @@ int mm_read_mtx_array_size(FILE *f, int *M, int *N)
     int num_items_read;
     /* set return null parameter values, in case we exit with errors */
     *M = *N = 0;
-	
+
     /* now continue scanning until you reach the end-of-comments */
-    do 
+    do
     {
-        if (fgets(line,MM_MAX_LINE_LENGTH,f) == NULL) 
+        if (fgets(line,MM_MAX_LINE_LENGTH,f) == NULL)
             return MM_PREMATURE_EOF;
     }while (line[0] == '%');
 
     /* line[] is either blank or has M,N, nz */
     if (sscanf(line, "%d %d", M, N) == 2)
         return 0;
-        
+
     else /* we have a blank line */
     do
-    { 
-        num_items_read = fscanf(f, "%d %d", M, N); 
+    {
+        num_items_read = fscanf(f, "%d %d", M, N);
         if (num_items_read == EOF) return MM_PREMATURE_EOF;
     }
     while (num_items_read != 2);
@@ -272,7 +278,7 @@ int mm_read_mtx_crd_data(FILE *f, int M, int N, int nz, int I[], int J[],
             if (fscanf(f, "%d %d %lg %lg", &I[i], &J[i], &val[2*i], &val[2*i+1])
                 != 4) return MM_PREMATURE_EOF;
     }
-    else if (mm_is_real(matcode))
+    else if (mm_is_real(matcode) || mm_is_integer(matcode))
     {
         for (i=0; i<nz; i++)
         {
@@ -292,7 +298,6 @@ int mm_read_mtx_crd_data(FILE *f, int M, int N, int nz, int I[], int J[],
         return MM_UNSUPPORTED_TYPE;
 
     return 0;
-        
 }
 
 int mm_read_mtx_crd_entry(FILE *f, int *I, int *J,
@@ -303,7 +308,7 @@ int mm_read_mtx_crd_entry(FILE *f, int *I, int *J,
             if (fscanf(f, "%d %d %lg %lg", I, J, real, imag)
                 != 4) return MM_PREMATURE_EOF;
     }
-    else if (mm_is_real(matcode))
+    else if (mm_is_real(matcode) || mm_is_integer(matcode))
     {
             if (fscanf(f, "%d %d %lg\n", I, J, real)
                 != 3) return MM_PREMATURE_EOF;
@@ -318,7 +323,6 @@ int mm_read_mtx_crd_entry(FILE *f, int *I, int *J,
         return MM_UNSUPPORTED_TYPE;
 
     return 0;
-        
 }
 
 
@@ -364,7 +368,7 @@ int mm_read_mtx_crd(char *fname, int *M, int *N, int *nz, int **I, int **J,
                 *matcode);
         if (ret_code != 0) return ret_code;
     }
-    else if (mm_is_real(*matcode))
+    else if (mm_is_real(*matcode) || mm_is_integer(*matcode))
     {
         *val = (double *) malloc(*nz * sizeof(double));
         ret_code = mm_read_mtx_crd_data(f, *M, *N, *nz, *I, *J, *val, 
@@ -402,12 +406,12 @@ int mm_write_mtx_crd(char fname[], int M, int N, int nz, int I[], int J[],
     FILE *f;
     int i;
 
-    if (strcmp(fname, "stdout") == 0) 
+    if (strcmp(fname, "stdout") == 0)
         f = stdout;
     else
     if ((f = fopen(fname, "w")) == NULL)
         return MM_COULD_NOT_WRITE_FILE;
-    
+
     /* print banner followed by typecode */
     fprintf(f, "%s ", MatrixMarketBanner);
     fprintf(f, "%s\n", mm_typecode_to_str(matcode));
@@ -419,6 +423,10 @@ int mm_write_mtx_crd(char fname[], int M, int N, int nz, int I[], int J[],
     if (mm_is_pattern(matcode))
         for (i=0; i<nz; i++)
             fprintf(f, "%d %d\n", I[i], J[i]);
+    else
+    if (mm_is_integer(matcode))
+        for (i=0; i<nz; i++)
+            fprintf(f, "%d %d %d\n", I[i], J[i], (int)val[i]);
     else
     if (mm_is_real(matcode))
         for (i=0; i<nz; i++)
@@ -438,32 +446,31 @@ int mm_write_mtx_crd(char fname[], int M, int N, int nz, int I[], int J[],
 
     return 0;
 }
-  
 
 /**
 *  Create a new copy of a string s.  mm_strdup() is a common routine, but
 *  not part of ANSI C, so it is included here.  Used by mm_typecode_to_str().
 *
 */
-char *mm_strdup(const char *s)
+static char *mm_strdup(const char *s)
 {
-	int len = strlen(s);
-	char *s2 = (char *) malloc((len+1)*sizeof(char));
-	return strcpy(s2, s);
+    size_t len = strlen(s);
+    char *s2 = (char *) malloc((len+1)*sizeof(char));
+    return strcpy(s2, s);
 }
 
 char  *mm_typecode_to_str(MM_typecode matcode)
 {
     char buffer[MM_MAX_LINE_LENGTH];
     char *types[4];
-	char *mm_strdup(const char *);
-    int error =0;
+    //char *mm_strdup(const char *);
+    //int error =0;
 
     /* check for MTX type */
-    if (mm_is_matrix(matcode)) 
+    if (mm_is_matrix(matcode))
         types[0] = MM_MTX_STR;
     else
-        error=1;
+        return NULL; //  error=1;
 
     /* check for CRD or ARR matrix */
     if (mm_is_sparse(matcode))
@@ -496,10 +503,10 @@ char  *mm_typecode_to_str(MM_typecode matcode)
     else
     if (mm_is_symmetric(matcode))
         types[3] = MM_SYMM_STR;
-    else 
+    else
     if (mm_is_hermitian(matcode))
         types[3] = MM_HERM_STR;
-    else 
+    else
     if (mm_is_skew(matcode))
         types[3] = MM_SKEW_STR;
     else
@@ -507,5 +514,4 @@ char  *mm_typecode_to_str(MM_typecode matcode)
 
     sprintf(buffer,"%s %s %s %s", types[0], types[1], types[2], types[3]);
     return mm_strdup(buffer);
-
 }

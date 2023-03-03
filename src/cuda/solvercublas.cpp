@@ -5,7 +5,7 @@
 
 using namespace Cublas;
 
-Matrix *Matrix::createCublasMatrix(Eigen::SparseMatrix<float, 0, int> *A) {
+Matrix *Matrix::createCublasMatrix(Eigen::SparseMatrix<double> *A) {
 	Matrix *mat = new Matrix;
 	mat->N = A->outerSize();
 	mat->nz = A->nonZeros();

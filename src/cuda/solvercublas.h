@@ -65,9 +65,9 @@ namespace Cublas {
 
 	struct Matrix {
 		~Matrix();
-		static Matrix *createCublasMatrix(Eigen::SparseMatrix<float, 0, int> *A);
+		static Matrix *createCublasMatrix(Eigen::SparseMatrix<double> *A);
 		cusparseMatDescr_t descr;
-		float *val, *d_val;
+		double *val, *d_val;
 		int *I, *J, *d_col, *d_row;
 		int N, nz;
 
@@ -78,31 +78,34 @@ namespace Cublas {
 	struct Precond {
 		~Precond();
 		static Precond *createPrecond(Matrix *A);
-		float *d_valsILU0;
-		int nzILU0;
-		cusparseSolveAnalysisInfo_t infoA;
-		cusparseSolveAnalysisInfo_t info_u;
+		double *d_valsILU0;
+		csrilu02Info_t infoILU;
 		cusparseMatDescr_t descrL;
 		cusparseMatDescr_t descrU;
+		csrsv2Info_t infoU;
+		csrsv2Info_t infoL;
 	};
 
 	class CG_Solver {
 	public:
-		CG_Solver(Matrix *_A, float *_b, Precond *_precond);
+		CG_Solver(Matrix *_A, double *_b, Precond *_precond);
 		~CG_Solver();
 		void doIteration();
-		float *getX();
+		double *getX();
 
 	private:
 		Matrix *A;
+		cusparseSpMatDescr_t matA;
+		cusparseDnVecDescr_t vecp, vecomega;
 		Precond *precond;
-		float *x;
+		double *x;
 		int k;
-		float r1;
-		float *d_x;
-		float *d_r, *d_y;
-		float *d_zm1, *d_zm2, *d_rm2;
-		float *d_p, *d_omega;
+		double r1;
+		double *d_x;
+		double *d_r, *d_y;
+		double *d_zm1, *d_zm2, *d_rm2;
+		double *d_p, *d_omega;
+		void *buffer;
 	};
 }
 #endif // SOLVERCUBLAS_H_

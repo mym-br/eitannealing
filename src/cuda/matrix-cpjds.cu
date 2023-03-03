@@ -291,7 +291,7 @@ int MatrixCPJDSManager::buidMatrixCPJDS(MatrixCPJDS * M) {
 	//// dependency's count
 	//int * dependenciesSize = new int[depsSizeArr.size()];
 	// preconditioner data
-	int * pdata = new int[total];
+	double * pdata = new double[total];
 
 	//// copy arrays
 	//for (int i = 0; i < depsArrRow.size(); i++) dependencyRowDataIndex[i] = depsArrRow[i];
@@ -1011,21 +1011,27 @@ __global__ void cmv_mult_cpjds2(int dim, double * aData, int * aIndices, int * a
 		int colorColOffset = colorsColOffset[colorIdx];
 
 		// row size (length + padding zeros)
+		int maxRowSize = aRowLength[0];
+		for(int j = 1; j < dim; j++)
+			if(aRowLength[j] > maxRowSize)
+				maxRowSize = aRowLength[j];
 		int rowSize = aRowLength[row];
 
 		double sum = 0;
 		__syncthreads();
-		for (int j = 0; j < rowSize; j++) {
-			// colorColOffset already includes colorOffset (thus, color's first row)
-			int offset = aColOffset[colorColOffset + j] + (row - colorStart); // coalesced?
+		for (int j = 0; j < maxRowSize; j++) {
+			if(j < rowSize) {
+				// colorColOffset already includes colorOffset (thus, color's first row)
+				int offset = aColOffset[colorColOffset + j] + (row - colorStart); // coalesced?
 
-			double rowData = aData[offset]; // coalesced
-			int idx = aIndices[offset]; // coalesced
-			sum += rowData * xData[idx]; // NOT coalesced!
-			//if (row == 5) {
-			//	printf("%d\t%d\t%g\n", row, j, xData[idx]);
-			//}
-			//sum += rowData;
+				double rowData = aData[offset]; // coalesced
+				int idx = aIndices[offset]; // coalesced
+				sum += rowData * xData[idx]; // NOT coalesced!
+				//if (row == 5) {
+				//	printf("%d\t%d\t%g\n", row, j, xData[idx]);
+				//}
+				//sum += rowData;
+			}
 
 			__syncthreads(); // synchronization so all threads load from memory
 		}
@@ -1235,19 +1241,24 @@ __global__ void cmv_solve_cpjds(int dim, double * aData, int * aIndices, int * a
 		// row length
 		//int rowLength = aRowLength[row];
 		// row size (length + padding zeros)
+		int maxRowSize = aRowLength[0];
+		for(int j = 1; j < dim; j++)
+			if(aRowLength[j] > maxRowSize)
+				maxRowSize = aRowLength[j];
 		int rowSize = aRowLength[row];
 
 		double sum = 0;
 		__syncthreads();
+		for (int j = 1; j < maxRowSize; j++) {  // first element is main diagonal
+			if(j < rowSize) {
+				// colorColOffset already includes colorOffset (thus, color's first row)
+				int offset = aColOffset[colorColOffset + j] + tidx; // coalesced?
 
-		for (int j = 1; j < rowSize; j++) { // first element is main diagonal
-			// colorColOffset already includes colorOffset (thus, color's first row)
-			int offset = aColOffset[colorColOffset + j] + tidx; // coalesced?
-
-			double rowData = aData[offset]; // coalesced
-			int idx = aIndices[offset]; // coalesced
-			if (idx < row) { // main diagonal can be skiped
-				sum += rowData * xData[idx];
+				double rowData = aData[offset]; // coalesced
+				int idx = aIndices[offset]; // coalesced
+				if (idx < row) { // main diagonal can be skiped
+					sum += rowData * xData[idx];
+				}
 			}
 			__syncthreads();
 		}
@@ -1270,19 +1281,24 @@ __global__ void cmv_solve_t_cpjds(int dim, double * aData, int * aIndices, int *
 		// row length
 		//int rowLength = aRowLength[row];
 		// row size (length + padding zeros)
+		int maxRowSize = aRowLength[0];
+		for(int j = 1; j < dim; j++)
+			if(aRowLength[j] > maxRowSize)
+				maxRowSize = aRowLength[j];
 		int rowSize = aRowLength[row];
 
 		double sum = 0;
 		__syncthreads();
+		for (int j = 1; j < maxRowSize; j++) {  // first element is main diagonal
+			if(j < rowSize) {
+				// colorColOffset already includes colorOffset (thus, color's first row)
+				int offset = aColOffset[colorColOffset + j] + tidx; // coalesced?
 
-		for (int j = 1; j < rowSize; j++) { // first idx is main diagonal
-			// colorColOffset already includes colorOffset (thus, color's first row)
-			int offset = aColOffset[colorColOffset + j] + tidx; // coalesced?
-
-			double rowData = aData[offset]; // coalesced
-			int idx = aIndices[offset]; // coalesced
-			if (idx > row && idx > -1) { // main diagonal can be skiped
-				sum += rowData * xData[idx];
+				double rowData = aData[offset]; // coalesced
+				int idx = aIndices[offset]; // coalesced
+				if (idx > row && idx > -1) { // main diagonal can be skiped
+					sum += rowData * xData[idx];
+				}
 			}
 			__syncthreads();
 		}

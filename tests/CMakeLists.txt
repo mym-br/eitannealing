@@ -73,7 +73,7 @@ set_property(TARGET test_new_lb_matrix_builder PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_new_lb_matrix_builder PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_new_lb_matrix_builder ${corelibs})
 
-add_executable(test_lb_solution_complex test_lb_solution_complex $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine>)
+add_executable(test_lb_solution_complex test_lb_solution_complex.cpp $<TARGET_OBJECTS:eit_core> $<TARGET_OBJECTS:eit_new_complex_engine>)
 set_property(TARGET test_lb_solution_complex PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_lb_solution_complex PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_lb_solution_complex ${corelibs})

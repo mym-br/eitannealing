@@ -7,17 +7,17 @@
 #include <memory>
 
 /** data must represent a square complete(filled) matrix - default reorders by lower triangular */
-std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<float, Eigen::ColMajor> * data, int &colorCount, std::unique_ptr<int[]> &newIdx);
+std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<double> * data, int &colorCount, std::unique_ptr<int[]> &newIdx);
 /** data must represent a square complete(filled) matrix */
-std::unique_ptr<int[]> colorSort(matrix * data, int &colorCount, std::unique_ptr<int[]> &newIdx, bool reorderByLowerTriangular);
+std::unique_ptr<int[]> colorSort(Eigen::SparseMatrix<double> * data, int &colorCount, std::unique_ptr<int[]> &newIdx, bool reorderByLowerTriangular);
 
 /** data must represent a square complete(filled) matrix */
-void swap(matrix * data, int a, int b, std::unique_ptr<int[]> &newIdx);
+void swap(Eigen::SparseMatrix<double> * data, int a, int b, std::unique_ptr<int[]> &newIdx);
 
 /** data must represent a square complete(filled) matrix */
-std::unique_ptr<numType[]> fillPadding(matrix * data, int colorCount, std::unique_ptr<int[]> &colorOff, int &sizePadding);
+std::unique_ptr<Eigen::SparseMatrix<double>> fillPadding(Eigen::SparseMatrix<double> * data, int colorCount, std::unique_ptr<int[]> &colorOff, std::shared_ptr<int[]> colorsOffPadded, int &sizePadding);
 
 /** both reorderIdx and unorderIdx must be changed to take padding in effect */
-void fixIndicesMapPadding(int size, std::unique_ptr<int[]> &reorderIdx, std::unique_ptr<int[]> &unorderIdx, int sizePadded, std::unique_ptr<int[]> &reorderIdxFixed, std::unique_ptr<int[]> &unorderIdxFixed, int colorCount, std::unique_ptr<int[]> &colorOff);
+void fixIndicesMapPadding(int size, std::unique_ptr<int[]> &reorderIdx, std::unique_ptr<int[]> &unorderIdx, int sizePadded, std::unique_ptr<int[]> &reorderIdxFixed, std::unique_ptr<int[]> &unorderIdxFixed, int colorCount, std::unique_ptr<int[]> &colorOff, std::shared_ptr<int[]> colorsOffPadded);
 
 #endif /* ANALYSIS_H */

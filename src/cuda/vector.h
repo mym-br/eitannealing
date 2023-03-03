@@ -20,18 +20,18 @@ namespace cgl {
 	class Vector {
 	private:
 		/* data array */
-		numType * data;
+		double * data;
 		/* vector size */
 		int size;
 
 		/* cached number of blocks so that it does not need to be computed on demand */
 		int blocks;
 		/* pre-alloced memory for norm computation */
-		numType * partial_d;
+		double * partial_d;
 
 	public:
 		Vector(int n);
-		Vector(numType * v, int n);
+		Vector(double * v, int n);
 		~Vector();
 
 		/* returns vector size */
@@ -40,12 +40,12 @@ namespace cgl {
 		}
 
 		/* returns vector's inner data array (memory location is not defined) */
-		numType * getData() {
+		double * getData() {
 			return data;
 		}
 
 		/* returns vector's inner data array (memory location is not defined) */
-		numType * getPartial() {
+		double * getPartial() {
 			return partial_d;
 		}
 
@@ -55,14 +55,14 @@ namespace cgl {
 		void reset(cudaStream_t stream);
 
 		/* sets a single element */
-		void set(int idx, numType val);
+		void set(int idx, double val);
 		/* sets a single element */
-		void set(int idx, numType val, cudaStream_t stream);
+		void set(int idx, double val, cudaStream_t stream);
 
 		/* sets elements in batch */
-		void set(int size, numType * src, int * indices);
+		void set(int size, double * src, int * indices);
 		/* sets elements in batch */
-		void set(int size, numType * src, int * indices, cudaStream_t stream);
+		void set(int size, double * src, int * indices, cudaStream_t stream);
 
 		/* copies this vector to another */
 		void copyTo(Vector * target);
@@ -70,14 +70,14 @@ namespace cgl {
 		void copyTo(Vector * target, cudaStream_t stream);
 
 		/* copy values from another array to this vector */
-		void copy(int size, numType * src);
+		void copy(int size, double * src);
 		/* copy values from another array to this vector */
-		void copy(int size, numType * src, cudaStream_t stream);
+		void copy(int size, double * src, cudaStream_t stream);
 
 		/* computes vector norm */
-		numType norm();
+		double norm();
 		/* computes vector norm */
-		numType norm(cudaStream_t stream);
+		double norm(cudaStream_t stream);
 
 		//void swap(int a, int b);
 
@@ -123,7 +123,7 @@ namespace cgl {
 		void mask(Vector * mask, cudaStream_t stream);
 	};
 
-	typedef std::vector<std::vector<numType>> VectorArray;
+	typedef std::vector<std::vector<double>> VectorArray;
 }
 
 #endif /* VECTOR_H */

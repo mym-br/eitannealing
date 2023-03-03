@@ -4,7 +4,7 @@
 #include "../incomplete_cholesky.h"
 #include "../basematrix.h"
 
-vectorx CGCUDA_Solver::getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, int size, int n) {
+vectorx CGCUDA_Solver::getCpjdsCurrent(double *vec, MatrixCPJDSManager &mgr, int size, int n) {
 	vectorx vecArr(size);
 	for (int i = 0; i < size; i++) {
 		vecArr[i] = 0;
@@ -15,7 +15,7 @@ vectorx CGCUDA_Solver::getCpjdsCurrent(numType *vec, MatrixCPJDSManager &mgr, in
 	return vecArr;
 }
 
-matrix CGCUDA_Solver::getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata) {
+matrix CGCUDA_Solver::getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<double[]> &pdata) {
 	int size = M.csrMap.n;
 	int nnz = M.csrMap.nnz;
 	MatrixCPJDS2CSR csrMap = M.csrMap;
@@ -36,28 +36,28 @@ matrix CGCUDA_Solver::getCpjdsStiffness(MatrixCPJDS &M, std::unique_ptr<numType[
 	return stiff;
 }
 
-void CGCUDA_Solver::cblas_dscal(int n, numType alpha, numType *x, int inc) {
+void CGCUDA_Solver::cblas_dscal(int n, double alpha, double *x, int inc) {
 	for (int i = 0; i < n; i++) {
 		*x *= alpha;
 		x += inc;
 	}
 }
 
-numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata, std::unique_ptr<numType[]> &precond) {
+double CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS &M, std::unique_ptr<double[]> &pdata, std::unique_ptr<double[]> &precond) {
 
 	int size = M.csrMap.n;
 	int nnz = M.csrMap.nnz;
 	MatrixCPJDS2CSR csrMap = M.csrMap;
 
-	std::vector<Eigen::Triplet<numType>> tripletList;
+	std::vector<Eigen::Triplet<double>> tripletList;
 	for (int i = 0; i < nnz; ++i) {
 		int row = M.csrMap.row[i];
 		int dataIdx = csrMap.csr2cpjds[i];
 
-		numType val = pdata[dataIdx];
+		double val = pdata[dataIdx];
 		int col = M.csrMap.indices[i];
 
-		tripletList.push_back(Eigen::Triplet<numType>(row, col, val));
+		tripletList.push_back(Eigen::Triplet<double>(row, col, val));
 	}
 	Eigen::SparseMatrix<double> stiff(size, size);
 	stiff.setFromTriplets(tripletList.begin(), tripletList.end());
@@ -78,10 +78,10 @@ numType CGCUDA_Solver::m_preconditioner_eigen(MatrixCPJDS &M, std::unique_ptr<nu
 }
 
 
-Eigen::VectorXf CGCUDA_Solver::getX() {
-	std::vector<numType> xCpu = this->transfX2Cpu();
+Eigen::Matrix<double, -1, 1, 0> CGCUDA_Solver::getX() {
+	std::vector<double> xCpu = this->transfX2Cpu();
 	if(std::isnan(xCpu[0])) throw std::exception();
-	float *data = &(*xCpu.begin());
-	Eigen::Map<Eigen::VectorXf> ans(data, xCpu.size());
+	double *data = &(*xCpu.begin());
+	Eigen::Map<Eigen::Matrix<double, -1, 1, 0>> ans(data, xCpu.size());
 	return ans;
 }

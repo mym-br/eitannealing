@@ -8,19 +8,19 @@
 
 class Number {
 protected:
-	numType * data;
+	double * data;
 
 public:
-	Number(numType n);
+	Number(double n);
 	~Number();
 
-	numType * getData() {
+	double * getData() {
 		return data;
 	}
 	void copy(Number * src);
 	void copy(Number * src, cudaStream_t stream);
 
-	numType transf2CPU();
+	double transf2CPU();
 };
 
 #endif /* NUMBER_H */

@@ -29,7 +29,7 @@ class solutionCuda : public solutionbase<double> {
 //
 //	MatrixCPJDS *stiffnessCjpds;
 //	MatrixCPJDSManager *mgrCjpds;
-//	numType lINFinityNorm;
+//	double lINFinityNorm;
 //
 //
 //
@@ -42,7 +42,7 @@ private:
 	SparseIncompleteLLT *precond;
 	MatrixCPJDS *stiffnessCpjds;
 	MatrixCPJDSManager *mgr;
-	numType lINFinityNorm;
+	double lINFinityNorm;
 	CGCUDA_Solver **simulations;
 //
 	void initSimulations();

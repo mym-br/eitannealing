@@ -6,22 +6,48 @@
 
 using namespace cgl;
 
-CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, numType _LINFinityNorm, bool consolidatedKernels) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
+CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, double _LINFinityNorm, double res, CGSOLVERTYPE solverType, bool init) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
 	size = stiffness->matrixData.n;
-	if(consolidatedKernels) solver = new PCGSolverCPJDS2(mgr, stiffness, bVec);
-	else solver = new PCGSolverCPJDS(mgr, stiffness, bVec);
-	solver->init();
+	switch (solverType) {
+	case DEFAULT: solver = new PCGSolverCPJDS(mgr, stiffness, bVec); break;
+	case CONSOLIDATED: solver = new PCGSolverConsolidatedCPJDS(mgr, stiffness, bVec); break;
+	#ifdef CGROUPS
+	case CONSOLIDATEDCG: solver = new PCGSolverConsolidatedCPJDSCG(mgr, stiffness, bVec); break;
+	#endif
+	}
+	if(init) solver->init(res);
 }
 
-CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, numType _LINFinityNorm, bool consolidatedKernels) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
+CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, double _LINFinityNorm, CGSOLVERTYPE solverType, bool init) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
 	size = stiffness->matrixData.n;
-	if (consolidatedKernels) solver = new PCGSolverCPJDS2(mgr, stiffness, bVec);
-	else solver = new PCGSolverCPJDS(mgr, stiffness, bVec);
-	solver->init(x0);
+	switch (solverType) {
+	case DEFAULT: solver = new PCGSolverCPJDS(mgr, stiffness, bVec); break;
+	case CONSOLIDATED: solver = new PCGSolverConsolidatedCPJDS(mgr, stiffness, bVec); break;
+	#ifdef CGROUPS
+	case CONSOLIDATEDCG: solver = new PCGSolverConsolidatedCPJDSCG(mgr, stiffness, bVec); break;
+	#endif
+	}
+	if(init) solver->init();
 }
 
-Vector *CGCUDA_Solver::createCurrentVector(numType *vec, MatrixCPJDSManager &mgr, int size, int n) {
-	numType * vecArr = new numType[size];
+CGCUDA_Solver::CGCUDA_Solver(MatrixCPJDS *stiffness, MatrixCPJDSManager *mgr, Vector *bVec, Vector *x0, double _LINFinityNorm, CGSOLVERTYPE solverType, bool init) : mgr(mgr), LINFinityNorm(_LINFinityNorm) {
+	size = stiffness->matrixData.n;
+	switch (solverType) {
+	case DEFAULT: solver = new PCGSolverCPJDS(mgr, stiffness, bVec); break;
+	case CONSOLIDATED: solver = new PCGSolverConsolidatedCPJDS(mgr, stiffness, bVec); break;
+	#ifdef CGROUPS
+	case CONSOLIDATEDCG: solver = new PCGSolverConsolidatedCPJDSCG(mgr, stiffness, bVec); break;
+	#endif
+	}
+	if(init) solver->init(x0);
+}
+
+void CGCUDA_Solver::init(double res) {
+	solver->init(res);
+}
+
+Vector *CGCUDA_Solver::createCurrentVector(double *vec, MatrixCPJDSManager &mgr, int size, int n) {
+	double * vecArr = new double[size];
 	for (int i = 0; i < size; i++) {
 		vecArr[i] = 0;
 	}
@@ -40,20 +66,11 @@ int CGCUDA_Solver::getIteration() {
 	return solver->getIteration();
 }
 
-//std::vector<numType> CGCUDA_Solver::getX() {
-//	Vector *x = solver->getX();
-//	
-//	return mgr->restore(x);
-//}
-//
-//Eigen::VectorXd CGCUDA_Solver::getX() {
-//	//	Vector *x = solver->getX();
-//	//	
-//	//	return mgr->restore(x);
-//	//}
-//}
+std::tuple<double, double, double> CGCUDA_Solver::getIterationTimes() {
+	return solver->getAvgTimes();
+}
 
-std::vector<numType> CGCUDA_Solver::transfX2Cpu() {
+std::vector<double> CGCUDA_Solver::transfX2Cpu() {
 	Vector *x = solver->getX();
 		
 	return mgr->restore(x);
@@ -65,6 +82,11 @@ MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<double> *A,
 	return mgr;
 }
 
+MatrixCPJDSManager *CGCUDA_Solver::createManager(Eigen::SparseMatrix<double> *A, MatrixCPJDS *stiffness) {
+	MatrixCPJDSManager *mgr = new MatrixCPJDSManager(A);
+	mgr->buidMatrixCPJDS(stiffness);
+	return mgr;
+}
 double CGCUDA_Solver::getResidueSquaredNorm() const {
 	return solver->getRmod();
 }
@@ -74,9 +96,9 @@ double CGCUDA_Solver::getErrorl2Estimate() const {
 	return r0norm * r0norm * this->solver->getCurrentErr() * LINFinityNorm;
 }
 
-numType CGCUDA_Solver::createPreconditioner(MatrixCPJDS &M, std::unique_ptr<numType[]> &pdata) {
-	numType ans = m_preconditioner_eigen(M, M.cpuData.data, M.cpuData.precond); // FIXME: Use already implemented preconditioner
-	cudaMemcpy(M.preconditionedData.get(), M.cpuData.precond.get(), (size_t)M.matrixData.elCount * sizeof(numType), cudaMemcpyHostToDevice);
+double CGCUDA_Solver::createPreconditioner(MatrixCPJDS &M, std::unique_ptr<double[]> &pdata) {
+	double ans = m_preconditioner_eigen(M, M.cpuData.data, M.cpuData.precond); // FIXME: Use already implemented preconditioner
+	cudaMemcpy(M.preconditionedData.get(), M.cpuData.precond.get(), (size_t)M.matrixData.elCount * sizeof(double), cudaMemcpyHostToDevice);
 	return ans;
 }
 

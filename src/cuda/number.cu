@@ -12,27 +12,27 @@
 /*****************************************************************************************/
 /*****************************************************************************************/
 
-Number::Number(numType val) {
+Number::Number(double val) {
 	// CUDA device memory allocation
-	cudaMalloc((void**)& this->data, sizeof (numType));
+	cudaMalloc((void**)& this->data, sizeof (double));
 	// CUDA memory copy
-	cudaMemcpy(this->data, &val, (size_t) sizeof (numType), cudaMemcpyHostToDevice);
+	cudaMemcpy(this->data, &val, (size_t) sizeof (double), cudaMemcpyHostToDevice);
 }
 Number::~Number() {
 	cudaFree(data);
 }
 void Number::copy(Number * src) {
 	// CUDA memory copy
-	cudaMemcpy(this->data, src->data, (size_t) sizeof (numType), cudaMemcpyHostToDevice);
+	cudaMemcpy(this->data, src->data, (size_t) sizeof (double), cudaMemcpyHostToDevice);
 }
 void Number::copy(Number * src, cudaStream_t stream) {
 	// CUDA memory copy
-	cudaMemcpyAsync(this->data, src->data, (size_t) sizeof (numType), cudaMemcpyHostToDevice, stream);
+	cudaMemcpyAsync(this->data, src->data, (size_t) sizeof (double), cudaMemcpyHostToDevice, stream);
 }
 
-numType Number::transf2CPU() {
-	numType *val = new numType[1];
-	cudaMemcpy(val, data, (size_t)sizeof(numType), cudaMemcpyDeviceToHost);
+double Number::transf2CPU() {
+	double *val = new double[1];
+	cudaMemcpy(val, data, (size_t)sizeof(double), cudaMemcpyDeviceToHost);
 	return val[0];
 }
 

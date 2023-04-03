@@ -40,7 +40,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(name='pyeitsolver',
-      version='1.1',
+      version='1.3',
       author='Andre Sato',
       author_email='andresato@hotmail.com',
       description='Solver for the eit forward problem',

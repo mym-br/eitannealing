@@ -32,7 +32,7 @@ std::map<std::string, int> init(const char* meshfilename, const  char* currentfi
     };
 }
 
-std::vector<double> solveForwardProblem(std::vector<double> conds) {
+std::pair<int, std::vector<double>> solveForwardProblem(std::vector<double> conds) {
     // Check conductivity vector size
     size_t n = conds.size();
 	if (n != input->getNumCoefficients()) throw std::exception(("Wrong conductivities vector size " + std::to_string(n) + " (should be " + std::to_string(input->getNumCoefficients()) + ")").c_str());
@@ -52,10 +52,16 @@ std::vector<double> solveForwardProblem(std::vector<double> conds) {
     // Solve forward problem to obtain potentials
     std::vector<double> potentials(input->getGenericElectrodesCount() * input->getGenericElectrodesCount());
     Eigen::VectorXd x, currents;
+    int noIterations = 0;
     for(int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
         currents = input->getCurrentVector(patterno, readings.get());
         CG_Solver solver(*m1, currents, *precond);
-        for (int i = 0; i < 100; i++) solver.do_iteration();
+        int i = 0; 
+        for (; i < 1500 && solver.getResidueSquaredNorm() > 1e-19; i++) 
+            solver.do_iteration();
+        noIterations += i;
+        //std::cout << "Pattern number: " << patterno << ". Total number of iterations: " << i << std::endl; 
+        
         x = solver.getX();
 
         // Save results to appropriate index in the output vector
@@ -65,10 +71,11 @@ std::vector<double> solveForwardProblem(std::vector<double> conds) {
             else potentials[patterno*input->getGenericElectrodesCount() +i] = x[firstElectrodeIdx + i] * readings->getCurrentVal(patterno);
         }
     }
+    noIterations /= 32;
 
     // Return potentials
     delete m1;
-    return potentials;
+    return std::pair<int, std::vector<double>>(noIterations, potentials);
 }
 
 std::vector<double> solveFullForwardProblem(std::vector<double> conds) {

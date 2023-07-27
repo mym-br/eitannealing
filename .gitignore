@@ -12,3 +12,4 @@
 /.clangd
 /.cache
 *.log
+/eigen-3.3.5

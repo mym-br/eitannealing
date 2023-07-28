@@ -1,0 +1,8 @@
+include cpyeitsolver.pxd
+include pyeitsolver.pyx
+recursive-include src *.h
+recursive-include src *.cpp
+recursive-include src *.hpp
+recursive-include eigen-3.3.5 *.h
+recursive-include eigen-3.3.5 *.cpp
+include eigen-3.3.5/Eigen/*

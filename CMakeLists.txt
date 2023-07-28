@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project(eitannealingtests)
+project(eitannealingtests VERSION 0.9)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 find_package(Qt5Widgets REQUIRED)
-find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for CUDA
+find_package(Eigen3 3.3.5 REQUIRED)  # We only need this version for 
 find_package(Threads REQUIRED)
 find_package(absl COMPONENTS container)
 find_package(CUDA 11)
@@ -13,6 +13,7 @@ if(CUDA_FOUND)
   endif()
 endif()
 find_package(GMSH REQUIRED)
+find_package(CUDA 10)
 
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} src src/complex)
 
@@ -42,6 +43,7 @@ set(eit_core_SRCS
   src/complex/solvercomplex.cpp
   src/complex/solutioncomplex.cpp
   src/complex/gradientnormregularisationcomplex.cpp
+  #src/mm/mmio.c
 )
 
 set(eit_new_complex_engine_SRCS
@@ -119,7 +121,7 @@ set_property(TARGET eitdirect PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitdirect PROPERTY CXX_STANDARD_REQUIRED ON)
 
 if(${CUDA_FOUND})
-    cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
+    cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} ${eit_gui_SRCS} $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
     target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} ${ADDITIONAL_LIBRARIES})
     set_property(TARGET eitmain PROPERTY CXX_STANDARD 17)
     set_property(TARGET eitcuda PROPERTY CUDA_SEPARABLE_COMPILATION ON)
@@ -127,4 +129,5 @@ if(${CUDA_FOUND})
     add_subdirectory(directsolver)
 endif()
 
+add_subdirectory(libs)
 add_subdirectory(tests)

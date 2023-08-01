@@ -17,8 +17,6 @@ sourcefiles = [
     "src/solver.cpp",
     "src/mt19937-64/mt19937-64.c",
     "src/threedim/initproblem3D.cpp",
-    "src/solver_lb.cpp",
-    "src/solution_lb.cpp",
     "src/threedim/nodecoeficients3D.cpp",
     "src/twodim/initproblem2D.cpp",
     "src/twodim/nodecoeficients2D.cpp",

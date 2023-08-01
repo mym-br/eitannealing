@@ -80,7 +80,7 @@ inline void observations<double>::initObs(const char **filecurrents, const char*
 		avg = 0;
 		for (int j = 0; j<n; j++) {
 			file >> val;
-			tensions[i][j] = val / ;c  // Values are normalized by current
+			tensions[i][j] = val / c;  // Values are normalized by current
 			avg += tensions[i][j];
 		}
 #if defined(ZEROELECSUM) || defined(BLOCKGND)

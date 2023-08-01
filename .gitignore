@@ -19,5 +19,5 @@
 *.pyd
 /dist
 /*.egg-info
-pyeitsolver.cpp
+/pyeitsolver.cpp
 /libs

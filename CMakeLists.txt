@@ -88,6 +88,7 @@ add_library(eit_core OBJECT ${eit_core_SRCS})
 set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
 add_library(eit_new_complex_engine OBJECT ${eit_new_complex_engine_SRCS})
+target_link_libraries(eit_new_complex_engine  ${corelibs} )
 set_property(TARGET eit_new_complex_engine PROPERTY CXX_STANDARD 17)
 
 add_library(eit_gui OBJECT ${eit_gui_SRCS})

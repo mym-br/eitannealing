@@ -1,0 +1,4 @@
+{
+  "dependencies": ["gmsh", "eigen3", "qt5-base", "qt5-svg", "abseil"],
+  "builtin-baseline": "6f1ddd6b6878e7e66fcc35c65ba1d8feec2e01f8"
+}

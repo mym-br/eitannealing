@@ -604,8 +604,10 @@ void solution::savePotentials(std::vector<Eigen::VectorXd> &sols, const char *fi
 #if defined(ZEROELECSUM) || defined(BLOCKGND)
 		for (int j = 0; j < input->getNodesCount(); j++) myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
 #else
-		for (int j = 0; j < input->getNodesCount()-1; j++) myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
-		myfile << input->getNodesCount() << "\t" << 0 << "\n";
+		int j = 0;
+		for (; j < input->getGroundNode(); j++) myfile << (j + 1) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
+		myfile << j + 1 << "\t" << 0 << "\n";
+		for (; j < input->getNodesCount()-1; j++) myfile << (j + 2) << "\t" << sols[patterno][j] * readings->getCurrentVal(patterno) << "\n";
 #endif
 		myfile << "$EndNodeData\n";
 	}

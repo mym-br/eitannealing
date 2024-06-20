@@ -51,6 +51,7 @@ class problem {
 	double capacitance;
 	bool isCapacitive;
 	int calibrationMode;
+	bool ignoreouterring; //modi
 
 public:
 
@@ -66,6 +67,8 @@ public:
 	virtual int getInnerAdjacencyCount() const = 0;
 
 	// Getters and setters
+	bool getIgnoreouterring() {return ignoreouterring; }
+	void setIgnoreouterring(bool _ignoreouterring) {ignoreouterring = _ignoreouterring; }
 	int getNumCoefficients() const { return numcoefficients; }
 	nodeCoefficients **getNodeCoefficients() { return nodeCoef; }
 	const nodeCoefficients * const *getNodeCoefficients() const { return nodeCoef; }
@@ -82,17 +85,14 @@ public:
 	// Contructor and destructors
 	problem(const char *meshfilename) : groundNode(-1), nodeCoef(nullptr),
 		skeleton(nullptr), coef2KMatrix(nullptr), filename(meshfilename),
-		capacitance(0.0), isCapacitive(false), calibrationMode(0) {};
+		capacitance(0.0), isCapacitive(false), calibrationMode(0), ignoreouterring(false) {};
 	virtual ~problem();
 
 	void prepareSkeletonMatrix() {
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
 		int n = getNodesCount();
-#else
-		int n = getNodesCount() - 1;
-#endif
 		std::vector<Eigen::Triplet<Scalar>> tripletList;
 		for (int i = 0; i<n; ++i) {
+			if (i == groundNode) continue;
 			nodeCoefficients *aux = nodeCoef[i];
 			while (aux) { // Col-major storage
 				while (aux->node < i) aux = aux->next; // skip upper triangular
@@ -105,31 +105,32 @@ public:
 #endif
 				while (aux && aux->node == row) aux = aux->next;
 				// 1.0 value as placeholder
-				tripletList.push_back(Eigen::Triplet<Scalar>(row, i, 1.0));
+				tripletList.push_back(Eigen::Triplet<Scalar>(row > groundNode ? row - 1 : row, i > groundNode ?  i - 1 : i, 1.0));
 			}
 		}
+#if defined(ZEROELECSUM) || defined(BLOCKGND)
 		skeleton = new matrix(n, n);
+#else
+		skeleton = new matrix(n - 1, n - 1);
+#endif
 		skeleton->setFromTriplets(tripletList.begin(), tripletList.end());
 		skeleton->makeCompressed();
 	}
 
 	void createCoef2KMatrix() {
-#if defined(ZEROELECSUM) || defined(BLOCKGND)
 		int n = getNodesCount();
-#else
-		int n = getNodesCount() - 1;
-#endif
 		Scalar *base = skeleton->valuePtr();// coeffRef(0, 0);
 		std::vector<Eigen::Triplet<Scalar> > tripletList;
 		for (int i = 0; i<n; ++i) {
+			if (i == groundNode) continue;
 			for (nodeCoefficients *aux = nodeCoef[i]; aux != NULL; aux = aux->next) {
 				if (aux->node < i) continue; // skip upper triangular
 #if !defined(ZEROELECSUM) && !defined(BLOCKGND)
 				if (aux->node == groundNode) continue;   // Skip ground node
 #endif
 				// Find index
-				matrix::StorageIndex row = (matrix::StorageIndex)(&skeleton->coeffRef(aux->node, i) - base);
-				tripletList.push_back(Eigen::Triplet<Scalar>(row, aux->condIndex, aux->coefficient));
+				matrix::StorageIndex row = (matrix::StorageIndex)(&skeleton->coeffRef(aux->node > groundNode ? aux->node - 1 : aux->node , i > groundNode ? i - 1 : i) - base);
+				tripletList.push_back(Eigen::Triplet<Scalar>(row , aux->condIndex, aux->coefficient));
 			}
 		}
 		coef2KMatrix = new matrix(skeleton->nonZeros(), numcoefficients);

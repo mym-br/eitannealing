@@ -71,6 +71,7 @@ void problem2D::fillElementsGenericElectrode(int meshVer) {
 
 	elements.reserve(numElements);
 
+	int lastBaseNode = 0;
 	for (i = 0; i<numElements; i++) {
 		int id, numTags;
 		int na, nb, nc;
@@ -151,6 +152,7 @@ void problem2D::fillElementsGenericElectrode(int meshVer) {
 				e1 = na;
 				e2 = nb;
 			}
+			if (baseNode > lastBaseNode) lastBaseNode = baseNode;
 			addToGenericElectrode(baseNode, e1, e2);
 			break;
 		}
@@ -169,9 +171,10 @@ void problem2D::fillElementsGenericElectrode(int meshVer) {
 	// Outter ring coefficient
 	for (auto e : outerRingNodes) {
 		node2coefficient[e] = condIndex;
+		if (this->ignoreouterring) condIndex++;
 	}
 
-	if (!outerRingNodes.empty()) condIndex++;
+	if (!outerRingNodes.empty() && !this->ignoreouterring) condIndex++;
 
 	// Inner coefficients
 	for (auto i : innerNodes) {
@@ -179,7 +182,7 @@ void problem2D::fillElementsGenericElectrode(int meshVer) {
 	}
 
 	numcoefficients = condIndex;
-	if (getGroundNode() == -1) setGroundNode(gelectrodes.back().baseNode);
+	if (getGroundNode() == -1) setGroundNode(lastBaseNode);
 
 	// Prepare inner nodes adjacency map
 	//	Adjacency is established between nodes that are NOT in the outter ring

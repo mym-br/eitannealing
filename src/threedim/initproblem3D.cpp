@@ -141,9 +141,10 @@ void problem3D::fillElementsGenericElectrode() {
 	// Outter ring coefficient
 	for (auto e : outerRingNodes) {
 		node2coefficient[e] = condIndex;
+		if (this->ignoreouterring) condIndex++;
 	}
 
-	if (!outerRingNodes.empty()) condIndex++;
+	if (!outerRingNodes.empty() && !this->ignoreouterring) condIndex++;
 
 	// Inner coefficients
 	for (auto i : innerNodes) {

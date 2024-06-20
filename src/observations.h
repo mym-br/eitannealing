@@ -43,9 +43,9 @@ template<>
 inline void observations<double>::initObs(const char **filecurrents, const char* filename, int nodesCount, int electrodesCount, int groundNode) {
 	std::ifstream file;
 	std::ifstream filec;
-        //mesh_file = filename;
+	bool readPotentials = (filename != NULL);
 	filec.open(*filecurrents);
-	file.open(filename);
+	if (readPotentials) file.open(filename);
 
 	int n = electrodesCount; // TODO: read number of measurements from file
 	long valuesCount = (long)std::distance(std::istream_iterator<double>(file), std::istream_iterator<double>());

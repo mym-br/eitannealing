@@ -12,3 +12,12 @@
 /.clangd
 /.cache
 *.log
+/eigen-3.3.5
+*.msh
+/eigen*
+*.mtx
+*.pyd
+/dist
+/*.egg-info
+/pyeitsolver.cpp
+/libs

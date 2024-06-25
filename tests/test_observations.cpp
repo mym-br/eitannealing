@@ -5,8 +5,10 @@
 #include "matrixview.h"
 #include "observations.h"
 #include <iostream>
+#include <gtest/gtest.h>
 
-int main(int argc, char *argv[])
+// Check if b and A matrix are compatible for CG solving
+TEST(CgTwoDimTest, SizeAssertion)
 {
     bool is2dProblem;
     const char *meshFile = "./data/circular_A_2D.msh";
@@ -21,9 +23,7 @@ int main(int argc, char *argv[])
     input->createCoef2KMatrix();
 
     matrix *m1;
-    Eigen::VectorXd v(input->getNumCoefficients());
-    for (int i = 0; i < v.rows(); i++)
-        v[i] = 0.3815;
+    Eigen::VectorXd v = Eigen::VectorXd::Constant(input->getNumCoefficients(), 0.3815);
     input->assembleProblemMatrix(&v[0], &m1);
     input->postAssembleProblemMatrix(&m1);
     Eigen::VectorXd currents;
@@ -31,7 +31,5 @@ int main(int argc, char *argv[])
     SparseIncompleteLLT precond(*m1);
 
     currents = input->getCurrentVector(0, readings);
-    CG_Solver solver(*m1, currents, precond);
-
-    return 0;
+    EXPECT_EQ(currents.rows(), m1->rows());
 }

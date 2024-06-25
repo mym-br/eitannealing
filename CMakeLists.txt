@@ -13,7 +13,6 @@ if(CUDA_FOUND)
   endif()
 endif()
 find_package(GMSH REQUIRED)
-find_package(CUDA 10)
 
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} src src/complex)
 
@@ -130,5 +129,6 @@ if(${CUDA_FOUND})
     add_subdirectory(directsolver)
 endif()
 
-add_subdirectory(libs)
+enable_testing()
+include (CTest)
 add_subdirectory(tests)

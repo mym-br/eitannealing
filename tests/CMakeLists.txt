@@ -78,3 +78,8 @@ set_property(TARGET test_lb_solution_complex PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_lb_solution_complex PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_lb_solution_complex ${corelibs})
 
+add_executable(test_observations test_observations.cpp $<TARGET_OBJECTS:eit_core>)
+set_property(TARGET test_observations PROPERTY CXX_STANDARD 17)
+set_property(TARGET test_observations PROPERTY CXX_STANDARD_REQUIRED ON)
+target_link_libraries(test_observations ${corelibs})
+add_test(NAME test_observations COMMAND test_observations WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

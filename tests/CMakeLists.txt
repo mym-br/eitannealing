@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(FetchContent)
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG v1.14.0
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -95,6 +96,6 @@ add_executable(test_observations test_observations.cpp $<TARGET_OBJECTS:eit_core
 set_property(TARGET test_observations PROPERTY CXX_STANDARD 17)
 set_property(TARGET test_observations PROPERTY CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_observations ${corelibs} GTest::gtest_main)
+
 include(GoogleTest)
-gtest_discover_tests(test_observations)
-add_test(NAME test_observations COMMAND test_observations WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+gtest_discover_tests(test_observations WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

@@ -130,5 +130,4 @@ if(${CUDA_FOUND})
 endif()
 
 enable_testing()
-include (CTest)
 add_subdirectory(tests)

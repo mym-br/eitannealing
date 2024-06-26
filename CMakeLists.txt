@@ -120,6 +120,11 @@ target_link_libraries(eitdirect  ${libs} ${ADDITIONAL_LIBRARIES})
 set_property(TARGET eitdirect PROPERTY CXX_STANDARD 17)
 set_property(TARGET eitdirect PROPERTY CXX_STANDARD_REQUIRED ON)
 
+add_executable(pyeitsolver src/mainpyeitsolver.cpp src/pyeitsolver.h src/pyeitsolver.cpp $<TARGET_OBJECTS:eit_core>)
+target_link_libraries(pyeitsolver  ${libs} ${ADDITIONAL_LIBRARIES})
+set_property(TARGET pyeitsolver PROPERTY CXX_STANDARD 17)
+set_property(TARGET pyeitsolver PROPERTY CXX_STANDARD_REQUIRED ON)
+
 if(${CUDA_FOUND})
     cuda_add_executable(eitcuda src/maincuda.cpp src/parameters/parametersparser.cpp ${eit_cuda_SRCS} ${eit_gui_SRCS} $<TARGET_OBJECTS:eit_gui> $<TARGET_OBJECTS:eit_core>)
     target_link_libraries(eitcuda ${libs} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY} ${ADDITIONAL_LIBRARIES})

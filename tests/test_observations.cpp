@@ -7,21 +7,31 @@
 #include <iostream>
 #include <gtest/gtest.h>
 
-// Check if b and A matrix are compatible for CG solving
-TEST(CgTwoDimTest, SizeAssertion)
+class CgTwoDimTest : public testing::Test
 {
-    bool is2dProblem;
-    const char *meshFile = "./data/circular_A_2D.msh";
-    const char *currentsFile = "./data/cuba_190ma_cp.txt";
-    const char *measurementsFile = "./data/tri02b.ampl_calibrado.txt";
-    std::shared_ptr<problem> input = problem::createNewProblem(meshFile, &is2dProblem);
-    input->initProblem(meshFile);
-    observations<double> *readings = new observations<double>;
-    readings->initObs(&currentsFile, measurementsFile, input->getNodesCount(), input->getGenericElectrodesCount());
-    input->buildNodeCoefficients();
-    input->prepareSkeletonMatrix();
-    input->createCoef2KMatrix();
+protected:
+    CgTwoDimTest()
+    {
+        bool is2dProblem;
+        const char *meshFile = "./data/circular_A_2D.msh";
+        const char *currentsFile = "./data/cuba_190ma_cp.txt";
+        const char *measurementsFile = "./data/tri02b.ampl_calibrado.txt";
+        this->input = problem::createNewProblem(meshFile, &is2dProblem);
+        this->input->initProblem(meshFile);
+        this->readings = new observations<double>;
+        this->readings->initObs(&currentsFile, measurementsFile, this->input->getNodesCount(), this->input->getGenericElectrodesCount());
+        this->input->buildNodeCoefficients();
+        this->input->prepareSkeletonMatrix();
+        this->input->createCoef2KMatrix();
+    }
 
+    std::shared_ptr<problem> input;
+    observations<double> *readings;
+};
+
+// Check if b and A matrix are compatible for CG solving
+TEST_F(CgTwoDimTest, SizeAssertion)
+{
     matrix *m1;
     Eigen::VectorXd v = Eigen::VectorXd::Constant(input->getNumCoefficients(), 0.3815);
     input->assembleProblemMatrix(&v[0], &m1);

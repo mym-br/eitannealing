@@ -14,6 +14,10 @@ if(CUDA_FOUND)
 endif()
 find_package(GMSH REQUIRED)
 
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
 include_directories(${Qt5Widgets_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GMSH_INCLUDE_DIRS} src src/complex)
 
 if(absl_FOUND)
@@ -134,5 +138,6 @@ if(${CUDA_FOUND})
     add_subdirectory(directsolver)
 endif()
 
+add_subdirectory(python)
 enable_testing()
 add_subdirectory(tests)

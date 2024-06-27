@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.15...3.27)
 project(
   ${SKBUILD_PROJECT_NAME}
   VERSION ${SKBUILD_PROJECT_VERSION}
-  LANGUAGES CXX)
+  LANGUAGES C CXX)
 
 # Find the module development requirements (requires FindPython from 3.17 or
 # scikit-build-core's built-in backport)
@@ -40,7 +40,7 @@ set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
 
 # Add a library using FindPython's tooling (pybind11 also provides a helper like
 # this)
-python_add_library(_core MODULE src/core.cpp WITH_SOABI)
+python_add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_core> WITH_SOABI)
 target_link_libraries(_core PRIVATE pybind11::headers)
 
 # This is passing in the version as a define just as an example

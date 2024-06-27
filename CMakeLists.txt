@@ -138,6 +138,5 @@ if(${CUDA_FOUND})
     add_subdirectory(directsolver)
 endif()
 
-add_subdirectory(python)
 enable_testing()
 add_subdirectory(tests)

@@ -21,3 +21,5 @@
 /*.egg-info
 /pyeitsolver.cpp
 /libs
+venv/
+dist/

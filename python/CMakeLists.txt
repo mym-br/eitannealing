@@ -15,6 +15,29 @@ find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)
 
+include_directories(${EIGEN3_INCLUDE_DIR} ../src)
+
+set(eit_core_SRCS
+  ../src/gradientnormregularisation.cpp
+  ../src/intcoef.cpp
+  ../src/incomplete_cholesky.cpp
+  ../src/incomplete_ldlt.cpp
+  ../src/problem.cpp
+  ../src/solution.cpp
+  ../src/solutionbase.cpp
+  ../src/solver.cpp
+  ../src/mt19937-64/mt19937-64.c
+  ../src/threedim/initproblem3D.cpp
+  ../src/solver_lb.cpp
+  ../src/solution_lb_real.cpp
+  ../src/threedim/nodecoeficients3D.cpp
+  ../src/twodim/initproblem2D.cpp
+  ../src/twodim/nodecoeficients2D.cpp
+)
+
+add_library(eit_core OBJECT ${eit_core_SRCS})
+set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
+
 # Add a library using FindPython's tooling (pybind11 also provides a helper like
 # this)
 python_add_library(_core MODULE src/core.cpp WITH_SOABI)

@@ -11,15 +11,15 @@ def main(mesh_file, currents_file):
     electrode_potentials = pyeitsolver.solve_forward_problem(
         np.ones(problem_data["coeffCount"]) * 0.3810
     )
-    print(electrode_potentials[1])
-    print(electrode_potentials[1][:32])
+    # print(electrode_potentials[1])
+    print(electrode_potentials[1][0])
     print(electrode_potentials[1].shape)
 
-    mesh_potentials = pyeitsolver.solve_full_forward_problem(
-        np.ones(problem_data["coeffCount"]) * 0.3810
+    mesh_potentials = pyeitsolver.solve_forward_problem(
+        np.ones(problem_data["coeffCount"]) * 0.3810, mesh_potentials=True
     )
-    print(mesh_potentials)
-    print(mesh_potentials.shape)
+    print(mesh_potentials[1])
+    print(mesh_potentials[1].shape)
 
 
 if __name__ == "__main__":

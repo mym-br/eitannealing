@@ -5,7 +5,7 @@
 /.project
 /.cproject
 /.cproject
-/build
+build/
 /compile_commands.json
 /CMakeSettings.json
 /.settings/

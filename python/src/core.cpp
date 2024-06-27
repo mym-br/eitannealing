@@ -11,6 +11,8 @@
 #include "observations.h"
 
 #define STRINGIFY(x) #x
+#define MAX_ITERATIONS 1500
+#define RESIDUAL 1e-19
 
 namespace pyeitsolver
 {
@@ -43,17 +45,31 @@ namespace pyeitsolver
             {"groundNode", input->getGroundNode()}};
     }
 
-    std::pair<int, Eigen::VectorXd> solve_forward_problem(const Eigen::VectorXd &conds)
+    // Function to create the indices vector
+    Eigen::VectorXi createIndicesVector(std::shared_ptr<problem> input)
+    {
+        int numCoefficients = input->getNumCoefficients();
+        Eigen::VectorXi indices(numCoefficients);
+        std::vector<int> temp(numCoefficients);
+        std::iota(temp.begin(), temp.end(), 0); // Fill with sequential integers starting from 0
+
+        std::transform(temp.begin(), temp.end(), indices.data(), [&input](int i)
+                       { return input->getNode2Coefficient(i); });
+
+        return indices;
+    }
+
+    std::pair<int, Eigen::MatrixXd> solve_forward_problem(const Eigen::VectorXd &conds, bool meshPotentials = false)
     {
         // Check conductivity vector size
-        size_t n = conds.size();
+        auto n = conds.size();
         if (n != input->getNumCoefficients())
             throw std::exception(("Wrong conductivities vector size " + std::to_string(n) + " (should be " + std::to_string(input->getNumCoefficients()) + ")").c_str());
 
         // Map node conductivities to coefficient indices
-        Eigen::VectorXd v(input->getNumCoefficients());
-        for (int i = 0; i < v.rows(); i++)
-            v[input->getNode2Coefficient(i)] = conds[i];
+        Eigen::VectorXd v = Eigen::VectorXd::Zero(n);
+        Eigen::VectorXi indices = createIndicesVector(input);
+        v(indices) = conds;
 
         // Create FEM conductivity matrix
         matrix *m1;
@@ -64,7 +80,8 @@ namespace pyeitsolver
         std::shared_ptr<SparseIncompleteLLT> precond = std::shared_ptr<SparseIncompleteLLT>(new SparseIncompleteLLT(*m1));
 
         // Solve forward problem to obtain potentials
-        std::vector<double> potentials(input->getGenericElectrodesCount() * input->getGenericElectrodesCount());
+        int electrodeCount = input->getGenericElectrodesCount();
+        Eigen::MatrixXd potentials(electrodeCount, meshPotentials ? n : electrodeCount);
         Eigen::VectorXd x, currents;
         int noIterations = 0;
         for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++)
@@ -72,70 +89,23 @@ namespace pyeitsolver
             currents = input->getCurrentVector(patterno, readings.get());
             CG_Solver solver(*m1, currents, *precond);
             int i = 0;
-            for (; i < 1500 && solver.getResidueSquaredNorm() > 1e-19; i++)
+            for (; i < MAX_ITERATIONS && solver.getResidueSquaredNorm() > RESIDUAL; i++)
                 solver.do_iteration();
             noIterations += i;
-            // std::cout << "Pattern number: " << patterno << ". Total number of iterations: " << i << std::endl;
 
             x = solver.getX();
 
             // Save results to appropriate index in the output vector
-            int firstElectrodeIdx = input->getGroundNode() - input->getGenericElectrodesCount() + 1;
-            for (int i = 0; i < input->getGenericElectrodesCount(); i++)
-            {
-                if (firstElectrodeIdx + i == input->getGroundNode())
-                    potentials[patterno * input->getGenericElectrodesCount() + i] = 0;
-                else
-                    potentials[patterno * input->getGenericElectrodesCount() + i] = x[firstElectrodeIdx + i] * readings->getCurrentVal(patterno);
-            }
+            int firstElectrodeIdx = input->getGroundNode() - electrodeCount + 1;
+            potentials.row(patterno) = meshPotentials ? x : x.segment(firstElectrodeIdx, electrodeCount);
+            potentials.row(patterno) *= readings->getCurrentVal(patterno);
         }
         noIterations /= 32;
 
         // Return potentials
         delete m1;
-        return std::pair<int, Eigen::VectorXd>(noIterations, Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(potentials.data(), potentials.size()));
+        return std::pair<int, Eigen::MatrixXd>(noIterations, potentials);
     }
-
-    Eigen::VectorXd solve_full_forward_problem(const Eigen::VectorXd &conds)
-    {
-        // Check conductivity vector size
-        size_t n = conds.size();
-        if (n != input->getNumCoefficients()) throw std::exception(("Wrong conductivities vector size " + std::to_string(n) + " (should be " + std::to_string(input->getNumCoefficients()) + ")").c_str());
-
-        // Map node conductivities to coefficient indices
-        Eigen::VectorXd v(input->getNumCoefficients());
-        for (int i = 0; i < v.rows(); i++) v[input->getNode2Coefficient(i)] = conds[i];
-
-        // Create FEM conductivity matrix
-        matrix* m1;
-        input->assembleProblemMatrix(&v[0], &m1);
-        input->postAssembleProblemMatrix(&m1);
-
-        // Create preconditioner matrix
-        std::shared_ptr<SparseIncompleteLLT> precond = std::shared_ptr<SparseIncompleteLLT>(new SparseIncompleteLLT(*m1));
-
-        // Solve forward problem to obtain potentials
-        std::vector<double> fullPotentials(input->getGenericElectrodesCount() * input->getNumCoefficients());
-        Eigen::VectorXd x, currents;
-        for(int patterno = 0; patterno < readings->getCurrentsCount(); patterno++) {
-            currents = input->getCurrentVector(patterno, readings.get());
-            CG_Solver solver(*m1, currents, *precond);
-            for (int i = 0; i < 100; i++) solver.do_iteration();
-            x = solver.getX();
-
-            // Save results to appropriate index in the output vector
-            for (int i = 0; i < input->getNumCoefficients(); i++) {
-                if (i < input->getGroundNode()) fullPotentials[patterno*input->getNumCoefficients() +i] = x[i] * readings->getCurrentVal(patterno);  
-                else if (i == input->getGroundNode()) fullPotentials[patterno*input->getNumCoefficients() +i] = 0;  
-                else fullPotentials[patterno*input->getNumCoefficients() +i] = x[i-1] * readings->getCurrentVal(patterno);
-            }
-        }
-        
-        // Return potentials
-        delete m1;
-        return Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(fullPotentials.data(), fullPotentials.size());
-    }
-
 }
 
 namespace py = pybind11;
@@ -155,8 +125,7 @@ PYBIND11_MODULE(_core, m)
            subtract
     )pbdoc";
     m.def("init", &pyeitsolver::init);
-    m.def("solve_forward_problem", &pyeitsolver::solve_forward_problem);
-    m.def("solve_full_forward_problem", &pyeitsolver::solve_full_forward_problem);
+    m.def("solve_forward_problem", &pyeitsolver::solve_forward_problem, py::arg("conds"), py::kw_only(), py::arg("mesh_potentials") = false);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = STRINGIFY(VERSION_INFO);

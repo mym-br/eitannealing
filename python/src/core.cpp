@@ -113,19 +113,13 @@ namespace py = pybind11;
 PYBIND11_MODULE(_core, m)
 {
     m.doc() = R"pbdoc(
-        Pybind11 example plugin
+        Pybind11 eitannealing solver plugin
         -----------------------
 
-        .. currentmodule:: scikit_build_example
-
-        .. autosummary::
-           :toctree: _generate
-
-           add
-           subtract
+        .. currentmodule:: pyeitsolver
     )pbdoc";
-    m.def("init", &pyeitsolver::init);
-    m.def("solve_forward_problem", &pyeitsolver::solve_forward_problem, py::arg("conds"), py::kw_only(), py::arg("mesh_potentials") = false);
+    m.def("init", &pyeitsolver::init, "Loads mesh data, currents data and creates problem matrices");
+    m.def("solve_forward_problem", &pyeitsolver::solve_forward_problem, "Solves forward problem, returning potentials, for a given conductivity distribution", py::arg("conds"), py::kw_only(), py::arg("mesh_potentials") = false);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = STRINGIFY(VERSION_INFO);

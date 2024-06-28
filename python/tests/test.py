@@ -5,18 +5,18 @@ import pyeitsolver
 
 
 def main(mesh_file, currents_file):
-    problem_data = pyeitsolver.init(mesh_file, currents_file)
-    print(problem_data)
+    solver = pyeitsolver.EitSolver(mesh_file, currents_file)
+    print(solver.info)
 
-    electrode_potentials = pyeitsolver.solve_forward_problem(
-        np.ones(problem_data["coeffCount"]) * 0.3810
+    electrode_potentials = solver.solve_forward_problem(
+        np.ones(solver.info["coeff_count"]) * 0.3810
     )
     # print(electrode_potentials[1])
     print(electrode_potentials[1][0])
     print(electrode_potentials[1].shape)
 
-    mesh_potentials = pyeitsolver.solve_forward_problem(
-        np.ones(problem_data["coeffCount"]) * 0.3810, mesh_potentials=True
+    mesh_potentials = solver.solve_forward_problem(
+        np.ones(solver.info["coeff_count"]) * 0.3810, mesh_potentials=True
     )
     print(mesh_potentials[1])
     print(mesh_potentials[1].shape)

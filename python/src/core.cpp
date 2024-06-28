@@ -36,17 +36,17 @@ namespace pyeitsolver
             return indices;
         }
 
-        std::pair<int, Eigen::MatrixXd> solve_forward_problem(const Eigen::VectorXd &conds, bool meshPotentials = false)
+        std::pair<int, Eigen::MatrixXd> solve_forward_problem(const Eigen::VectorXd &conductivities, bool meshPotentials = false)
         {
             // Check conductivity vector size
-            auto n = conds.size();
+            auto n = conductivities.size();
             if (n != input->getNumCoefficients())
                 throw std::exception(("Wrong conductivities vector size " + std::to_string(n) + " (should be " + std::to_string(input->getNumCoefficients()) + ")").c_str());
 
             // Map node conductivities to coefficient indices
             Eigen::VectorXd v = Eigen::VectorXd::Zero(n);
             Eigen::VectorXi indices = createIndicesVector(input);
-            v(indices) = conds;
+            v(indices) = conductivities;
 
             // Create FEM conductivity matrix
             matrix *m1;

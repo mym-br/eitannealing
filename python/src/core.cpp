@@ -11,15 +11,15 @@
 #include "observations.h"
 
 #define STRINGIFY(x) #x
-#define MAX_ITERATIONS 1500
-#define RESIDUAL 1e-19
+#define DEFAULT_MAX_ITERATIONS 1500
+#define DEFAULT_RESIDUAL 1e-19
 
 namespace pyeitsolver
 {
     class EitSolver {
         public:
         EitSolver(std::string meshFilename, std::string currentFilename) {
-            this->info = init(meshFilename, currentFilename);
+            init(meshFilename, currentFilename);
         }
 
         // Function to create the indices vector
@@ -36,7 +36,7 @@ namespace pyeitsolver
             return indices;
         }
 
-        std::pair<int, Eigen::MatrixXd> solve_forward_problem(const Eigen::VectorXd &conductivities, bool meshPotentials = false)
+        std::pair<std::map<std::string, double>, Eigen::MatrixXd> solve_forward_problem(const Eigen::VectorXd &conductivities, bool meshPotentials = false, int maxIterations = DEFAULT_MAX_ITERATIONS, double residual = DEFAULT_RESIDUAL)
         {
             // Check conductivity vector size
             auto n = conductivities.size();
@@ -63,15 +63,16 @@ namespace pyeitsolver
             Eigen::MatrixXd potentials(electrodeCount, meshPotentials ? n : electrodeCount);
             Eigen::VectorXd x, currents;
 
-            int noIterations = 0;
+            double avgIterations = 0, avgResidual = 0;
             for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++)
             {
                 currents = input->getCurrentVector(patterno, readings.get());
                 CG_Solver solver(*m1, currents, *precond);
                 int i = 0;
-                for (; i < MAX_ITERATIONS && solver.getResidueSquaredNorm() > RESIDUAL; i++)
+                for (; i < maxIterations && solver.getResidueSquaredNorm() > residual; i++)
                     solver.do_iteration();
-                noIterations += i;
+                avgIterations += i;
+                avgResidual += solver.getResidueSquaredNorm();
 
                 x = solver.getX();
 
@@ -83,20 +84,36 @@ namespace pyeitsolver
                 potentials.row(patterno) = (meshPotentials ? xExpanded : xExpanded.segment(groundNodeIdx - electrodeCount + 1, electrodeCount)).transpose();
                 potentials.row(patterno) *= readings->getCurrentVal(patterno);
             }
-            noIterations /= 32;
+            avgIterations /= readings->getCurrentsCount();
+            avgResidual /= readings->getCurrentsCount();
+
+            std::map<std::string, double> executionInfo = {
+                {"max_iterations", (double)maxIterations},
+                {"residual", (double)residual},
+                {"avg_iterations", avgIterations},
+                {"avg_residual", avgResidual}};
 
             // Return potentials
             delete m1;
-            return std::pair<int, Eigen::MatrixXd>(noIterations, potentials);
+            return std::pair<std::map<std::string, double>, Eigen::MatrixXd>(executionInfo, potentials);
         }
 
-        std::map<std::string, int> info;
+        std::map<std::string, int> getProblemInfo() {
+            return std::map<std::string, int>{
+                {"coeff_count", input->getNumCoefficients()},
+                {"currents_count", readings->getCurrentsCount()},
+                {"electrodes_count", input->getGenericElectrodesCount()},
+                {"ground_node", input->getGroundNode()}};
+        }
+
+        int coeffCount;
+        int electrodeCount;
 
         private:
         std::shared_ptr<problem> input;
         std::unique_ptr<observations<double>> readings;
 
-        std::map<std::string, int> init(std::string meshFilename, std::string currentFilename)
+        void init(std::string meshFilename, std::string currentFilename)
         {
             // Load mesh file geometry into memory
             bool is2dProblem;
@@ -114,12 +131,8 @@ namespace pyeitsolver
             const char *currentFilenameCStar = currentFilename.c_str();
             readings->initObs(&currentFilenameCStar, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode());
 
-            // Return problem data
-            return std::map<std::string, int>{
-                {"coeff_count", input->getNumCoefficients()},
-                {"currents_count", readings->getCurrentsCount()},
-                {"electrodes_count", input->getGenericElectrodesCount()},
-                {"ground_node", input->getGroundNode()}};
+            this->coeffCount = input->getNumCoefficients();
+            this->electrodeCount = input->getGenericElectrodesCount();
         }
     };
 }
@@ -136,8 +149,12 @@ PYBIND11_MODULE(_core, m)
     )pbdoc";
     py::class_<pyeitsolver::EitSolver>(m, "EitSolver", "Loads mesh data, currents data and creates problem matrices")
         .def(py::init<std::string, std::string>())
-        .def_readonly("info", &pyeitsolver::EitSolver::info)
-        .def("solve_forward_problem", &pyeitsolver::EitSolver::solve_forward_problem, "Solves forward problem, returning potentials, for a given conductivity distribution", py::arg("conds"), py::kw_only(), py::arg("mesh_potentials") = false);
+        .def_property_readonly("info", &pyeitsolver::EitSolver::getProblemInfo)
+        .def("solve_forward_problem", &pyeitsolver::EitSolver::solve_forward_problem, "Solves forward problem, returning potentials, for a given conductivity distribution", py::arg("conds"), py::kw_only(), py::arg("mesh_potentials") = false, py::arg("max_iterations") = DEFAULT_MAX_ITERATIONS, py::arg("residual") = DEFAULT_RESIDUAL)
+                .def("__repr__",
+        [](const pyeitsolver::EitSolver &a) {
+            return "<pyeitsolver.EitSolver of mesh with " + std::to_string(a.coeffCount) + " coefficients and " +  std::to_string(a.electrodeCount) + " electrodes>";
+        });
 
 #ifdef VERSION_INFO
     m.attr("__version__") = STRINGIFY(VERSION_INFO);

@@ -6,6 +6,7 @@ import pyeitsolver
 
 def main(mesh_file, currents_file):
     solver = pyeitsolver.EitSolver(mesh_file, currents_file)
+    print(solver)
     print(solver.info)
 
     conductivities = np.ones(solver.info["coeff_count"]) * 0.3810
@@ -13,12 +14,14 @@ def main(mesh_file, currents_file):
 
     electrode_potentials = solver.solve_forward_problem(conductivities)
 
+    print(electrode_potentials[0])
     print(electrode_potentials[1][0])
     print(electrode_potentials[1].shape)
 
     mesh_potentials = solver.solve_forward_problem(
         np.ones(solver.info["coeff_count"]) * 0.3810, mesh_potentials=True
     )
+    print(mesh_potentials[0])
     print(mesh_potentials[1])
     print(mesh_potentials[1].shape)
 

@@ -9,15 +9,13 @@ project(
   VERSION ${SKBUILD_PROJECT_VERSION}
   LANGUAGES C CXX)
 
-# Find the module development requirements (requires FindPython from 3.17 or
-# scikit-build-core's built-in backport)
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+set(PYBIND11_NOPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)
 
-include_directories(${EIGEN3_INCLUDE_DIR} ../src)
+include_directories(${EIGEN3_INCLUDE_DIR} ${PYTHON_INCLUDE_DIR} ../src)
 
-set(eit_core_SRCS
+set(eit_python_core_SRCS
   ../src/gradientnormregularisation.cpp
   ../src/intcoef.cpp
   ../src/incomplete_cholesky.cpp
@@ -35,13 +33,13 @@ set(eit_core_SRCS
   ../src/twodim/nodecoeficients2D.cpp
 )
 
-add_library(eit_core OBJECT ${eit_core_SRCS})
-set_property(TARGET eit_core PROPERTY CXX_STANDARD 17)
+add_library(eit_python_core OBJECT ${eit_python_core_SRCS})
+set_property(TARGET eit_python_core PROPERTY CXX_STANDARD 17)
 
-# Add a library using FindPython's tooling (pybind11 also provides a helper like
-# this)
-python_add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_core> WITH_SOABI)
-target_link_libraries(_core PRIVATE pybind11::headers)
+# Create the Python extension module manually
+add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core>)
+set_target_properties(_core PROPERTIES PREFIX "" SUFFIX ".pyd")
+target_link_libraries(_core PRIVATE pybind11::module ${PYTHON_LIBRARY})
 
 # This is passing in the version as a define just as an example
 target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})

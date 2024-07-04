@@ -58,8 +58,11 @@ namespace pyeitsolver
 
             // Solve forward problem to obtain potentials
             int electrodeCount = input->getGenericElectrodesCount();
+            int groundNodeIdx = input->getGroundNode();
+
             Eigen::MatrixXd potentials(electrodeCount, meshPotentials ? n : electrodeCount);
             Eigen::VectorXd x, currents;
+
             int noIterations = 0;
             for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++)
             {
@@ -72,9 +75,12 @@ namespace pyeitsolver
 
                 x = solver.getX();
 
+                // Create xExpanded with size n
+                Eigen::VectorXd xExpanded(n);
+                xExpanded << x.head(groundNodeIdx), 0, x.tail(n - 1 - groundNodeIdx);
+                
                 // Save results to appropriate index in the output vector
-                int firstElectrodeIdx = input->getGroundNode() - electrodeCount + 1;
-                potentials.row(patterno) = meshPotentials ? x : x.segment(firstElectrodeIdx, electrodeCount);
+                potentials.row(patterno) = (meshPotentials ? xExpanded : xExpanded.segment(groundNodeIdx - electrodeCount + 1, electrodeCount)).transpose();
                 potentials.row(patterno) *= readings->getCurrentVal(patterno);
             }
             noIterations /= 32;

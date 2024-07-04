@@ -10,6 +10,13 @@
    ```bash
    $ $env:CMAKE_GENERATOR = "Visual Studio 17 2022"
    ```
+   2.1 Other useful option can be set with:
+      ```bash
+      $ $env:CMAKE_GENERATOR_PLATFORM = "x64"
+      $ $env:SKBUILD_CMAKE_BUILD_TYPE = "Debug"
+      $ $env:SKBUILD_BUILD_DIR = "build"
+      $ $env:SKBUILD_CONFIGURE_OPTIONS = "--verbose"
+      ```
 3. Finally, to generate and install the Python library, run:
    ```bash
    $ pip install .

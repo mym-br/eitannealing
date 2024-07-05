@@ -26,26 +26,20 @@ def save_potentials(mesh_potentials, output_filename, mesh_filename, nodes_count
 
 
 def main(mesh_file, currents_file, output_file):
-    solver = pyeitsolver.EitSolver(mesh_file, currents_file)
-    ic(solver)
+    solver = ic(pyeitsolver.EitSolver(mesh_file, currents_file))
     ic(solver.info)
 
-    conductivities = np.ones(solver.info["nodes_count"]) * 0.3810
+    conductivities = ic(np.ones(solver.info["nodes_count"]) * 0.3810)
     ic(conductivities.shape)
 
-    electrode_solve_info, electrode_potentials = solver.solve_forward_problem(
-        conductivities
-    )
-
-    ic(electrode_solve_info)
-    ic(electrode_potentials[0])
+    _, electrode_potentials = ic(solver.solve_forward_problem(conductivities))
     ic(electrode_potentials.shape)
 
-    mesh_solve_info, mesh_potentials = solver.solve_forward_problem(
-        np.ones(solver.info["nodes_count"]) * 0.3810, mesh_potentials=True
+    _, mesh_potentials = ic(
+        solver.solve_forward_problem(
+            np.ones(solver.info["nodes_count"]) * 0.3810, mesh_potentials=True
+        )
     )
-    ic(mesh_solve_info)
-    ic(mesh_potentials)
     ic(mesh_potentials.shape)
 
     save_potentials(mesh_potentials, output_file, mesh_file, solver.info["nodes_count"])

@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen/matrix.h>
 #include <pybind11/stl.h>
+#include <filesystem>
 #include <Eigen/Core>
 #include <memory>
 #include <map>
@@ -13,6 +14,8 @@
 #define STRINGIFY(x) #x
 #define DEFAULT_MAX_ITERATIONS 1500
 #define DEFAULT_RESIDUAL 1e-19
+
+namespace fs = std::filesystem;
 
 namespace pyeitsolver
 {
@@ -115,6 +118,17 @@ namespace pyeitsolver
 
         void init(std::string meshFilename, std::string currentFilename)
         {
+            // Check if the mesh file exists
+            if (!fs::exists(meshFilename)) {
+                throw std::runtime_error("Mesh file does not exist: " + meshFilename);
+            }
+
+            // Check if the current file exists
+            if (!fs::exists(currentFilename)) {
+                throw std::runtime_error("Current file does not exist: " + currentFilename);
+            }
+
+            
             // Load mesh file geometry into memory
             bool is2dProblem;
             input = problem::createNewProblem(meshFilename.c_str(), &is2dProblem);

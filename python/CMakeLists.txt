@@ -38,7 +38,7 @@ set_property(TARGET eit_python_core PROPERTY CXX_STANDARD 17)
 
 # Create the Python extension module manually
 add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core>)
-set_target_properties(_core PROPERTIES PREFIX "" SUFFIX ".pyd")
+set_target_properties(_core PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
 target_link_libraries(_core PRIVATE pybind11::module ${PYTHON_LIBRARY})
 
 # This is passing in the version as a define just as an example

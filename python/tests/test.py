@@ -30,7 +30,7 @@ def main(mesh_file, currents_file, output_file):
     ic(solver)
     ic(solver.info)
 
-    conductivities = np.ones(solver.info["coeff_count"]) * 0.3810
+    conductivities = np.ones(solver.info["nodes_count"]) * 0.3810
     ic(conductivities.shape)
 
     electrode_solve_info, electrode_potentials = solver.solve_forward_problem(
@@ -42,7 +42,7 @@ def main(mesh_file, currents_file, output_file):
     ic(electrode_potentials.shape)
 
     mesh_solve_info, mesh_potentials = solver.solve_forward_problem(
-        np.ones(solver.info["coeff_count"]) * 0.3810, mesh_potentials=True
+        np.ones(solver.info["nodes_count"]) * 0.3810, mesh_potentials=True
     )
     ic(mesh_solve_info)
     ic(mesh_potentials)

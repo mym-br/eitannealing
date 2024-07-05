@@ -25,35 +25,16 @@ namespace pyeitsolver
             init(meshFilename, currentFilename);
         }
 
-        // Function to create the indices vector
-        Eigen::VectorXi createIndicesVector(std::shared_ptr<problem> input)
-        {
-            int numCoefficients = input->getNumCoefficients();
-            Eigen::VectorXi indices(numCoefficients);
-            std::vector<int> temp(numCoefficients);
-            std::iota(temp.begin(), temp.end(), 0); // Fill with sequential integers starting from 0
-
-            std::transform(temp.begin(), temp.end(), indices.data(), [&input](int i)
-                        { return input->getNode2Coefficient(i); });
-
-            return indices;
-        }
-
-        std::pair<std::map<std::string, double>, Eigen::MatrixXd> solve_forward_problem(const Eigen::VectorXd &conductivities, bool meshPotentials = false, int maxIterations = DEFAULT_MAX_ITERATIONS, double residual = DEFAULT_RESIDUAL)
+        std::pair<std::map<std::string, double>, Eigen::MatrixXd> solve_forward_problem(Eigen::VectorXd &conductivities, bool meshPotentials = false, int maxIterations = DEFAULT_MAX_ITERATIONS, double residual = DEFAULT_RESIDUAL)
         {
             // Check conductivity vector size
             auto n = conductivities.size();
-            if (n != input->getNumCoefficients())
-                throw std::exception(("Wrong conductivities vector size " + std::to_string(n) + " (should be " + std::to_string(input->getNumCoefficients()) + ")").c_str());
-
-            // Map node conductivities to coefficient indices
-            Eigen::VectorXd v = Eigen::VectorXd::Zero(n);
-            Eigen::VectorXi indices = createIndicesVector(input);
-            v(indices) = conductivities;
+            if (n != input->getNodesCount())
+                throw std::runtime_error("Wrong conductivities vector size " + std::to_string(n) + " (should be " + std::to_string(input->getNodesCount()) + ")");
 
             // Create FEM conductivity matrix
             matrix *m1;
-            input->assembleProblemMatrix(&v[0], &m1);
+            input->assembleProblemMatrix(&conductivities[0], &m1);
             input->postAssembleProblemMatrix(&m1);
 
             // Create preconditioner matrix
@@ -104,14 +85,13 @@ namespace pyeitsolver
         std::map<std::string, int> getProblemInfo() {
             return std::map<std::string, int>{
                 {"nodes_count", input->getNodesCount()},
-                {"coeff_count", input->getNumCoefficients()},
                 {"currents_count", readings->getCurrentsCount()},
                 {"electrodes_count", input->getGenericElectrodesCount()},
                 {"ground_node", input->getGroundNode()},
                 {"first_electrode_idx", input->getGroundNode() - input->getGenericElectrodesCount() + 1}};
         }
 
-        int coeffCount;
+        int nodeCount;
         int electrodeCount;
 
         private:
@@ -147,7 +127,7 @@ namespace pyeitsolver
             const char *currentFilenameCStar = currentFilename.c_str();
             readings->initObs(&currentFilenameCStar, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode());
 
-            this->coeffCount = input->getNumCoefficients();
+            this->nodeCount = input->getNodesCount();
             this->electrodeCount = input->getGenericElectrodesCount();
         }
     };
@@ -169,7 +149,7 @@ PYBIND11_MODULE(_core, m)
         .def("solve_forward_problem", &pyeitsolver::EitSolver::solve_forward_problem, "Solves forward problem, returning potentials, for a given conductivity distribution", py::arg("conds"), py::kw_only(), py::arg("mesh_potentials") = false, py::arg("max_iterations") = DEFAULT_MAX_ITERATIONS, py::arg("residual") = DEFAULT_RESIDUAL)
                 .def("__repr__",
         [](const pyeitsolver::EitSolver &a) {
-            return "<pyeitsolver.EitSolver of mesh with " + std::to_string(a.coeffCount) + " coefficients and " +  std::to_string(a.electrodeCount) + " electrodes>";
+            return "<pyeitsolver.EitSolver of mesh with " + std::to_string(a.nodeCount) + " coefficients and " +  std::to_string(a.electrodeCount) + " electrodes>";
         });
 
 #ifdef VERSION_INFO

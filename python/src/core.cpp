@@ -103,10 +103,12 @@ namespace pyeitsolver
 
         std::map<std::string, int> getProblemInfo() {
             return std::map<std::string, int>{
+                {"nodes_count", input->getNodesCount()},
                 {"coeff_count", input->getNumCoefficients()},
                 {"currents_count", readings->getCurrentsCount()},
                 {"electrodes_count", input->getGenericElectrodesCount()},
-                {"ground_node", input->getGroundNode()}};
+                {"ground_node", input->getGroundNode()},
+                {"first_electrode_idx", input->getGroundNode() - input->getGenericElectrodesCount() + 1}};
         }
 
         int coeffCount;

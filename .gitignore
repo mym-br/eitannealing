@@ -25,3 +25,4 @@ venv/
 dist/
 *.npy
 *.hdf5
+__pycache__

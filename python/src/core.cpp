@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <Eigen/Core>
 #include <memory>
+#include <tuple>
 #include <map>
 #include <string>
 #include "solver.h"
@@ -67,9 +68,9 @@ namespace pyeitsolver
             Eigen::VectorXd x, currents;
 
             double avgIterations = 0, avgResidual = 0;
-            for (int patterno = 0; patterno < readings->getCurrentsCount(); patterno++)
+            for (int pattern = 0; pattern < readings->getCurrentsCount(); pattern++)
             {
-                currents = input->getCurrentVector(patterno, readings.get());
+                currents = input->getCurrentVector(pattern, readings.get());
                 CG_Solver solver(*m1, currents, *precond);
                 int i = 0;
                 for (; i < maxIterations && solver.getResidueSquaredNorm() > residual; i++)
@@ -84,8 +85,8 @@ namespace pyeitsolver
                 xExpanded << x.head(groundNodeIdx), 0, x.tail(n - 1 - groundNodeIdx);
                 
                 // Save results to appropriate index in the output vector
-                potentials.row(patterno) = (meshPotentials ? xExpanded : xExpanded.segment(groundNodeIdx - electrodeCount + 1, electrodeCount)).transpose();
-                potentials.row(patterno) *= readings->getCurrentVal(patterno);
+                potentials.row(pattern) = (meshPotentials ? xExpanded : xExpanded.segment(groundNodeIdx - electrodeCount + 1, electrodeCount)).transpose();
+                potentials.row(pattern) *= readings->getCurrentVal(pattern);
             }
             avgIterations /= readings->getCurrentsCount();
             avgResidual /= readings->getCurrentsCount();
@@ -110,8 +111,55 @@ namespace pyeitsolver
                 {"first_electrode_idx", input->getGroundNode() - input->getGenericElectrodesCount() + 1}};
         }
 
+        std::tuple<Eigen::VectorXi, Eigen::VectorXi, Eigen::VectorXd> getStiffnessCOO(Eigen::VectorXd &conductivities) {
+            // Check conductivity vector size
+            auto n = conductivities.size();
+            if (n != input->getNumCoefficients())
+                throw std::runtime_error("Wrong conductivities vector size " + std::to_string(n) + " (should be " + std::to_string(input->getNumCoefficients()) + ")");
+
+            // Map node conductivities to coefficient indices
+            Eigen::VectorXd v = Eigen::VectorXd::Zero(n);
+            Eigen::VectorXi indices = createIndicesVector(input);
+            v(indices) = conductivities;
+
+            // Create FEM conductivity matrix
+            matrix *m1;
+            input->assembleProblemMatrix(&v[0], &m1);
+            input->postAssembleProblemMatrix(&m1);
+
+            Eigen::VectorXi rows(m1->nonZeros());
+            Eigen::VectorXi cols(m1->nonZeros());
+            Eigen::VectorXd values(m1->nonZeros());
+
+            int i = 0;
+            for (int k = 0; k < m1->outerSize(); ++k)
+                for (Eigen::SparseMatrix<double>::InnerIterator it(*m1, k); it; ++it) {
+                    // if(it.row() >= it.col()) {
+                        rows[i] = it.row();
+                        cols[i] = it.col();
+                        values[i] = it.value();
+                        i++;
+                    // }
+                }
+
+            return std::tuple<Eigen::VectorXi, Eigen::VectorXi, Eigen::VectorXd>(rows, cols, values);
+        }
+
+        Eigen::MatrixXd getCurrentsVectors() {
+            int numCols = input->getCurrentVector(0, readings.get()).size();
+            int numRows = readings->getCurrentsCount();
+            Eigen::MatrixXd currentsMatrix(numRows, numCols);
+
+
+            for (int pattern = 0; pattern < numRows; ++pattern) {
+                currentsMatrix.row(pattern) = input->getCurrentVector(pattern, readings.get());
+            }
+            return currentsMatrix;
+        }
+
         int nodeCount;
         int electrodeCount;
+        double current;
 
         private:
         std::shared_ptr<problem> input;
@@ -150,6 +198,7 @@ namespace pyeitsolver
 
             this->nodeCount = input->getNodesCount();
             this->electrodeCount = input->getGenericElectrodesCount();
+            this->current = readings->getCurrentVal(0);
         }
     };
 }
@@ -167,7 +216,10 @@ PYBIND11_MODULE(_core, m)
     py::class_<pyeitsolver::EitSolver>(m, "EitSolver", "Loads mesh data, currents data and creates problem matrices")
         .def(py::init<std::string, std::string>())
         .def_property_readonly("info", &pyeitsolver::EitSolver::getProblemInfo)
+        .def_readwrite("current", &pyeitsolver::EitSolver::current)
         .def("solve_forward_problem", &pyeitsolver::EitSolver::solve_forward_problem, "Solves forward problem, returning potentials, for a given conductivity distribution", py::arg("conds"), py::kw_only(), py::arg("mesh_potentials") = false, py::arg("max_iterations") = DEFAULT_MAX_ITERATIONS, py::arg("residual") = DEFAULT_RESIDUAL)
+        .def("getCOO_formatted_stiffness", &pyeitsolver::EitSolver::getStiffnessCOO)
+        .def("get_currents_vectors", &pyeitsolver::EitSolver::getCurrentsVectors)
                 .def("__repr__",
         [](const pyeitsolver::EitSolver &a) {
             return "<pyeitsolver.EitSolver of mesh with " + std::to_string(a.nodeCount) + " coefficients and " +  std::to_string(a.electrodeCount) + " electrodes>";

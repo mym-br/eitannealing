@@ -3,6 +3,7 @@ import math
 import os
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pyeitsolver
 from icecream import ic
@@ -73,8 +74,9 @@ def main(mesh_file, currents_file, results_folder, data_folder, output_file):
             )
     ic(mse_matrix)
 
-    with open(output_file, "wb") as f:
-        np.save(f, mse_matrix)
+    with h5py.File(output_file, "w") as f:
+        dset = f.create_dataset("mses", data=mse_matrix)
+        dset.attrs["experiments"] = [mesh.name for mesh in mesh_files]
 
 
 if __name__ == "__main__":

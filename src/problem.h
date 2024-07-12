@@ -92,7 +92,9 @@ public:
 		int n = getNodesCount();
 		std::vector<Eigen::Triplet<Scalar>> tripletList;
 		for (int i = 0; i<n; ++i) {
+#if !defined(ZEROELECSUM) && !defined(BLOCKGND)
 			if (i == groundNode) continue;
+#endif
 			nodeCoefficients *aux = nodeCoef[i];
 			while (aux) { // Col-major storage
 				while (aux->node < i) aux = aux->next; // skip upper triangular
@@ -122,7 +124,9 @@ public:
 		Scalar *base = skeleton->valuePtr();// coeffRef(0, 0);
 		std::vector<Eigen::Triplet<Scalar> > tripletList;
 		for (int i = 0; i<n; ++i) {
+#if !defined(ZEROELECSUM) && !defined(BLOCKGND)
 			if (i == groundNode) continue;
+#endif
 			for (nodeCoefficients *aux = nodeCoef[i]; aux != NULL; aux = aux->next) {
 				if (aux->node < i) continue; // skip upper triangular
 #if !defined(ZEROELECSUM) && !defined(BLOCKGND)
@@ -174,6 +178,7 @@ public:
 			Complex *val = &(*stiffnes)->coeffRef(i, i);
 			Complex jwc = std::complex<double>(0, 2 * M_PI * getCurrentFreq() * capacitance);
 			*val = *val + jwc;
+			int a = 1;
 		}
 	}
 

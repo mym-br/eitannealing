@@ -46,3 +46,14 @@ target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
 
 # The install directory is the output (wheel) directory
 install(TARGETS _core DESTINATION pyeitsolver)
+
+# Create the Python extension module manually
+add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core>)
+set_target_properties(_complex PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
+target_link_libraries(_complex PRIVATE pybind11::module ${PYTHON_LIBRARY})
+
+# This is passing in the version as a define just as an example
+target_compile_definitions(_complex PRIVATE VERSION_INFO=${PROJECT_VERSION} BLOCKGND=1)
+
+# The install directory is the output (wheel) directory
+install(TARGETS _complex DESTINATION pyeitsolver)

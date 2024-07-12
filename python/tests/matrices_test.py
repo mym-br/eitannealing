@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 import numpy as np
 import pyeitsolver
@@ -21,6 +22,13 @@ def main(mesh_file, currents_file, output_file):
     )
 
     A = ic(A_triangular + A_triangular.T - diags(A_triangular.diagonal()))
+
+    # Save matrix A to numpy format
+    output_path = Path(output_file)
+    A_output_file = output_path.with_stem(output_path.stem + "_A").with_suffix(".npy")
+    np.save(A_output_file, A.toarray())
+
+    print(f"Saved matrix A to {A_output_file}")
 
     # why does it not work?
     # ic(linalg.spsolve_triangular(A_triangular, b[0], lower=False))

@@ -1,3 +1,4 @@
+
 # Require CMake 3.15+ (matching scikit-build-core) Use new versions of all
 # policies up to CMake 3.27
 cmake_minimum_required(VERSION 3.15...3.27)
@@ -9,7 +10,15 @@ project(
   VERSION ${SKBUILD_PROJECT_VERSION}
   LANGUAGES C CXX)
 
-set(PYBIND11_NOPYTHON ON)
+# Option to select between PYBIND11_NOPYTHON and the new version
+option(USE_PYBIND11_NOPYTHON "Use PYBIND11_NOPYTHON for building" OFF)
+
+if (USE_PYBIND11_NOPYTHON)
+  set(PYBIND11_NOPYTHON ON)
+else()
+  find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+endif()
+
 find_package(pybind11 CONFIG REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)
 
@@ -36,21 +45,31 @@ set(eit_python_core_SRCS
 add_library(eit_python_core OBJECT ${eit_python_core_SRCS})
 set_property(TARGET eit_python_core PROPERTY CXX_STANDARD 17)
 
-# Create the Python extension module manually
-add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core>)
-set_target_properties(_core PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
-target_link_libraries(_core PRIVATE pybind11::module ${PYTHON_LIBRARY})
+if (USE_PYBIND11_NOPYTHON)
+  # Create the Python extension core module manually
+  add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core>)
+  set_target_properties(_core PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
+  target_link_libraries(_core PRIVATE pybind11::module ${PYTHON_LIBRARY})
+
+  # Create the Python extension complex module manually
+  add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core>)
+  set_target_properties(_complex PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
+  target_link_libraries(_complex PRIVATE pybind11::module ${PYTHON_LIBRARY})
+else()
+  # Add core library using FindPython's tooling
+  python_add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
+  target_link_libraries(_core PRIVATE pybind11::headers)
+  
+  # Add complex library using FindPython's tooling
+  python_add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
+  target_link_libraries(_complex PRIVATE pybind11::headers)
+endif()
 
 # This is passing in the version as a define just as an example
 target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
 
 # The install directory is the output (wheel) directory
 install(TARGETS _core DESTINATION pyeitsolver)
-
-# Create the Python extension module manually
-add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core>)
-set_target_properties(_complex PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
-target_link_libraries(_complex PRIVATE pybind11::module ${PYTHON_LIBRARY})
 
 # This is passing in the version as a define just as an example
 target_compile_definitions(_complex PRIVATE VERSION_INFO=${PROJECT_VERSION} BLOCKGND=1)

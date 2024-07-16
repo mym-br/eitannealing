@@ -8,7 +8,7 @@
    ```
 2. As the FindPython CMake module does not work well with the vcpkg and pybind11 combination, you need to manually set the Python paths CMake variables `PYTHON_INCLUDE_DIR` and `PYTHON_LIBRARY`. In Powershell, it would be, for example:
    ```bash
-   $env:SKBUILD_CMAKE_ARGS = "-DPYTHON_INCLUDE_DIR=X:/path_to_python/include;-DPYTHON_LIBRARY=X:/path_to_python/libs/python3XX.lib"
+   $env:SKBUILD_CMAKE_ARGS = "-DUSE_PYBIND11_NOPYTHON=1;-DPYTHON_INCLUDE_DIR=X:/path_to_python/include;-DPYTHON_LIBRARY=X:/path_to_python/libs/python3XX.lib"
    ```
 3. If the default CMake kit is not compatible with your Python, use the environment variable to set the CMake generator. In Powershell, it would be:
    ```bash

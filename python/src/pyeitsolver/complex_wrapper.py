@@ -1,14 +1,20 @@
 import pathlib
 
 from ._complex import EitComplexSolver as EitComplexCppSolver
+
 if not hasattr(EitComplexCppSolver, "solve_forward_problem"):
-    from scipy.sparse import coo_array, diags, linalg
     import numpy as np
+    from scipy.sparse import coo_array, diags, linalg
+
     try:
         import petsc4py
+
         use_petsc = True
     except ModuleNotFoundError:
         from scipy.sparse import linalg
+
+        use_petsc = False
+
 
 class EitComplexSolver(EitComplexCppSolver):
     @property
@@ -27,8 +33,11 @@ class EitComplexSolver(EitComplexCppSolver):
         else:
             b_np = self.get_currents_vectors()
             row, col, data = self.getCOO_formatted_stiffness(conds)
-            
-            A_triangular = coo_array((data, (row, col)), shape=(self.info["nodes_count"], self.info["nodes_count"]),)
+
+            A_triangular = coo_array(
+                (data, (row, col)),
+                shape=(self.info["nodes_count"], self.info["nodes_count"]),
+            )
             A_coo = A_triangular + A_triangular.T - diags(A_triangular.diagonal())
 
             potentials = np.zeros(
@@ -46,7 +55,10 @@ class EitComplexSolver(EitComplexCppSolver):
 
                 # create PETSc Mat from CSR
                 A_csr = A_coo.tocsr()
-                A = petsc4py.PETSc.Mat().createAIJWithArrays(size=(self.info["nodes_count"], self.info["nodes_count"]), csr=(A_csr.indptr,  A_csr.indices, A_csr.data) )
+                A = petsc4py.PETSc.Mat().createAIJWithArrays(
+                    size=(self.info["nodes_count"], self.info["nodes_count"]),
+                    csr=(A_csr.indptr, A_csr.indices, A_csr.data),
+                )
                 A.assemble()
 
                 # create linear solver context

@@ -4,34 +4,12 @@ import numpy as np
 import pyeitsolver
 from icecream import ic
 from mesh_io import save_complex_potentials
-from scipy.sparse import coo_array, diags, linalg
 
 
 def main(mesh_file, currents_file, output_file):
-    solver = pyeitsolver.EitComplexSolver(mesh_file, currents_file)
-    b = ic(solver.get_currents_vectors())
-    row, col, data = ic(
-        solver.getCOO_formatted_stiffness(np.ones(solver.info["nodes_count"]) * 0.3810)
-    )
-    A_triangular = ic(
-        coo_array(
-            (data, (row, col)),
-            shape=(solver.info["nodes_count"], solver.info["nodes_count"]),
-        )
-    )
-
-    A = ic(A_triangular + A_triangular.T - diags(A_triangular.diagonal()))
-
-    potentials = np.zeros(
-        (solver.info["currents_count"], solver.info["nodes_count"])
-    ).astype(np.complex128)
-
-    for i in range(solver.info["currents_count"]):
-        x = ic(linalg.spsolve(A, b[i]))
-        potentials[i] = x * solver.current
-
-    ic(potentials)
-
+    solver = ic(pyeitsolver.EitComplexSolver(mesh_file, currents_file))
+    ic(solver.type)
+    potentials = ic(solver.solve_forward_problem(np.ones(solver.info["nodes_count"]) * 0.3810))
     save_complex_potentials(
         np.real(potentials),
         np.imag(potentials),

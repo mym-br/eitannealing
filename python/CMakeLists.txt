@@ -13,6 +13,8 @@ project(
 # Option to select between PYBIND11_NOPYTHON and the new version
 option(USE_PYBIND11_NOPYTHON "Use PYBIND11_NOPYTHON for building" OFF)
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake-modules")
+
 if (USE_PYBIND11_NOPYTHON)
   set(PYBIND11_NOPYTHON ON)
 else()
@@ -21,8 +23,17 @@ endif()
 
 find_package(pybind11 CONFIG REQUIRED)
 find_package(Eigen3 3.3.5 REQUIRED)
+find_package(PETSc)
 
-include_directories(${EIGEN3_INCLUDE_DIR} ${PYTHON_INCLUDE_DIR} ../src)
+# No validation required as PETSc does this internally
+message(STATUS "Found PETSc ${PETSc_VERSION}")
+if (PETSC_FOUND)
+  list(APPEND PETSC_DEFINITIONS -DUSE_PETSC=1)
+endif()
+
+# Include directories
+include_directories(${EIGEN3_INCLUDE_DIR} ${PYTHON_INCLUDE_DIR} ${PETSC_INCLUDES} ../src)
+add_definitions(${PETSC_DEFINITIONS})
 
 set(eit_python_core_SRCS
   ../src/gradientnormregularisation.cpp
@@ -54,7 +65,7 @@ if (USE_PYBIND11_NOPYTHON)
   # Create the Python extension complex module manually
   add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core>)
   set_target_properties(_complex PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
-  target_link_libraries(_complex PRIVATE pybind11::module ${PYTHON_LIBRARY})
+  target_link_libraries(_complex PRIVATE pybind11::module ${PYTHON_LIBRARY} ${PETSC_LIBRARIES})
 else()
   # Add core library using FindPython's tooling
   python_add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
@@ -62,7 +73,7 @@ else()
   
   # Add complex library using FindPython's tooling
   python_add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
-  target_link_libraries(_complex PRIVATE pybind11::headers)
+  target_link_libraries(_complex PRIVATE pybind11::headers ${PETSC_LIBRARIES})
 endif()
 
 # This is passing in the version as a define just as an example

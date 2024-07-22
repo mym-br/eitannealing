@@ -283,9 +283,10 @@ namespace pyeitsolver
             input->createCoef2KMatrix();
 
             // Read current pattern
+            int first_electrode_idx =  input->getGroundNode() - input->getGenericElectrodesCount() + 1;
             readings = std::make_unique<observations<double>>();
             const char *currentFilenameCStar = currentFilename.c_str();
-            readings->initObs(&currentFilenameCStar, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode());
+            readings->initObs(&currentFilenameCStar, NULL, input->getNodesCount(), input->getGenericElectrodesCount(), input->getGroundNode(), first_electrode_idx);
 
             assert(input->getNodesCount() == input->getNumCoefficients() && "There should be a 1 to 1 correspondence between node and coefficient");
 

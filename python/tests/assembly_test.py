@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+import h5py
 import numpy as np
 import pyeitsolver
 from icecream import ic
@@ -37,13 +38,20 @@ def main(mesh_file, currents_file, output_file):
 
     for i in range(solver.info["currents_count"]):
         x = ic(linalg.spsolve(A, b[i]))
-        potentials[i] = np.append(x, 0.0) * solver.current
+        potentials[i] = np.insert(x, solver.info["ground_node"], 0.0) * solver.current
 
     ic(potentials)
 
     save_potentials(potentials, output_file, mesh_file, solver.info["nodes_count"])
 
-    print(f"Saved potentials to {output_file}")
+    # Save data to HDF5 dataset
+    hdf5_output_file = output_path.with_suffix(".hdf5")
+    with h5py.File(hdf5_output_file, "w") as f:
+        f.create_dataset("A", data=A.toarray())
+        f.create_dataset("b", data=b)
+        f.create_dataset("x", data=potentials)
+
+    print(f"Saved potentials to {output_file} and dataset to {hdf5_output_file}")
 
 
 if __name__ == "__main__":

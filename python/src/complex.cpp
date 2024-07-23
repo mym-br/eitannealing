@@ -23,6 +23,9 @@
 //#define USE_MKL_PARDISO 1
 //#define USE_CUDA_SOLVER 1
 
+//#define PERF_TEST 1
+//#define PERF_TEST_N 1000
+
 #define STRINGIFY(x) #x
 #define CHKERRTHROW(ierr)                                     \
     if (PetscUnlikely(ierr))                                  \
@@ -282,6 +285,9 @@ namespace pyeitsolver
             CHKERRTHROW(ierr);
 
             Eigen::MatrixXcd potentials(electrodeCount, n);
+#ifdef PERF_TEST
+            for (int iPerfTest = 0; iPerfTest < PERF_TEST_N; iPerfTest++) {
+#endif
             for (int pattern = 0; pattern < readings->getCurrentsCount(); pattern++)
             {
                 // Set right-hand side vector from Eigen::VectorXcd
@@ -320,6 +326,9 @@ namespace pyeitsolver
                     potentials.row(pattern)[i] = x_array[i];
                 }
             }
+#ifdef PERF_TEST
+            }
+#endif
 
             // Free work space
             ierr = VecDestroy(&x);

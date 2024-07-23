@@ -1,0 +1,45 @@
+
+Debian 12
+
+apt install pybind11-dev
+apt install libgmsh-dev
+apt install mpi-default-dev
+apt install python3-icecream
+
+#apt install petsc-dev petsc64-dev python3-petsc4py-complex python3-petsc4py-real
+
+
+
+CMake configuration:
+
+CMAKE_VERBOSE_MAKEFILE ON
+PETSC_ARCH arch-double-complex-opt
+# This is an example:
+PETSC_DIR /workspace/cae/eit_petsc/petsc-git
+
+================================================================================
+cd tests
+
+# For MUMPS.
+export OMP_NUM_THREADS=1
+
+time python3 solve_complex_test.py \
+  ../../data/circular_A_2D.msh \
+  ../../data/cuba_190ma_cp.txt \
+  out.msh
+
+# WRONG: Starts 6 Python processes.
+#time mpiexec -n 6 python3 solve_complex_test.py \
+#  ../../data/circular_A_2D.msh \
+#  ../../data/cuba_190ma_cp.txt \
+#  out.msh
+
+# WRONG: Starts 6 Python processes.
+#time mpiexec -n 6 python3 -m mpi4py solve_complex_test.py \
+#  ../../data/circular_A_2D.msh \
+#  ../../data/cuba_190ma_cp.txt \
+#  out.msh
+
+================================================================================
+https://petsc.org/release/manualpages/Mat/MATSOLVERMKL_PARDISO/
+https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-download.html?operatingsystem=linux&linux-install=offline

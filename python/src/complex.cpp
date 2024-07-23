@@ -10,10 +10,18 @@
 #include <tuple>
 #include <map>
 #include <string>
+
+#include <mpi.h>
+
 #include "solver.h"
 #include "problem.h"
 #include "solution.h"
 #include "observations.h"
+
+// Enable only one at a time.
+//#define USE_MUMPS 1
+//#define USE_MKL_PARDISO 1
+//#define USE_CUDA_SOLVER 1
 
 #define STRINGIFY(x) #x
 #define CHKERRTHROW(ierr)                                     \
@@ -45,7 +53,51 @@ namespace pyeitsolver
         {
             init(meshFilename, currentFilename);
 #ifdef USE_PETSC
-            PetscErrorCode ierr = PetscInitialize(PETSC_NULLPTR, PETSC_NULLPTR, PETSC_NULLPTR, PETSC_NULLPTR);
+            char a0[] = "";
+#ifdef USE_MKL_PARDISO
+            char pardiso_a1[] = "-pc_type";
+            char pardiso_a2[] = "lu";
+            char pardiso_a3[] = "-pc_factor_mat_solver_type";
+            char pardiso_a4[] = "mkl_pardiso";
+            char pardiso_a5[] = "-mat_mkl_pardiso_65"; // Suggested number of threads to use within MKL PARDISO
+            char pardiso_a6[] = "4";
+            char pardiso_a7[] = "-mat_mkl_pardiso_68"; // Message level information, use 1 to get detailed information on the solver options
+            char pardiso_a8[] = "0";
+#endif
+#ifdef USE_CUDA_SOLVER
+            char cuda_a1[] = "-vec_type";
+            char cuda_a2[] = "cuda";
+            char cuda_a3[] = "-mat_type";
+            char cuda_a4[] = "aijcusparse";
+#endif
+            char petsc_a1[] = "";//"-info";
+            char petsc_a2[] = "";//"-log_trace";
+            char* argv[] = {
+                &a0[0],
+#ifdef USE_MKL_PARDISO
+                &pardiso_a1[0],
+                &pardiso_a2[0],
+                &pardiso_a3[0],
+                &pardiso_a4[0],
+                &pardiso_a5[0],
+                &pardiso_a6[0],
+                &pardiso_a7[0],
+                &pardiso_a8[0],
+#endif
+#ifdef USE_CUDA_SOLVER
+                &cuda_a1[0],
+                &cuda_a2[0],
+                &cuda_a3[0],
+                &cuda_a4[0],
+#endif
+                &petsc_a1[0],
+                &petsc_a2[0],
+                NULL
+            };
+            char** argv_ptr = &argv[0];
+            int argc = (int) (sizeof(argv) / sizeof(argv[0])) - 1;
+            PetscErrorCode ierr = PetscInitialize(&argc, &argv_ptr, PETSC_NULLPTR, PETSC_NULLPTR);
+            //PetscErrorCode ierr = PetscInitialize(PETSC_NULLPTR, PETSC_NULLPTR, PETSC_NULLPTR, PETSC_NULLPTR);
             if (ierr)
             {
                 throw std::runtime_error("Could not initialize PETSc");
@@ -126,6 +178,18 @@ namespace pyeitsolver
             KSP ksp;  /* linear solver context */
             PetscErrorCode ierr;
 
+            int mpi_rank;
+            int mpi_err = MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+            if (mpi_err != MPI_SUCCESS) {
+                throw std::runtime_error("Could not get the MPI rank (error: " + std::to_string(mpi_err) + ").\n");
+            }
+            int mpi_size;
+            mpi_err = MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+            if (mpi_err != MPI_SUCCESS) {
+                throw std::runtime_error("Could not get the MPI size (error: " + std::to_string(mpi_err) + ").\n");
+            }
+            printf("MPI rank = %d, size = %d\n", mpi_rank, mpi_size);
+
             // Check conductivity vector size
             auto n = conductivities.size();
             if (n != input->getNumCoefficients())
@@ -190,8 +254,31 @@ namespace pyeitsolver
             ierr = KSPSetOperators(ksp, A, A);
             CHKERRTHROW(ierr);
 
+            PC pc; // (PETSc) preconditioner context
+            ierr = KSPGetPC(ksp, &pc); // get preconditioner context
+            CHKERRTHROW(ierr);
+
+#ifdef USE_MUMPS
+            ierr = KSPSetType(ksp, KSPPREONLY);
+            CHKERRTHROW(ierr);
+
+            // Cholesky factorization/decomposition requires a Hermitian, positive-definite matrix.
+            // PETSc(PCSetType(pc, PCCHOLESKY)); // slow KSPSetUp()
+            ierr = PCSetType(pc, PCLU);
+            CHKERRTHROW(ierr);
+            ierr = PCFactorSetMatSolverType(pc, MATSOLVERMUMPS);
+            CHKERRTHROW(ierr);
+#else
+//            ierr = PCSetType(pc, PCJACOBI);
+//            //ierr = PCSetType(pc, PCNONE);
+//            CHKERRTHROW(ierr);
+#endif
+
             // Set linear solver options
             ierr = KSPSetFromOptions(ksp);
+            CHKERRTHROW(ierr);
+
+            ierr = KSPSetUp(ksp);
             CHKERRTHROW(ierr);
 
             Eigen::MatrixXcd potentials(electrodeCount, n);

@@ -184,6 +184,16 @@ namespace pyeitsolver
             ierr = MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
             CHKERRTHROW(ierr);
 
+            // Create linear solver context
+            ierr = KSPCreate(PETSC_COMM_WORLD, &ksp);
+            CHKERRTHROW(ierr);
+            ierr = KSPSetOperators(ksp, A, A);
+            CHKERRTHROW(ierr);
+
+            // Set linear solver options
+            ierr = KSPSetFromOptions(ksp);
+            CHKERRTHROW(ierr);
+
             Eigen::MatrixXcd potentials(electrodeCount, n);
             for (int pattern = 0; pattern < readings->getCurrentsCount(); pattern++)
             {
@@ -199,16 +209,6 @@ namespace pyeitsolver
                 ierr = VecAssemblyBegin(b);
                 CHKERRTHROW(ierr);
                 ierr = VecAssemblyEnd(b);
-                CHKERRTHROW(ierr);
-
-                // Create linear solver context
-                ierr = KSPCreate(PETSC_COMM_WORLD, &ksp);
-                CHKERRTHROW(ierr);
-                ierr = KSPSetOperators(ksp, A, A);
-                CHKERRTHROW(ierr);
-
-                // Set linear solver options
-                ierr = KSPSetFromOptions(ksp);
                 CHKERRTHROW(ierr);
 
                 // Solve linear system

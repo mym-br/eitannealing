@@ -26,3 +26,5 @@ dist/
 *.npy
 *.hdf5
 __pycache__
+CMakeLists.txt.user
+*.so

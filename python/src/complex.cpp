@@ -312,7 +312,7 @@ namespace pyeitsolver
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(_complex, m)
+PYBIND11_MODULE(pyeitsolver_complex, m)
 {
     m.doc() = R"pbdoc(
         Pybind11 eitannealing complex solver plugin

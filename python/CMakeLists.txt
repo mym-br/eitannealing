@@ -6,8 +6,8 @@ cmake_minimum_required(VERSION 3.15...3.27)
 # Scikit-build-core sets these values for you, or you can just hard-code the
 # name and version.
 project(
-  ${SKBUILD_PROJECT_NAME}
-  VERSION ${SKBUILD_PROJECT_VERSION}
+  pyeitsolver
+  VERSION 0.1
   LANGUAGES C CXX)
 
 # Option to select between PYBIND11_NOPYTHON and the new version
@@ -21,8 +21,11 @@ else()
   find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 endif()
 
+set(PETSC_DIR "" CACHE STRING "PETSc dir.")
+set(PETSC_ARCH "" CACHE STRING "PETSc arch.")
+
 find_package(pybind11 CONFIG REQUIRED)
-find_package(Eigen3 3.3.5 REQUIRED)
+find_package(Eigen3 3.4 REQUIRED)
 find_package(PETSc)
 
 # No validation required as PETSc does this internally
@@ -63,18 +66,20 @@ if (USE_PYBIND11_NOPYTHON)
   target_link_libraries(_core PRIVATE pybind11::module ${PYTHON_LIBRARY})
 
   # Create the Python extension complex module manually
-  add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core>)
-  set_target_properties(_complex PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
-  target_link_libraries(_complex PRIVATE pybind11::module ${PYTHON_LIBRARY} ${PETSC_LIBRARIES})
+  add_library(pyeitsolver_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core>)
+  set_target_properties(pyeitsolver_complex PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
+  target_link_libraries(pyeitsolver_complex PRIVATE pybind11::module ${PYTHON_LIBRARY} ${PETSC_LIBRARIES})
 else()
   # Add core library using FindPython's tooling
   python_add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
   target_link_libraries(_core PRIVATE pybind11::headers)
   
   # Add complex library using FindPython's tooling
-  python_add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
-  target_link_libraries(_complex PRIVATE pybind11::headers ${PETSC_LIBRARIES})
+  python_add_library(pyeitsolver_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
+  target_link_libraries(pyeitsolver_complex PRIVATE pybind11::headers ${PETSC_LIBRARIES})
 endif()
+
+set(CMAKE_CXX_FLAGS "-fPIC")
 
 # This is passing in the version as a define just as an example
 target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
@@ -83,7 +88,9 @@ target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
 install(TARGETS _core DESTINATION pyeitsolver)
 
 # This is passing in the version as a define just as an example
-target_compile_definitions(_complex PRIVATE VERSION_INFO=${PROJECT_VERSION} BLOCKGND=1)
+target_compile_definitions(pyeitsolver_complex PRIVATE VERSION_INFO=${PROJECT_VERSION} BLOCKGND=1)
+
+target_link_options(pyeitsolver_complex PUBLIC -fPIC)
 
 # The install directory is the output (wheel) directory
-install(TARGETS _complex DESTINATION pyeitsolver)
+install(TARGETS pyeitsolver_complex DESTINATION pyeitsolver)

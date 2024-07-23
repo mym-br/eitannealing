@@ -1,0 +1,157 @@
+
+--------------------------------------------------------------------------------
+Preparation for Debian 10
+
+- Execute as root:
+
+# Workaround to library detection problems.
+# The configuration scripts append "/lib" and "/lib64" to the paths indicated
+# in --with-*-dir.
+mkdir /usr/local/lnk
+cd /usr/local/lnk
+ln -s /usr/lib/x86_64-linux-gnu lib
+ln -s /usr/include .
+cd /usr/lib/nvidia-cuda-toolkit
+ln -s /usr/lib/x86_64-linux-gnu lib
+ln -s /usr/include .
+
+- Add to ~/.petscrc:
+
+	-use_gpu_aware_mpi 0
+
+--------------------------------------------------------------------------------
+
+git clone -b main https://gitlab.com/petsc/petsc.git petsc-git
+
+cd petsc-git
+git checkout v3.21.3
+
+# Notes:
+# - In --with-cuda-gencodearch=89, use the arch of your GPU.
+# - The CUDA options can be removed.
+
+- For MKL Pardiso:
+	- Install l_onemkl_p_2024.2.0.664_offline.sh.
+
+
+
+# NOT USED
+./configure --PETSC_ARCH=arch-double-opt \
+  --with-precision=double \
+  --with-debugging=0 \
+  --with-openmp=1 \
+  --with-openblas=1 \
+  --with-openblas-dir=/usr/local/lnk \
+  --download-petsc4py \
+  --download-mumps \
+  --download-scalapack \
+  --download-hypre \
+  --download-superlu_dist \
+  --with-cuda=1 --with-cuda-gencodearch=89 \
+  --with-cuda-dir=/usr/lib/nvidia-cuda-toolkit \
+  COPTFLAGS='-O3 -march=native' \
+  CXXOPTFLAGS='-O3 -march=native' \
+  FOPTFLAGS='-O3 -march=native'
+
+make PETSC_DIR=$PWD PETSC_ARCH=arch-double-opt all
+make PETSC_DIR=$PWD PETSC_ARCH=arch-double-opt check
+
+
+
+./configure --PETSC_ARCH=arch-double-complex-opt \
+  --with-precision=double \
+  --with-scalar-type=complex \
+  --with-debugging=0 \
+  --with-openmp=1 \
+  --with-openblas=1 \
+  --with-openblas-dir=/usr/local/lnk \
+  --download-petsc4py \
+  --download-mumps \
+  --download-scalapack \
+  --download-hypre \
+  --download-superlu_dist \
+  --with-cxx-dialect=cxx14 \
+  COPTFLAGS='-O3 -march=native' \
+  CXXOPTFLAGS='-O3 -march=native' \
+  FOPTFLAGS='-O3 -march=native'
+
+# GPU not supported with double complex.
+#  --with-cuda=1 --with-cuda-gencodearch=89 \
+#  --with-cuda-dir=/usr/lib/nvidia-cuda-toolkit \
+#  --with-cuda-dialect=cxx14 \
+
+make PETSC_DIR=$PWD PETSC_ARCH=arch-double-complex-opt all
+make PETSC_DIR=$PWD PETSC_ARCH=arch-double-complex-opt check
+
+
+
+source ~/intel/oneapi/setvars.sh
+./configure --PETSC_ARCH=arch-double-complex-pardiso-opt \
+  --with-precision=double \
+  --with-scalar-type=complex \
+  --with-debugging=0 \
+  --with-openmp=1 \
+  --download-petsc4py \
+  --download-mumps \
+  --download-hypre \
+  --download-superlu_dist \
+  --with-cxx-dialect=cxx14 \
+  --with-mkl_pardiso=1 \
+  --with-mkl_pardiso-dir=$MKLROOT \
+  --with-blaslapack-dir=$MKLROOT \
+  --with-scalapack-lib="-L$MKLROOT/lib -lmkl_scalapack_lp64 -lmkl_blacs_openmpi_lp64" \
+  COPTFLAGS='-O3 -march=native' \
+  CXXOPTFLAGS='-O3 -march=native' \
+  FOPTFLAGS='-O3 -march=native'
+
+make PETSC_DIR=$PWD PETSC_ARCH=arch-double-complex-pardiso-opt all
+make PETSC_DIR=$PWD PETSC_ARCH=arch-double-complex-pardiso-opt check
+
+
+
+# NOT USED
+./configure --PETSC_ARCH=arch-single-opt \
+  --with-precision=single \
+  --with-debugging=0 \
+  --with-openmp=1 \
+  --with-openblas=1 \
+  --with-openblas-dir=/usr/local/lnk \
+  --download-petsc4py \
+  --download-mumps \
+  --download-scalapack \
+  --with-cuda=1 --with-cuda-gencodearch=89 \
+  --with-cuda-dir=/usr/lib/nvidia-cuda-toolkit \
+  COPTFLAGS='-O3 -march=native' \
+  CXXOPTFLAGS='-O3 -march=native' \
+  FOPTFLAGS='-O3 -march=native'
+
+make PETSC_DIR=$PWD PETSC_ARCH=arch-single-opt all
+make PETSC_DIR=$PWD PETSC_ARCH=arch-single-opt check
+
+
+
+./configure --PETSC_ARCH=arch-single-complex-opt \
+  --with-precision=single \
+  --with-scalar-type=complex \
+  --with-debugging=0 \
+  --with-openmp=1 \
+  --with-openblas=1 \
+  --with-openblas-dir=/usr/local/lnk \
+  --download-petsc4py \
+  --download-mumps \
+  --download-scalapack \
+  --with-cuda=1 --with-cuda-gencodearch=89 \
+  --with-cuda-dir=/usr/lib/nvidia-cuda-toolkit \
+  --with-cuda-dialect=cxx14 \
+  --with-cxx-dialect=cxx14 \
+  COPTFLAGS='-O3 -march=native' \
+  CXXOPTFLAGS='-O3 -march=native' \
+  FOPTFLAGS='-O3 -march=native'
+
+make PETSC_DIR=$PWD PETSC_ARCH=arch-single-complex-opt all
+make PETSC_DIR=$PWD PETSC_ARCH=arch-single-complex-opt check
+
+================================================================================
+In CMake, set:
+	PETSC_ARCH (one of the values above)
+	PETSC_DIR (full path of petsc-git directory)

@@ -58,6 +58,29 @@ make PETSC_DIR=$PWD PETSC_ARCH=arch-double-opt check
 
 
 
+source ~/intel/oneapi/setvars.sh
+./configure --PETSC_ARCH=arch-double-pardiso-opt \
+  --with-precision=double \
+  --with-debugging=0 \
+  --with-openmp=1 \
+  --download-petsc4py \
+  --download-mumps \
+  --download-hypre \
+  --download-superlu_dist \
+  --with-cxx-dialect=cxx14 \
+  --with-mkl_pardiso=1 \
+  --with-mkl_pardiso-dir=$MKLROOT \
+  --with-blaslapack-dir=$MKLROOT \
+  --with-scalapack-lib="-L$MKLROOT/lib -lmkl_scalapack_lp64 -lmkl_blacs_openmpi_lp64" \
+  COPTFLAGS='-O3 -march=native' \
+  CXXOPTFLAGS='-O3 -march=native' \
+  FOPTFLAGS='-O3 -march=native'
+
+make PETSC_DIR=$PWD PETSC_ARCH=arch-double-pardiso-opt all
+make PETSC_DIR=$PWD PETSC_ARCH=arch-double-pardiso-opt check
+
+
+
 ./configure --PETSC_ARCH=arch-double-complex-opt \
   --with-precision=double \
   --with-scalar-type=complex \

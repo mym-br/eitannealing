@@ -1,13 +1,13 @@
 import argparse
 
 import numpy as np
-import pyeitsolver_complex
+import pyeitsolver
 from icecream import ic
 from mesh_io import save_complex_potentials
 
 
 def main(mesh_file, currents_file, output_file):
-    solver = ic(pyeitsolver_complex.EitComplexSolver(mesh_file, currents_file))
+    solver = ic(pyeitsolver.EitComplexSolver(mesh_file, currents_file))
     ic(type(solver))
     potentials = ic(solver.solve_forward_problem(np.ones(solver.info["nodes_count"]) * 0.3810))
     save_complex_potentials(

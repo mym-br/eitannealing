@@ -18,24 +18,28 @@ PETSC_ARCH arch-double-complex-opt
 PETSC_DIR /workspace/cae/eit_petsc/petsc-git
 
 ================================================================================
-cd tests
+cd src/pyeitsolver
+ln -s ../../../../build-eitannealing-Desktop-Release/*.so .
+cd ../../examples
 
 # For MUMPS.
 export OMP_NUM_THREADS=1
 
-time python3 solve_complex_test.py \
+export PYTHONPATH=../src
+
+time python3 solve_complex.py \
   ../../data/circular_A_2D.msh \
   ../../data/cuba_190ma_cp.txt \
   out.msh
 
 # WRONG: Starts 6 Python processes.
-#time mpiexec -n 6 python3 solve_complex_test.py \
+#time mpiexec -n 6 python3 solve_complex.py \
 #  ../../data/circular_A_2D.msh \
 #  ../../data/cuba_190ma_cp.txt \
 #  out.msh
 
 # WRONG: Starts 6 Python processes.
-#time mpiexec -n 6 python3 -m mpi4py solve_complex_test.py \
+#time mpiexec -n 6 python3 -m mpi4py solve_complex.py \
 #  ../../data/circular_A_2D.msh \
 #  ../../data/cuba_190ma_cp.txt \
 #  out.msh

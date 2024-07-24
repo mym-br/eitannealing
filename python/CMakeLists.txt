@@ -61,36 +61,36 @@ set_property(TARGET eit_python_core PROPERTY CXX_STANDARD 17)
 
 if (USE_PYBIND11_NOPYTHON)
   # Create the Python extension core module manually
-  add_library(pyeitsolver_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core>)
-  set_target_properties(pyeitsolver_core PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
-  target_link_libraries(pyeitsolver_core PRIVATE pybind11::module ${PYTHON_LIBRARY})
+  add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core>)
+  set_target_properties(_core PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
+  target_link_libraries(_core PRIVATE pybind11::module ${PYTHON_LIBRARY})
 
   # Create the Python extension complex module manually
-  add_library(pyeitsolver_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core>)
-  set_target_properties(pyeitsolver_complex PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
-  target_link_libraries(pyeitsolver_complex PRIVATE pybind11::module ${PYTHON_LIBRARY} ${PETSC_LIBRARIES})
+  add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core>)
+  set_target_properties(_complex PROPERTIES PREFIX "" SUFFIX ".pyd" CXX_STANDARD 17)
+  target_link_libraries(_complex PRIVATE pybind11::module ${PYTHON_LIBRARY} ${PETSC_LIBRARIES})
 else()
   # Add core library using FindPython's tooling
-  python_add_library(pyeitsolver_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
-  target_link_libraries(pyeitsolver_core PRIVATE pybind11::headers)
+  python_add_library(_core MODULE src/core.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
+  target_link_libraries(_core PRIVATE pybind11::headers)
   
   # Add complex library using FindPython's tooling
-  python_add_library(pyeitsolver_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
-  target_link_libraries(pyeitsolver_complex PRIVATE pybind11::headers ${PETSC_LIBRARIES})
+  python_add_library(_complex MODULE src/complex.cpp $<TARGET_OBJECTS:eit_python_core> WITH_SOABI)
+  target_link_libraries(_complex PRIVATE pybind11::headers ${PETSC_LIBRARIES})
 endif()
 
 set(CMAKE_CXX_FLAGS "-fPIC")
 
 # This is passing in the version as a define just as an example
-target_compile_definitions(pyeitsolver_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
+target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})
 
 # The install directory is the output (wheel) directory
-install(TARGETS pyeitsolver_core DESTINATION pyeitsolver)
+install(TARGETS _core DESTINATION pyeitsolver)
 
 # This is passing in the version as a define just as an example
-target_compile_definitions(pyeitsolver_complex PRIVATE VERSION_INFO=${PROJECT_VERSION} BLOCKGND=1)
+target_compile_definitions(_complex PRIVATE VERSION_INFO=${PROJECT_VERSION} BLOCKGND=1)
 
-target_link_options(pyeitsolver_complex PUBLIC -fPIC)
+target_link_options(_complex PUBLIC -fPIC)
 
 # The install directory is the output (wheel) directory
-install(TARGETS pyeitsolver_complex DESTINATION pyeitsolver)
+install(TARGETS _complex DESTINATION pyeitsolver)

@@ -206,7 +206,7 @@ namespace pyeitsolver
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(pyeitsolver_core, m)
+PYBIND11_MODULE(_core, m)
 {
     m.doc() = R"pbdoc(
         Pybind11 eitannealing solver plugin
